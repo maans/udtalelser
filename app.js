@@ -1176,4 +1176,18 @@ function normalizePlaceholderKey(key) {
   }
 
   init();
-})();
+})();function renderMarkGrid({ key, options, value, onSet, onClear }) {
+  const btn = (opt) => {
+    const isOn = value === opt.value;
+    return `<button class="mark-toggle ${isOn ? 'is-on' : ''}" data-key="${key}" data-val="${opt.value}" title="${escapeHtml(opt.label)}" type="button">
+      <span class="check">✓</span>
+    </button>`;
+  };
+  const clearBtn = `<button class="mark-clear" data-key="${key}" data-val="" title="Ryd valg" type="button">×</button>`;
+  return `<div class="mark-grid">
+    ${options.map(btn).join('')}
+    ${clearBtn}
+  </div>`;
+}
+
+

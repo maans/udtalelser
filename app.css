@@ -225,3 +225,54 @@ tr:hover td{background: rgba(255,255,255,.02)}
   }
   @page{size:A4; margin: 18mm 16mm}
 }
+
+/* Marking UI: checkbox-like buttons (single choice per row) */
+.mark-grid {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: flex-start;
+}
+.mark-toggle {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(255,255,255,0.04);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+  line-height: 1;
+  font-weight: 700;
+}
+.mark-toggle:hover {
+  background: rgba(255,255,255,0.07);
+}
+.mark-toggle.is-on {
+  border-color: rgba(120, 220, 255, 0.55);
+  background: rgba(120, 220, 255, 0.14);
+  box-shadow: 0 0 0 2px rgba(120, 220, 255, 0.10) inset;
+}
+.mark-toggle .check {
+  opacity: 0.0;
+  transform: translateY(-0.5px);
+}
+.mark-toggle.is-on .check {
+  opacity: 1.0;
+}
+.mark-clear {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(255,255,255,0.02);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+  opacity: 0.85;
+}
+.mark-clear:hover { opacity: 1.0; background: rgba(255,255,255,0.06); }
