@@ -14,8 +14,8 @@
     </div>
 
     <nav class="tabs" aria-label="Navigation">
-      <button id="tab-k"   class="tab" data-tab="k"   title="K-elever">👤 <span>K-elever</span></button>
-      <button id="tab-edit"class="tab" data-tab="edit" title="Redigér">✍️ <span>Redigér</span></button>
+      <button id="tab-k" class="tab" data-tab="k" title="K-elever">👤 <span>K-elever</span></button>
+      <button id="tab-edit" class="tab" data-tab="edit" title="Redigér">✍️ <span>Redigér</span></button>
       <button id="tab-set" class="tab" data-tab="set" title="Indstillinger">⚙️ <span>Indstillinger</span></button>
     </nav>
 
@@ -38,19 +38,19 @@
 
     <!-- Redigér -->
     <section id="view-edit" class="view">
-      <div class="viewHeader">
+      <div class="viewHeader no-print">
         <h1>Redigér</h1>
-        <div class="row gap">
+        <div class="row gap wrap">
           <div class="pill" id="editStudentPill">Ingen elev valgt</div>
           <div class="pill muted" id="autosavePill"></div>
           <button class="btn no-print" id="btnPrint">🖨️ Print / Gem som PDF</button>
         </div>
       </div>
 
-      <div id="editMessage" class="callout"></div>
+      <div id="editMessage" class="callout no-print"></div>
 
       <div class="split">
-        <div class="panel">
+        <div class="panel no-print">
           <details open class="fold">
             <summary>Elevudvikling</summary>
             <textarea id="txtElevudv" rows="8" placeholder="Skriv elevudvikling…"></textarea>
@@ -73,14 +73,14 @@
               <button id="btnClearStudentInput" class="btn ghost" type="button">Fjern</button>
             </div>
             <div id="studentInputMeta" class="muted small"></div>
-            <div class="muted small">Tip: Åbn filen ved siden af og copy/paste/omskriv.</div>
+            <div class="muted small">
+              Når du vælger en fil, åbnes den i en ny fane. Appen gemmer kun filnavn + tidspunkt (ikke selve filen).
+              <br/>Bemærk: browseren kan ikke genåbne filen automatisk efter genstart – men du kan vælge den igen.
+            </div>
           </div>
         </div>
 
         <div class="panel">
-          <div class="card print-only">
-            <div class="cardTitle">Udtalelse</div>
-          </div>
           <article id="preview" class="preview"></article>
         </div>
       </div>
@@ -94,12 +94,48 @@
       </div>
 
       <div class="grid2">
+        <!-- Venstre: System & Data -->
         <div class="card">
-          <div class="cardTitle">Lokal lagring</div>
+          <div class="cardTitle">Data & nulstil</div>
           <button id="btnReset" class="btn danger" type="button">🧹 Ryd alle lokale data (denne browser)</button>
-          <div class="muted small">Sletter alle nøgler der starter med <code>udt_</code> og genstarter appen.</div>
+          <div class="muted small" style="margin:.5rem 0 1rem 0">
+            Sletter alle nøgler der starter med <code>udt_</code> og genstarter appen.
+          </div>
+
+          <div class="cardSubTitle">Elevliste (CSV) – skal indlæses først</div>
+          <input id="studentsFile" type="file" accept=".csv,.txt" />
+          <div id="studentsStatus" class="muted small" style="margin-top:.35rem"></div>
+
+          <details class="fold no-print" style="margin-top:.8rem">
+            <summary>Accepterede kolonner (eksempler)</summary>
+            <div class="muted small">
+              <div><b>Primært:</b> Fornavn, Efternavn, Unilogin, Køn, Kontaktlærer1, Kontaktlærer2, Klasse</div>
+              <div><b>Uni-C:</b> Klasse, Fornavn, Efternavn, Uni-C brugernavn, Køn, Relationer-Kontaktlærer-Navn, Relationer-Anden kontaktlærer-Navn</div>
+              <div>Appen mapper kolonner robust (case-insensitivt, trim, accepter Unilogin/Uni-C brugernavn).</div>
+            </div>
+          </details>
+
+          <div class="divider"></div>
+
+          <div class="cardSubTitle">Import af faglærer-CSV’er (for kontaktlærere)</div>
+          <div class="grid3">
+            <div class="field">
+              <label>sang_marks.csv</label>
+              <input id="importSang" type="file" accept=".csv,.txt" />
+            </div>
+            <div class="field">
+              <label>gym_marks.csv</label>
+              <input id="importGym" type="file" accept=".csv,.txt" />
+            </div>
+            <div class="field">
+              <label>elevraad_marks.csv</label>
+              <input id="importElevraad" type="file" accept=".csv,.txt" />
+            </div>
+          </div>
+          <div id="importStatus" class="muted small"></div>
         </div>
 
+        <!-- Højre: Identitet + skabeloner -->
         <div class="card">
           <div class="cardTitle">Navne og periode</div>
 
@@ -110,6 +146,15 @@
               <button id="btnToggleForstander" class="btn ghost" type="button" title="Lås op / lås">✏️</button>
             </div>
           </div>
+
+          <details class="fold" id="schoolTextFold">
+            <summary>Skolens standardtekst</summary>
+            <div class="row gap wrap" style="margin:.5rem 0">
+              <button id="btnToggleSchoolText" class="btn ghost" type="button">✏️ Redigér</button>
+              <button id="btnRestoreSchoolText" class="btn ghost" type="button">↩️ Gendan standard</button>
+            </div>
+            <textarea id="schoolText" rows="10"></textarea>
+          </details>
 
           <div class="field">
             <label>Jeg er (initialer eller navn)</label>
@@ -136,34 +181,22 @@
             <label>Kontaktgruppe antal (auto)</label>
             <input id="contactCount" type="text" readonly />
           </div>
-        </div>
 
-        <div class="card">
-          <div class="cardTitle">Elevliste (CSV) – skal indlæses først</div>
-          <input id="studentsFile" type="file" accept=".csv,.txt" />
-          <div id="studentsStatus" class="muted small"></div>
-          <details class="fold no-print">
-            <summary>Accepterede kolonner (eksempler)</summary>
-            <div class="muted small">
-              <div><b>Primært:</b> Fornavn, Efternavn, Unilogin, Køn, Kontaktlærer1, Kontaktlærer2, Klasse</div>
-              <div><b>Uni-C:</b> Klasse, Fornavn, Efternavn, Uni-C brugernavn, Køn, Relationer-Kontaktlærer-Navn, Relationer-Anden kontaktlærer-Navn</div>
-              <div>Appen mapper kolonner robust (case-insensitivt, trim, accepter Unilogin/Uni-C brugernavn).</div>
+          <details class="fold" id="templateFold">
+            <summary>Udtalelses-skabelon (med placeholders)</summary>
+            <div class="row gap wrap" style="margin:.5rem 0">
+              <button id="btnToggleTemplate" class="btn ghost" type="button">✏️ Redigér</button>
+              <button id="btnRestoreTemplate" class="btn ghost" type="button">↩️ Gendan standard</button>
             </div>
+            <textarea id="templateText" rows="14"></textarea>
+            <div class="muted small">Brug placeholders som <code>{{ELEV_FORNAVN}}</code>, <code>{{SANG_AFSNIT}}</code>, <code>{{PRAKTISK_AFSNIT}}</code> osv.</div>
           </details>
-        </div>
-
-        <div class="card">
-          <div class="cardTitle">Skolens standardtekst</div>
-          <div class="row gap wrap no-print">
-            <button id="btnToggleSchoolText" class="btn ghost" type="button">✏️ Redigér</button>
-            <button id="btnRestoreSchoolText" class="btn ghost" type="button">↩️ Gendan standard</button>
-          </div>
-          <textarea id="schoolText" rows="10"></textarea>
         </div>
       </div>
 
-      <div class="card no-print">
+      <div class="card no-print" style="margin-top:1rem">
         <div class="cardTitle">Faglærer-arbejde (producer CSV til deling)</div>
+
         <div class="row gap wrap">
           <label class="muted small">Type</label>
           <select id="marksType">
@@ -171,31 +204,16 @@
             <option value="gym">Gym/roller</option>
             <option value="elevraad">Elevråd</option>
           </select>
+
+          <label class="muted small">Find elev</label>
+          <input id="marksSearch" type="text" placeholder="Søg på navn…" class="search" />
+
           <button id="btnExportMarks" class="btn" type="button">⬇️ Eksportér CSV</button>
         </div>
+
+        <div id="marksLegend" class="muted small" style="margin-top:.6rem"></div>
         <div id="marksTableWrap" class="tableWrap"></div>
-        <div class="muted small">Tip: Faglærervalg gemmes også lokalt, så man kan fortsætte senere.</div>
       </div>
-
-      <div class="card no-print">
-        <div class="cardTitle">Import af faglærer-CSV’er (for kontaktlærere)</div>
-        <div class="grid3">
-          <div class="field">
-            <label>sang_marks.csv</label>
-            <input id="importSang" type="file" accept=".csv,.txt" />
-          </div>
-          <div class="field">
-            <label>gym_marks.csv</label>
-            <input id="importGym" type="file" accept=".csv,.txt" />
-          </div>
-          <div class="field">
-            <label>elevraad_marks.csv</label>
-            <input id="importElevraad" type="file" accept=".csv,.txt" />
-          </div>
-        </div>
-        <div id="importStatus" class="muted small"></div>
-      </div>
-
     </section>
   </main>
 

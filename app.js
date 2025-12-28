@@ -15,113 +15,118 @@
     textPrefix: LS_PREFIX + 'text_' // + unilogin
   };
 
-  // =============================
-  // Alias map (initialer → fuldt navn)
-  // =============================
   const TEACHER_ALIAS_MAP = {
-    "ab":  "Andreas Bech Pedersen",
-    "avp": "Ane Vestergaard Pedersen",
-    "av":  "Anne Valsted",
-    "ao":  "Astrid Sun Otte",
-    "bpo": "Bjarne Poulsen",
-    "bs":  "Bo Serritzlew",
-    "cm":  "Carsten Søe Mortensen",
-    "dh":  "Dennis Horn",
-    "dc":  "Dorthe Corneliussen Bertelsen",
-    "eb":  "Emil Egetoft Brinch",
-    "eni": "Emil Nielsen",
-    "hm":  "Henrik Marcussen",
-    "ic":  "Ida Søttrup Christensen",
-    "is":  "Inge Johansen Stuhr",
-    "jg":  "Jakob Mols Græsborg",
-    "jh":  "Jens H. Noe",
-    "jl":  "Jesper Laubjerg",
-    "kb":  "Kathrine Spandet Brøndum",
-    "kh":  "Kenneth Hald",
-    "kvs": "Kristoffer Vorre Sørensen",
-    "lgn": "Laura Guldbæk Nymann",
-    "mti": "Magnus Tolborg Ibsen",
-    "mt":  "Maria Rosborg Thornval",
-    "mo":  "Marianne Brun Ottesen",
-    "mv":  "Mark Vestergaard Pedersen",
-    "mg":  "Martin Gregersen",
-    "ms":  "Mia Mejlby Sørensen",
-    "mtp": "Mikkel Tejlgaard Pedersen",
-    "mm":  "Måns Patrik Mårtensson",
-    "rb":  "Randi Borum",
-    "rd":  "Rasmus Damsgaard",
-    "ra":  "Rebecka Antonsen",
-    "sg":  "Sara Maiken Mols Græsborg",
-    "smb": "Stine Maria Birkeholm",
-    "snv": "Stine Nielsen Vad",
-    "sp":  "Stinne Krogh Poulsen",
-    "th":  "Trine Hedegaard Nielsen",
-    "tin": "Trine Isager Nielsen",
-    "tk":  "Trine Krogh Korneliussen",
-    "vsi": "Viola Simonsen"
-  };
+  "ab": "Andreas Bech Pedersen",
+  "avp": "Ane Vestergaard Pedersen",
+  "av": "Anne Valsted",
+  "ao": "Astrid Sun Otte",
+  "bpo": "Bjarne Poulsen",
+  "bs": "Bo Serritzlew",
+  "cm": "Carsten Søe Mortensen",
+  "dh": "Dennis Horn",
+  "dc": "Dorthe Corneliussen Bertelsen",
+  "eb": "Emil Egetoft Brinch",
+  "eni": "Emil Nielsen",
+  "hm": "Henrik Marcussen",
+  "ic": "Ida Søttrup Christensen",
+  "is": "Inge Johansen Stuhr",
+  "jg": "Jakob Mols Græsborg",
+  "jh": "Jens H. Noe",
+  "jl": "Jesper Laubjerg",
+  "kb": "Kathrine Spandet Brøndum",
+  "kh": "Kenneth Hald",
+  "kvs": "Kristoffer Vorre Sørensen",
+  "lgn": "Laura Guldbæk Nymann",
+  "mti": "Magnus Tolborg Ibsen",
+  "mt": "Maria Rosborg Thornval",
+  "mo": "Marianne Brun Ottesen",
+  "mv": "Mark Vestergaard Pedersen",
+  "mg": "Martin Gregersen",
+  "ms": "Mia Mejlby Sørensen",
+  "mtp": "Mikkel Tejlgaard Pedersen",
+  "mm": "Måns Patrik Mårtensson",
+  "rb": "Randi Borum",
+  "rd": "Rasmus Damsgaard",
+  "ra": "Rebecka Antonsen",
+  "sg": "Sara Maiken Mols Græsborg",
+  "smb": "Stine Maria Birkeholm",
+  "snv": "Stine Nielsen Vad",
+  "sp": "Stinne Krogh Poulsen",
+  "th": "Trine Hedegaard Nielsen",
+  "tin": "Trine Isager Nielsen",
+  "tk": "Trine Krogh Korneliussen",
+  "vsi": "Viola Simonsen"
+};
 
-  // =============================
-  // Snippets bank (defaults)
-  // =============================
   const SNIPPETS = {
-    // Sang (S1/S2/S3)
     sang: {
-      S1: { neutral: "Elevens deltagelse i fællessang har været meget aktiv og engageret." },
-      S2: { neutral: "Elevens deltagelse i fællessang har været stabil og positiv." },
-      S3: { neutral: "Elevens deltagelse i fællessang har været varierende." }
-    },
-    // Gym (G1/G2/G3)
-    gym: {
-      G1: { neutral: "Eleven har været meget aktiv og deltagende i fællesgymnastik." },
-      G2: { neutral: "Eleven har deltaget stabilt i fællesgymnastik." },
-      G3: { neutral: "Elevens deltagelse i fællesgymnastik har været varierende." }
-    },
-    // Elevråd
-    elevraad: {
-      YES: { neutral: "Eleven har været repræsentant i elevrådet og har taget ansvar i fællesskabet." }
-    },
-    // Roller
+  "S1": {
+    "title": "Meget aktiv deltagelse",
+    "text_m": "{{FORNAVN}} har deltaget meget engageret i fællessang gennem hele året. {{HAN_HUN}} har bidraget positivt til fællesskabet og vist lyst til at udvikle sin sangstemme.",
+    "text_k": "{{FORNAVN}} har deltaget meget engageret i fællessang gennem hele året. {{HAN_HUN}} har bidraget positivt til fællesskabet og vist lyst til at udvikle sin sangstemme."
+  },
+  "S2": {
+    "title": "Stabil deltagelse",
+    "text_m": "{{FORNAVN}} har deltaget stabilt i fællessang og har mødt undervisningen med en positiv indstilling. {{HAN_HUN}} har været en god del af fællesskabet.",
+    "text_k": "{{FORNAVN}} har deltaget stabilt i fællessang og har mødt undervisningen med en positiv indstilling. {{HAN_HUN}} har været en god del af fællesskabet."
+  },
+  "S3": {
+    "title": "Varierende deltagelse",
+    "text_m": "{{FORNAVN}} har haft en varierende deltagelse i fællessang. {{HAN_HUN}} har dog i perioder vist engagement og vilje til at indgå i fællesskabet.",
+    "text_k": "{{FORNAVN}} har haft en varierende deltagelse i fællessang. {{HAN_HUN}} har dog i perioder vist engagement og vilje til at indgå i fællesskabet."
+  }
+},
+    gym:  {
+  "G1": {
+    "title": "Meget engageret",
+    "text_m": "{{FORNAVN}} har deltaget meget engageret i fællesgymnastik og har vist stor lyst til at udfordre sig selv. {{HAN_HUN}} har bidraget positivt til holdets fællesskab.",
+    "text_k": "{{FORNAVN}} har deltaget meget engageret i fællesgymnastik og har vist stor lyst til at udfordre sig selv. {{HAN_HUN}} har bidraget positivt til holdets fællesskab."
+  },
+  "G2": {
+    "title": "Stabil deltagelse",
+    "text_m": "{{FORNAVN}} har deltaget stabilt i fællesgymnastik og har mødt undervisningen med en positiv indstilling.",
+    "text_k": "{{FORNAVN}} har deltaget stabilt i fællesgymnastik og har mødt undervisningen med en positiv indstilling."
+  },
+  "G3": {
+    "title": "Varierende deltagelse",
+    "text_m": "{{FORNAVN}} har haft en varierende deltagelse i fællesgymnastik, men har i perioder vist vilje til at indgå i fællesskabet.",
+    "text_k": "{{FORNAVN}} har haft en varierende deltagelse i fællesgymnastik, men har i perioder vist vilje til at indgå i fællesskabet."
+  }
+},
     roller: {
-      FANEB: { neutral: "Eleven har været fanebærer." },
-      REDSK: { neutral: "Eleven har været en del af redskabsholdet." },
-      DGI:   { neutral: "Eleven har været DGI-hjælper." }
+  "FANEBÆRER": {
+    "title": "Fanebærer",
+    "text_m": "{{FORNAVN}} har været udtaget som fanebærer til skolens fælles gymnastikopvisninger. Et hverv {{HAN_HUN}} har varetaget ansvarsfuldt og respektfuldt.",
+    "text_k": "{{FORNAVN}} har været udtaget som fanebærer til skolens fælles gymnastikopvisninger. Et hverv {{HAN_HUN}} har varetaget ansvarsfuldt og respektfuldt."
+  },
+  "REDSKAB": {
+    "title": "Redskabshold",
+    "text_m": "{{FORNAVN}} har været en del af redskabsholdet, som {{HAN_HUN}} frivilligt har meldt sig til. {{HAN_HUN}} har ydet en stor indsats og taget ansvar.",
+    "text_k": "{{FORNAVN}} har været en del af redskabsholdet, som {{HAN_HUN}} frivilligt har meldt sig til. {{HAN_HUN}} har ydet en stor indsats og taget ansvar."
+  },
+  "DGI": {
+    "title": "DGI-instruktør",
+    "text_m": "{{FORNAVN}} har deltaget aktivt i skolens frivillige samarbejde med foreningslivet og har vist engagement og ansvar.",
+    "text_k": "{{FORNAVN}} har deltaget aktivt i skolens frivillige samarbejde med foreningslivet og har vist engagement og ansvar."
+  }
+},
+    elevraad: {
+      YES: {
+        title: "Elevrådsrepræsentant",
+        text_m: "{ELEV_FORNAVN} har været repræsentant i elevrådet og har taget ansvar i fællesskabet.",
+        text_k: "{ELEV_FORNAVN} har været repræsentant i elevrådet og har taget ansvar i fællesskabet."
+      }
     },
-    // Kontaktgruppe standard (bruges hvis fritekst er tom)
     kontaktgruppeDefault: "I kontaktgruppen har vi arbejdet med trivsel, ansvar og fællesskab.",
     afslutningDefault: "Vi ønsker eleven alt det bedste fremover."
   };
 
-  // Default skolens standardtekst (kan redigeres/låses op)
   const DEFAULT_SCHOOL_TEXT =
 `På Himmerlands Ungdomsskole arbejder vi med både faglighed, fællesskab og personlig udvikling.
 Udtalelsen er skrevet med udgangspunkt i elevens hverdag og deltagelse gennem skoleåret.`;
 
-  // Template (simpel, placeholder-baseret)
-  // Note: vi bruger én samlet blok SANG_GYM_AFSNIT (som din docx gør).
-  const DEFAULT_TEMPLATE =
-`{DATO_MAANED_AAR}
+  const DEFAULT_TEMPLATE = "Udtalelse vedrørende {{ELEV_FULDE_NAVN}}\n\n{{ELEV_FORNAVN}} {{ELEV_EFTERNAVN}} har været elev på Himmerlands Ungdomsskole i perioden fra {{PERIODE_FRA}} til {{PERIODE_TIL}} i {{ELEV_KLASSE}}.\n\nHimmerlands Ungdomsskole er en traditionsrig efterskole, som prioriterer fællesskabet og faglig fordybelse højt. Elevernes hverdag er præget af frie rammer og mange muligheder. Vi møder eleverne med tillid, positive forventninger og faglige udfordringer. I løbet af et efterskoleår på Himmerlands Ungdomsskole er oplevelserne mange og udfordringerne ligeså. Det gælder i hverdagens almindelige undervisning, som fordeler sig over boglige fag, fællesfag og profilfag. Det gælder også alle de dage, hvor hverdagen ændres til fordel for temauger, studieture mm. \n\n{{ELEV_UDVIKLING_AFSNIT}}\n\nSom en del af et efterskoleår på Himmerlands Ungdomsskole deltager eleverne ugentligt i fællessang og fællesgymnastik. Begge fag udgør en del af efterskolelivet, hvor eleverne oplever nye sider af sig selv, flytter grænser og oplever, at deres bidrag til fællesskabet har betydning. I løbet af året optræder eleverne med fælleskor og gymnastikopvisninger.\n\n{{SANG_GYM_AFSNIT}}\n\nPå en efterskole er der mange praktiske opgaver.\n\n{{PRAKTISK_AFSNIT}}\n\n{{ELEV_FORNAVN}} har på Himmerlands Ungdomsskole været en del af en kontaktgruppe på {{KONTAKTGRUPPE_ANTAL}} elever. I kontaktgruppen kender vi {{HAM_HENDE}} som {{KONTAKTGRUPPE_BESKRIVELSE}}.\n\nVi har været rigtig glade for at have {{ELEV_FORNAVN}} som elev på skolen og ønsker held og lykke fremover.\n\n{{KONTAKTLÆRER_1_NAVN}} & {{KONTAKTLÆRER_2_NAVN}}\n\nKontaktlærere\n\n{{FORSTANDER_NAVN}}\n\nForstander";
 
-{NAVN} ({KLASSE})
-Periode: {PERIODE_FRA} – {PERIODE_TIL}
-
-{SKOLENS_STANDARDTEKST}
-
-{SANG_GYM_AFSNIT}
-
-{ELEVUDVIKLING_FRI}
-
-{PRAKTISK_FRI}
-
-{KGRUPPE_FRI}
-
-Kontaktlærere: {KONTAKTLAERERE}
-Forstander: {FORSTANDER}
-`;
-
-  // =============================
-  // Utilities: localStorage
-  // =============================
   function lsGet(key, fallback) {
     try {
       const v = localStorage.getItem(key);
@@ -134,9 +139,6 @@ Forstander: {FORSTANDER}
   function lsSet(key, value) {
     localStorage.setItem(key, JSON.stringify(value));
   }
-  function lsDel(key) {
-    localStorage.removeItem(key);
-  }
   function lsDelPrefix(prefix) {
     const keys = [];
     for (let i = 0; i < localStorage.length; i++) {
@@ -146,9 +148,6 @@ Forstander: {FORSTANDER}
     keys.forEach(k => localStorage.removeItem(k));
   }
 
-  // =============================
-  // Normalisering (navne + header)
-  // =============================
   function normalizeName(input) {
     if (!input) return "";
     return input
@@ -162,20 +161,24 @@ Forstander: {FORSTANDER}
       .trim();
   }
   function normalizeHeader(input) {
-    // mere aggressiv: behold kun a-z0-9
     return normalizeName(input).replace(/[^a-z0-9]+/g, "");
   }
-
   function resolveTeacherName(inputRaw) {
     const norm = normalizeName(inputRaw);
     if (!norm) return "";
     if (TEACHER_ALIAS_MAP[norm]) return TEACHER_ALIAS_MAP[norm];
-    return inputRaw.trim(); // fuldt navn eller andet
+    return inputRaw.trim();
   }
 
-  // =============================
-  // CSV parsing (delimiter detect + simple quote support)
-  // =============================
+  function escapeHtml(s) {
+    return (s ?? '').toString()
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+  function escapeAttr(s) {
+    return (s ?? '').toString().replace(/"/g,'&quot;');
+  }
+
   function detectDelimiter(firstLine) {
     const candidates = [';', ',', '\t'];
     let best = ',', bestCount = -1;
@@ -186,10 +189,29 @@ Forstander: {FORSTANDER}
     }
     return best;
   }
-
+  function parseCsvLine(line, delim) {
+    const out = [];
+    let cur = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') {
+        if (inQuotes && line[i+1] === '"') { cur += '"'; i++; continue; }
+        inQuotes = !inQuotes;
+        continue;
+      }
+      if (!inQuotes && (delim === '\t' ? ch === '\t' : ch === delim)) {
+        out.push(cur);
+        cur = '';
+        continue;
+      }
+      cur += ch;
+    }
+    out.push(cur);
+    return out;
+  }
   function parseCsv(text) {
     const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
-    // fjern tomme slutlinjer
     while (lines.length && !lines[lines.length-1].trim()) lines.pop();
     if (lines.length === 0) return { headers: [], rows: [] };
 
@@ -207,30 +229,6 @@ Forstander: {FORSTANDER}
     }
     return { headers, rows, delim };
   }
-
-  function parseCsvLine(line, delim) {
-    const out = [];
-    let cur = '';
-    let inQuotes = false;
-    for (let i = 0; i < line.length; i++) {
-      const ch = line[i];
-      if (ch === '"') {
-        // double quote inside quotes -> escape
-        if (inQuotes && line[i+1] === '"') { cur += '"'; i++; continue; }
-        inQuotes = !inQuotes;
-        continue;
-      }
-      if (!inQuotes && (delim === '\t' ? ch === '\t' : ch === delim)) {
-        out.push(cur);
-        cur = '';
-        continue;
-      }
-      cur += ch;
-    }
-    out.push(cur);
-    return out;
-  }
-
   function toCsv(rows, headers) {
     const esc = (v) => {
       const s = (v ?? '').toString();
@@ -242,9 +240,6 @@ Forstander: {FORSTANDER}
     return head + '\n' + body + '\n';
   }
 
-  // =============================
-  // App state
-  // =============================
   const state = {
     tab: 'set',
     selectedUnilogin: null
@@ -263,7 +258,8 @@ Forstander: {FORSTANDER}
     return {
       schoolText: DEFAULT_SCHOOL_TEXT,
       schoolTextLocked: true,
-      template: DEFAULT_TEMPLATE
+      template: DEFAULT_TEMPLATE,
+      templateLocked: true
     };
   }
 
@@ -278,12 +274,13 @@ Forstander: {FORSTANDER}
   function getMarks(kindKey) { return lsGet(kindKey, {}); }
   function setMarks(kindKey, m) { lsSet(kindKey, m); }
 
-  function getTextFor(unilogin) { return lsGet(KEYS.textPrefix + unilogin, { elevudvikling:'', praktisk:'', kgruppe:'', lastSavedTs:null, studentInputMeta:null }); }
+  function getTextFor(unilogin) {
+    return lsGet(KEYS.textPrefix + unilogin, {
+      elevudvikling:'', praktisk:'', kgruppe:'', lastSavedTs:null, studentInputMeta:null
+    });
+  }
   function setTextFor(unilogin, obj) { lsSet(KEYS.textPrefix + unilogin, obj); }
 
-  // =============================
-  // Period helpers
-  // =============================
   function computePeriod(schoolYearEnd) {
     const endYear = Number(schoolYearEnd) || (new Date().getFullYear() + 1);
     return {
@@ -293,23 +290,25 @@ Forstander: {FORSTANDER}
     };
   }
 
-  function genderPronounHamHende(genderRaw) {
+  function genderGroup(genderRaw) {
     const g = normalizeName(genderRaw);
-    // accepterer m/k, dreng/pige, male/female
-    if (g === 'm' || g.includes('dreng') || g.includes('male')) return 'ham';
-    if (g === 'k' || g.includes('pige') || g.includes('female')) return 'hende';
-    return 'eleven';
+    if (g === 'k' || g.includes('pige') || g.includes('female')) return 0;
+    if (g === 'm' || g.includes('dreng') || g.includes('male')) return 1;
+    return 2;
   }
 
-  // =============================
-  // Rendering + routing
-  // =============================
-  const els = {};
+  function sortedStudents(all) {
+    return all.slice().sort((a,b) =>
+      (genderGroup(a.koen) - genderGroup(b.koen)) ||
+      (a.efternavn||'').localeCompare(b.efternavn||'', 'da') ||
+      (a.fornavn||'').localeCompare(b.fornavn||'', 'da')
+    );
+  }
+
   function $(id){ return document.getElementById(id); }
 
   function setTab(tab) {
     state.tab = tab;
-    // landingslogik: hvis ingen elever, så altid indstillinger
     const students = getStudents();
     if (!students.length && tab !== 'set') tab = 'set';
 
@@ -321,6 +320,13 @@ Forstander: {FORSTANDER}
     });
 
     renderAll();
+  }
+
+  function renderAll() {
+    renderStatus();
+    if (state.tab === 'set') renderSettings();
+    if (state.tab === 'k') renderKList();
+    if (state.tab === 'edit') renderEdit();
   }
 
   function renderStatus() {
@@ -350,11 +356,13 @@ Forstander: {FORSTANDER}
     $('schoolText').readOnly = !!t.schoolTextLocked;
     $('btnToggleSchoolText').textContent = t.schoolTextLocked ? '✏️ Redigér' : '🔒 Lås';
 
-    // students status
+    $('templateText').value = t.template ?? DEFAULT_TEMPLATE;
+    $('templateText').readOnly = !!t.templateLocked;
+    $('btnToggleTemplate').textContent = t.templateLocked ? '✏️ Redigér' : '🔒 Lås';
+
     $('studentsStatus').textContent = studs.length ? `✅ Elevliste indlæst: ${studs.length} elever` : `Upload elevliste først.`;
     $('studentsStatus').style.color = studs.length ? 'var(--accent)' : 'var(--muted)';
 
-    // contact count
     const meNorm = normalizeName(s.meResolved);
     if (studs.length && meNorm) {
       const count = studs.filter(st => normalizeName(st.kontaktlaerer1) === meNorm || normalizeName(st.kontaktlaerer2) === meNorm).length;
@@ -363,7 +371,7 @@ Forstander: {FORSTANDER}
       $('contactCount').value = '';
     }
 
-    renderMarksTable(); // also depends on students
+    renderMarksTable();
   }
 
   function renderKList() {
@@ -385,9 +393,8 @@ Forstander: {FORSTANDER}
       return;
     }
 
-    const mine = studs
-      .filter(st => normalizeName(st.kontaktlaerer1) === meNorm || normalizeName(st.kontaktlaerer2) === meNorm)
-      .sort((a,b) => (a.efternavn||'').localeCompare(b.efternavn||'', 'da') || (a.fornavn||'').localeCompare(b.fornavn||'', 'da'));
+    const mine = sortedStudents(studs)
+      .filter(st => normalizeName(st.kontaktlaerer1) === meNorm || normalizeName(st.kontaktlaerer2) === meNorm);
 
     if (!mine.length) {
       kMessage.innerHTML = `<b>Ingen K-elever matcher</b><br>
@@ -409,7 +416,6 @@ Forstander: {FORSTANDER}
       </div>`;
     }).join('');
 
-    // attach click handlers
     [...kList.querySelectorAll('.item')].forEach(el => {
       el.addEventListener('click', () => {
         state.selectedUnilogin = el.getAttribute('data-unilogin');
@@ -421,9 +427,22 @@ Forstander: {FORSTANDER}
     });
   }
 
+  function setEditEnabled(enabled) {
+    ['txtElevudv','txtPraktisk','txtKgruppe','fileStudentInput','btnClearStudentInput','btnPrint']
+      .forEach(id => { const el = $(id); if (el) el.disabled = !enabled; });
+  }
+
+  function formatTime(ts) {
+    const d = new Date(ts);
+    return d.toLocaleTimeString('da-DK', {hour:'2-digit', minute:'2-digit'});
+  }
+  function formatDateTime(ts) {
+    const d = new Date(ts);
+    return d.toLocaleString('da-DK', {year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'});
+  }
+
   function renderEdit() {
     const studs = getStudents();
-    const s = getSettings();
 
     const msg = $('editMessage');
     const pill = $('editStudentPill');
@@ -465,320 +484,419 @@ Forstander: {FORSTANDER}
 
     $('autosavePill').textContent = t.lastSavedTs ? `Sidst gemt: ${formatTime(t.lastSavedTs)}` : '';
 
-    // student input meta
     if (t.studentInputMeta && t.studentInputMeta.filename) {
       $('studentInputMeta').textContent = `Valgt fil: ${t.studentInputMeta.filename} (registreret ${formatDateTime(t.studentInputMeta.ts)})`;
     } else {
       $('studentInputMeta').textContent = '';
     }
 
-    // preview
-    $('preview').textContent = buildStatement(st, s);
-  }
-
-  function setEditEnabled(enabled) {
-    ['txtElevudv','txtPraktisk','txtKgruppe','fileStudentInput','btnClearStudentInput','btnPrint']
-      .forEach(id => { const el = $(id); if (el) el.disabled = !enabled; });
-  }
-
-  function formatTime(ts) {
-    const d = new Date(ts);
-    return d.toLocaleTimeString('da-DK', {hour:'2-digit', minute:'2-digit'});
-  }
-  function formatDateTime(ts) {
-    const d = new Date(ts);
-    return d.toLocaleString('da-DK', {year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'});
+    $('preview').textContent = buildStatement(st, getSettings());
   }
 
   function renderMarksTable() {
     const studs = getStudents();
     const wrap = $('marksTableWrap');
     const type = $('marksType').value;
+    const q = normalizeName($('marksSearch').value || '');
 
     if (!studs.length) {
       wrap.innerHTML = `<div class="muted small">Upload elevliste først.</div>`;
+      $('marksLegend').textContent = '';
       return;
     }
 
-    const sorted = studs.slice().sort((a,b) => (a.efternavn||'').localeCompare(b.efternavn||'', 'da') || (a.fornavn||'').localeCompare(b.fornavn||'', 'da'));
+    const list = sortedStudents(studs).filter(st => {
+      if (!q) return true;
+      const full = normalizeName(`${st.fornavn} ${st.efternavn}`);
+      return full.includes(q);
+    });
 
     if (type === 'sang') {
       const marks = getMarks(KEYS.marksSang);
-      wrap.innerHTML = buildSangTable(sorted, marks);
-      wireSangTable();
-    } else if (type === 'gym') {
+      $('marksLegend').innerHTML = `<b>Sang</b>: vælg det udsagn der passer bedst. (Klik på “x” for at rydde.)`;
+      const cols = Object.keys(SNIPPETS.sang);
+
+      wrap.innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>Navn</th><th>Klasse</th>
+              ${cols.map(c => `<th title="${escapeAttr(SNIPPETS.sang[c].title || c)}">${escapeHtml(c)}<br><span class="small muted">${escapeHtml(SNIPPETS.sang[c].title||'')}</span></th>`).join('')}
+              <th>–</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${list.map(st => {
+              const m = marks[st.unilogin] || { sang_variant: "" };
+              const full = `${st.fornavn} ${st.efternavn}`.trim();
+              return `<tr data-u="${escapeAttr(st.unilogin)}">
+                <td>${escapeHtml(full)}</td>
+                <td>${escapeHtml(st.klasse||'')}</td>
+                ${cols.map(c => {
+                  const active = (m.sang_variant === c);
+                  return `<td><span class="pillbtn ${active?'active':''}" data-set="${c}">${escapeHtml(c)}</span></td>`;
+                }).join('')}
+                <td><span class="pillbtn" data-clear="1">x</span></td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>`;
+
+      wrap.querySelectorAll('tr[data-u]').forEach(tr => {
+        const u = tr.getAttribute('data-u');
+        tr.querySelectorAll('[data-set]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const code = btn.getAttribute('data-set');
+            marks[u] = marks[u] || {};
+            marks[u].sang_variant = code;
+            setMarks(KEYS.marksSang, marks);
+            renderMarksTable();
+          });
+        });
+        tr.querySelector('[data-clear]').addEventListener('click', () => {
+          marks[u] = marks[u] || {};
+          marks[u].sang_variant = "";
+          setMarks(KEYS.marksSang, marks);
+          renderMarksTable();
+        });
+      });
+      return;
+    }
+
+    if (type === 'gym') {
       const marks = getMarks(KEYS.marksGym);
-      wrap.innerHTML = buildGymTable(sorted, marks);
-      wireGymTable();
-    } else {
+      const variants = Object.keys(SNIPPETS.gym);
+      const roles = Object.keys(SNIPPETS.roller);
+
+      $('marksLegend').innerHTML = `<b>Gym/roller</b>: vælg gym-variant + evt. ekstra roller.`;
+
+      wrap.innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>Navn</th><th>Klasse</th>
+              ${variants.map(v => `<th title="${escapeAttr(SNIPPETS.gym[v].title||v)}">${escapeHtml(v)}<br><span class="small muted">${escapeHtml(SNIPPETS.gym[v].title||'')}</span></th>`).join('')}
+              ${roles.map(r => `<th title="${escapeAttr(SNIPPETS.roller[r].title||r)}">${escapeHtml(SNIPPETS.roller[r].title||r)}</th>`).join('')}
+              <th>–</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${list.map(st => {
+              const m = marks[st.unilogin] || {};
+              const full = `${st.fornavn} ${st.efternavn}`.trim();
+              return `<tr data-u="${escapeAttr(st.unilogin)}">
+                <td>${escapeHtml(full)}</td>
+                <td>${escapeHtml(st.klasse||'')}</td>
+                ${variants.map(v => {
+                  const active = (m.gym_variant === v);
+                  return `<td><span class="pillbtn ${active?'active':''}" data-gym="${v}">${escapeHtml(v)}</span></td>`;
+                }).join('')}
+                ${roles.map(r => {
+                  const checked = !!m[r];
+                  return `<td><input type="checkbox" data-role="${r}" ${checked?'checked':''} /></td>`;
+                }).join('')}
+                <td><span class="pillbtn" data-clear="1">x</span></td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>`;
+
+      wrap.querySelectorAll('tr[data-u]').forEach(tr => {
+        const u = tr.getAttribute('data-u');
+        tr.querySelectorAll('[data-gym]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const code = btn.getAttribute('data-gym');
+            marks[u] = marks[u] || {};
+            marks[u].gym_variant = code;
+            setMarks(KEYS.marksGym, marks);
+            renderMarksTable();
+          });
+        });
+        tr.querySelectorAll('input[data-role]').forEach(ch => {
+          ch.addEventListener('change', () => {
+            const r = ch.getAttribute('data-role');
+            marks[u] = marks[u] || {};
+            marks[u][r] = ch.checked;
+            setMarks(KEYS.marksGym, marks);
+          });
+        });
+        tr.querySelector('[data-clear]').addEventListener('click', () => {
+          marks[u] = {};
+          setMarks(KEYS.marksGym, marks);
+          renderMarksTable();
+        });
+      });
+      return;
+    }
+
+    if (type === 'elevraad') {
       const marks = getMarks(KEYS.marksElev);
-      wrap.innerHTML = buildElevraadTable(sorted, marks);
-      wireElevraadTable();
+      $('marksLegend').innerHTML = `<b>Elevråd</b>: markér elever der er repræsentanter.`;
+
+      wrap.innerHTML = `
+        <table>
+          <thead>
+            <tr><th>Navn</th><th>Klasse</th><th>Elevrådsrepræsentant</th><th>–</th></tr>
+          </thead>
+          <tbody>
+            ${list.map(st => {
+              const m = marks[st.unilogin] || {};
+              const full = `${st.fornavn} ${st.efternavn}`.trim();
+              const checked = !!m.elevraad;
+              return `<tr data-u="${escapeAttr(st.unilogin)}">
+                <td>${escapeHtml(full)}</td>
+                <td>${escapeHtml(st.klasse||'')}</td>
+                <td><input type="checkbox" data-er="1" ${checked?'checked':''} /></td>
+                <td><span class="pillbtn" data-clear="1">x</span></td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>`;
+
+      wrap.querySelectorAll('tr[data-u]').forEach(tr => {
+        const u = tr.getAttribute('data-u');
+        tr.querySelector('input[data-er]').addEventListener('change', (e) => {
+          marks[u] = marks[u] || {};
+          marks[u].elevraad = e.target.checked;
+          setMarks(KEYS.marksElev, marks);
+        });
+        tr.querySelector('[data-clear]').addEventListener('click', () => {
+          marks[u] = {};
+          setMarks(KEYS.marksElev, marks);
+          renderMarksTable();
+        });
+      });
+      return;
     }
   }
 
-  function buildSangTable(students, marks) {
-    return `<table>
-      <thead><tr>
-        <th>Navn</th><th>Klasse</th><th>S1</th><th>S2</th><th>S3</th><th>–</th>
-      </tr></thead>
-      <tbody>
-        ${students.map(st => {
-          const v = (marks[st.unilogin]?.variant) || '';
-          const pill = (code,label) => `<span class="pillbtn ${v===code?'active':''}" data-u="${escapeAttr(st.unilogin)}" data-v="${code}">${label}</span>`;
-          return `<tr>
-            <td>${escapeHtml(`${st.fornavn} ${st.efternavn}`.trim())}</td>
-            <td class="muted">${escapeHtml(st.klasse||'')}</td>
-            <td><div class="pills">${pill('S1','S1')}</div></td>
-            <td><div class="pills">${pill('S2','S2')}</div></td>
-            <td><div class="pills">${pill('S3','S3')}</div></td>
-            <td><button class="btn ghost small" type="button" data-clear="${escapeAttr(st.unilogin)}">x</button></td>
-          </tr>`;
-        }).join('')}
-      </tbody>
-    </table>`;
+  function snippetTextByGender(snObj, genderRaw) {
+    const g = normalizeName(genderRaw);
+    const isMale = (g === 'm' || g.includes('dreng') || g.includes('male'));
+    const txt = isMale ? (snObj.text_m || '') : (snObj.text_k || snObj.text_m || '');
+    return txt;
   }
 
-  function wireSangTable() {
-    const wrap = $('marksTableWrap');
-    wrap.querySelectorAll('.pillbtn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const u = btn.getAttribute('data-u');
-        const v = btn.getAttribute('data-v');
-        const marks = getMarks(KEYS.marksSang);
-        marks[u] = { variant: v };
-        setMarks(KEYS.marksSang, marks);
-        renderMarksTable();
-        renderEdit();
-      });
-    });
-    wrap.querySelectorAll('button[data-clear]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const u = btn.getAttribute('data-clear');
-        const marks = getMarks(KEYS.marksSang);
-        delete marks[u];
-        setMarks(KEYS.marksSang, marks);
-        renderMarksTable();
-        renderEdit();
-      });
-    });
+  function applyPlaceholders(text, map) {
+    let out = text || '';
+    for (const [k,v] of Object.entries(map)) {
+      const re = new RegExp('{\\s*' + k + '\\s*}','g');
+      out = out.replace(re, v ?? '');
+    }
+    return out;
   }
 
-  function buildGymTable(students, marks) {
-    return `<table>
-      <thead><tr>
-        <th>Navn</th><th>Klasse</th><th>G1</th><th>G2</th><th>G3</th><th>Fanebærer</th><th>Redskabshold</th><th>DGI-hjælper</th><th>–</th>
-      </tr></thead>
-      <tbody>
-        ${students.map(st => {
-          const m = marks[st.unilogin] || {};
-          const v = m.variant || '';
-          const pill = (code,label) => `<span class="pillbtn ${v===code?'active':''}" data-u="${escapeAttr(st.unilogin)}" data-v="${code}">${label}</span>`;
-          const chk = (key) => `<input type="checkbox" data-u="${escapeAttr(st.unilogin)}" data-k="${key}" ${m[key] ? 'checked' : ''} />`;
-          return `<tr>
-            <td>${escapeHtml(`${st.fornavn} ${st.efternavn}`.trim())}</td>
-            <td class="muted">${escapeHtml(st.klasse||'')}</td>
-            <td><div class="pills">${pill('G1','G1')}</div></td>
-            <td><div class="pills">${pill('G2','G2')}</div></td>
-            <td><div class="pills">${pill('G3','G3')}</div></td>
-            <td style="text-align:center">${chk('fanebaerer')}</td>
-            <td style="text-align:center">${chk('redskabshold')}</td>
-            <td style="text-align:center">${chk('dgi_hjaelper')}</td>
-            <td><button class="btn ghost small" type="button" data-clear="${escapeAttr(st.unilogin)}">x</button></td>
-          </tr>`;
-        }).join('')}
-      </tbody>
-    </table>`;
+  function cleanSpacing(text) {
+    return (text || '')
+      .replace(/[ \t]+\n/g, '\n')
+      .replace(/\n(3,)/g, '\n\n')
+      .trim();
   }
 
-  function wireGymTable() {
-    const wrap = $('marksTableWrap');
-    wrap.querySelectorAll('.pillbtn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const u = btn.getAttribute('data-u');
-        const v = btn.getAttribute('data-v');
-        const marks = getMarks(KEYS.marksGym);
-        marks[u] = Object.assign({}, marks[u] || {}, { variant: v });
-        setMarks(KEYS.marksGym, marks);
-        renderMarksTable();
-        renderEdit();
-      });
+  function buildStatement(student, settings) {
+    const tpls = getTemplates();
+    const period = computePeriod(settings.schoolYearEnd);
+
+    const free = getTextFor(student.unilogin);
+    const marksSang = getMarks(KEYS.marksSang)[student.unilogin] || {};
+    const marksGym  = getMarks(KEYS.marksGym)[student.unilogin] || {};
+    const marksER   = getMarks(KEYS.marksElev)[student.unilogin] || {};
+
+    let sangAfsnit = '';
+    if (marksSang.sang_variant && SNIPPETS.sang[marksSang.sang_variant]) {
+      sangAfsnit = snippetTextByGender(SNIPPETS.sang[marksSang.sang_variant], student.koen);
+    }
+
+    let gymAfsnit = '';
+    if (marksGym.gym_variant && SNIPPETS.gym[marksGym.gym_variant]) {
+      gymAfsnit = snippetTextByGender(SNIPPETS.gym[marksGym.gym_variant], student.koen);
+    }
+
+    const roleTexts = [];
+    Object.keys(SNIPPETS.roller).forEach(code => {
+      if (marksGym[code]) {
+        roleTexts.push(snippetTextByGender(SNIPPETS.roller[code], student.koen));
+      }
     });
-    wrap.querySelectorAll('input[type="checkbox"]').forEach(chk => {
-      chk.addEventListener('change', () => {
-        const u = chk.getAttribute('data-u');
-        const k = chk.getAttribute('data-k');
-        const marks = getMarks(KEYS.marksGym);
-        marks[u] = Object.assign({}, marks[u] || {});
-        marks[u][k] = chk.checked;
-        setMarks(KEYS.marksGym, marks);
-        renderEdit();
-      });
-    });
-    wrap.querySelectorAll('button[data-clear]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const u = btn.getAttribute('data-clear');
-        const marks = getMarks(KEYS.marksGym);
-        delete marks[u];
-        setMarks(KEYS.marksGym, marks);
-        renderMarksTable();
-        renderEdit();
-      });
-    });
-  }
+    const rolleAfsnit = roleTexts.filter(Boolean).join('\n\n');
 
-  function buildElevraadTable(students, marks) {
-    return `<table>
-      <thead><tr>
-        <th>Navn</th><th>Klasse</th><th>Elevråd</th><th>–</th>
-      </tr></thead>
-      <tbody>
-        ${students.map(st => {
-          const m = marks[st.unilogin] || {};
-          return `<tr>
-            <td>${escapeHtml(`${st.fornavn} ${st.efternavn}`.trim())}</td>
-            <td class="muted">${escapeHtml(st.klasse||'')}</td>
-            <td style="text-align:center">
-              <input type="checkbox" data-u="${escapeAttr(st.unilogin)}" ${m.yes ? 'checked':''} />
-            </td>
-            <td><button class="btn ghost small" type="button" data-clear="${escapeAttr(st.unilogin)}">x</button></td>
-          </tr>`;
-        }).join('')}
-      </tbody>
-    </table>`;
-  }
+    let elevraadAfsnit = '';
+    if (marksER.elevraad) {
+      elevraadAfsnit = snippetTextByGender(SNIPPETS.elevraad.YES, student.koen);
+    }
 
-  function wireElevraadTable() {
-    const wrap = $('marksTableWrap');
-    wrap.querySelectorAll('input[type="checkbox"]').forEach(chk => {
-      chk.addEventListener('change', () => {
-        const u = chk.getAttribute('data-u');
-        const marks = getMarks(KEYS.marksElev);
-        marks[u] = { yes: chk.checked };
-        if (!chk.checked) delete marks[u];
-        setMarks(KEYS.marksElev, marks);
-        renderEdit();
-      });
-    });
-    wrap.querySelectorAll('button[data-clear]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const u = btn.getAttribute('data-clear');
-        const marks = getMarks(KEYS.marksElev);
-        delete marks[u];
-        setMarks(KEYS.marksElev, marks);
-        renderMarksTable();
-        renderEdit();
-      });
-    });
-  }
+    const fullName = `${student.fornavn} ${student.efternavn}`.trim();
+    const kontakt = [student.kontaktlaerer1, student.kontaktlaerer2].filter(x => (x||'').trim()).join(' / ');
 
-  function renderAll() {
-    renderStatus();
-    renderSettings();
-    renderKList();
-    renderEdit();
-  }
+    const placeholderMap = {
+      "ELEV_NAVN": fullName,
+      "ELEV_FORNAVN": (student.fornavn || '').trim(),
+      "ELEV_EFTERNAVN": (student.efternavn || '').trim(),
+      "ELEV_KLASSE": (student.klasse || '').trim(),
+      "PERIODE_FRA": period.from,
+      "PERIODE_TIL": period.to,
+      "DATO_MAANED_AAR": period.dateMonthYear,
 
-  // =============================
-  // Build statement (template + snippets + free text)
-  // =============================
-  function buildStatement(st, settings) {
-    const templates = getTemplates();
-    const p = computePeriod(settings.schoolYearEnd);
+      "SKOLENS_STANDARDTEKST": tpls.schoolText || '',
+      "SANG_AFSNIT": sangAfsnit,
+      "GYM_AFSNIT": gymAfsnit,
+      "ELEVRAAD_AFSNIT": elevraadAfsnit,
+      "ROLLE_AFSNIT": rolleAfsnit,
 
-    // free texts
-    const t = getTextFor(st.unilogin);
+      "ELEVUDVIKLING_AFSNIT": (free.elevudvikling || ''),
+      "PRAKTISK_AFSNIT": (free.praktisk || ''),
+      "KONTAKTGRUPPE_AFSNIT": (free.kgruppe || SNIPPETS.kontaktgruppeDefault),
 
-    const freeElev = (t.elevudvikling || '').trim();
-    const freePrak = (t.praktisk || '').trim();
-    const freeKgrp = (t.kgruppe || '').trim() || SNIPPETS.kontaktgruppeDefault;
+      "AFSLUTNING_AFSNIT": SNIPPETS.afslutningDefault,
 
-    // marks
-    const sang = getMarks(KEYS.marksSang)[st.unilogin]?.variant || '';
-    const gym  = getMarks(KEYS.marksGym)[st.unilogin] || {};
-    const elev = getMarks(KEYS.marksElev)[st.unilogin] || {};
-
-    const sangSnippet = sang ? (SNIPPETS.sang[sang]?.neutral || '') : '';
-    const gymSnippet  = gym.variant ? (SNIPPETS.gym[gym.variant]?.neutral || '') : '';
-    const elevSnippet = elev.yes ? (SNIPPETS.elevraad.YES.neutral) : '';
-
-    const roleSnips = [];
-    if (gym.fanebaerer) roleSnips.push(SNIPPETS.roller.FANEB.neutral);
-    if (gym.redskabshold) roleSnips.push(SNIPPETS.roller.REDSK.neutral);
-    if (gym.dgi_hjaelper) roleSnips.push(SNIPPETS.roller.DGI.neutral);
-
-    // samlet sang+gym afsnit (trim blanklinjer)
-    const sangGymBlock = compactParagraphs([
-      sangSnippet,
-      gymSnippet,
-      elevSnippet,
-      ...roleSnips
-    ]);
-
-    const kontaktlaerere = compactInline([
-      st.kontaktlaerer1 || '',
-      st.kontaktlaerer2 || ''
-    ]);
-
-    const tokens = {
-      NAVN: `${st.fornavn} ${st.efternavn}`.trim(),
-      FORNAVN: st.fornavn || '',
-      EFTERNAVN: st.efternavn || '',
-      KLASSE: st.klasse || '',
-      PERIODE_FRA: p.from,
-      PERIODE_TIL: p.to,
-      DATO_MAANED_AAR: p.dateMonthYear,
-      SKOLENS_STANDARDTEKST: (templates.schoolText || '').trim(),
-      SANG_GYM_AFSNIT: sangGymBlock,
-      ELEVUDVIKLING_FRI: freeElev,
-      PRAKTISK_FRI: freePrak,
-      KGRUPPE_FRI: freeKgrp,
-      KONTAKTLAERERE: kontaktlaerere,
-      FORSTANDER: settings.forstanderName || ''
+      "KONTAKTLAERERE": kontakt,
+      "FORSTANDER": settings.forstanderName || ''
     };
 
-    let out = (templates.template || DEFAULT_TEMPLATE);
-    out = replaceTokens(out, tokens);
+    const compat = {
+      "NAVN": fullName,
+      "FORNAVN": (student.fornavn || '').trim(),
+      "KLASSE": (student.klasse || '').trim()
+    };
 
-    // fjern “huller”: flere tomme linjer -> maks 2
-    out = out.replace(/\n{3,}/g, '\n\n').trim() + '\n\n' + SNIPPETS.afslutningDefault + '\n';
-    return out.trim();
+    let out = tpls.template || DEFAULT_TEMPLATE;
+    out = applyPlaceholders(out, placeholderMap);
+    out = applyPlaceholders(out, compat);
+
+    // also allow placeholder inside snippets
+    out = applyPlaceholders(out, {"ELEV_FORNAVN": (student.fornavn||'').trim(), "ELEV_NAVN": fullName});
+
+    return cleanSpacing(out);
   }
 
-  function replaceTokens(template, tokens) {
-    return template.replace(/\{([A-Z0-9_]+)\}/g, (m, key) => {
-      const v = tokens[key];
-      return (v === null || v === undefined) ? '' : String(v);
-    });
+  async function readFileText(file) {
+    return await file.text();
   }
 
-  function compactParagraphs(parts) {
-    const cleaned = parts.map(s => (s||'').trim()).filter(Boolean);
-    return cleaned.join('\n\n').trim();
-  }
-  function compactInline(parts) {
-    const cleaned = parts.map(s => (s||'').trim()).filter(Boolean);
-    return cleaned.join(' / ').trim();
+  const STUDENT_COLMAP = {
+    fornavn: new Set(["fornavn","firstname","givenname"]),
+    efternavn: new Set(["efternavn","lastname","surname","familyname"]),
+    unilogin: new Set(["unilogin","unicbrugernavn","unicusername","unic","unicbrugernavn"]),
+    koen: new Set(["køn","koen","gender"]),
+    klasse: new Set(["klasse","class","hold"]),
+    kontakt1: new Set(["kontaktlærer1","kontaktlaerer1","relationerkontaktlaerernavn","relationerkontaktlærernavn","kontaktlærer","kontaktlaerer"]),
+    kontakt2: new Set(["kontaktlærer2","kontaktlaerer2","relationerandenkontaktlaerernavn","relationerandenkontaktlærernavn","andenkontaktlærer","andenkontaktlaerer"])
+  };
+
+  function mapStudentHeaders(headers) {
+    const mapped = {};
+    for (const h of headers) {
+      const key = normalizeHeader(h);
+      for (const [field,set] of Object.entries(STUDENT_COLMAP)) {
+        if (set.has(key)) mapped[field] = h;
+      }
+    }
+    return mapped;
   }
 
-  // =============================
-  // Events
-  // =============================
-  function bindEvents() {
-    // tabs
+  function normalizeStudentRow(row, map) {
+    const get = (field) => (row[map[field]] ?? '').trim();
+    const fornavn = get('fornavn');
+    const efternavn = get('efternavn');
+    const unilogin = get('unilogin') || (normalizeName(fornavn + efternavn).replace(/\s/g,'') + '_missing');
+    const koen = get('koen');
+    const klasse = get('klasse');
+    const k1 = resolveTeacherName(get('kontakt1'));
+    const k2 = resolveTeacherName(get('kontakt2'));
+    return {
+      fornavn, efternavn, unilogin, koen, klasse,
+      kontaktlaerer1: k1,
+      kontaktlaerer2: k2
+    };
+  }
+
+  function downloadText(filename, text) {
+    const blob = new Blob([text], {type:'text/csv;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  async function importMarksFile(e, kind) {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    const text = await readFileText(f);
+    const parsed = parseCsv(text);
+
+    const colUnilogin = parsed.headers.find(h => ['unilogin','unicbrugernavn','unicusername','unic'].includes(normalizeHeader(h)));
+    if (!colUnilogin) {
+      alert('CSV mangler kolonne: Unilogin');
+      return;
+    }
+
+    let imported = 0;
+    if (kind === 'sang') {
+      const colVar = parsed.headers.find(h => ['sangvariant','sang_variant','sang'].includes(normalizeHeader(h)));
+      const map = getMarks(KEYS.marksSang);
+      parsed.rows.forEach(r => {
+        const u = (r[colUnilogin] || '').trim();
+        if (!u) return;
+        map[u] = map[u] || {};
+        map[u].sang_variant = (r[colVar] || '').trim();
+        imported++;
+      });
+      setMarks(KEYS.marksSang, map);
+    }
+    if (kind === 'gym') {
+      const colVar = parsed.headers.find(h => ['gymvariant','gym_variant','gym'].includes(normalizeHeader(h)));
+      const roleCodes = Object.keys(SNIPPETS.roller);
+      const map = getMarks(KEYS.marksGym);
+      parsed.rows.forEach(r => {
+        const u = (r[colUnilogin] || '').trim();
+        if (!u) return;
+        map[u] = map[u] || {};
+        map[u].gym_variant = (r[colVar] || '').trim();
+        roleCodes.forEach(rc => {
+          const col = parsed.headers.find(h => normalizeHeader(h) === normalizeHeader(rc));
+          if (col) {
+            const val = String(r[col]||'').trim();
+            map[u][rc] = (val === '1' || normalizeName(val)==='true' || normalizeName(val)==='ja');
+          }
+        });
+        imported++;
+      });
+      setMarks(KEYS.marksGym, map);
+    }
+    if (kind === 'elevraad') {
+      const colER = parsed.headers.find(h => ['elevraad','elevråd'].includes(normalizeHeader(h)));
+      const map = getMarks(KEYS.marksElev);
+      parsed.rows.forEach(r => {
+        const u = (r[colUnilogin] || '').trim();
+        if (!u) return;
+        map[u] = map[u] || {};
+        const val = String(r[colER]||'').trim();
+        map[u].elevraad = (val === '1' || normalizeName(val)==='true' || normalizeName(val)==='ja');
+        imported++;
+      });
+      setMarks(KEYS.marksElev, map);
+    }
+
+    $('importStatus').textContent = `✅ Importeret ${imported} rækker fra ${f.name}`;
+    if (state.tab === 'set') renderMarksTable();
+    if (state.tab === 'edit') renderEdit();
+  }
+
+  function wireEvents() {
     $('tab-k').addEventListener('click', () => setTab('k'));
     $('tab-edit').addEventListener('click', () => setTab('edit'));
     $('tab-set').addEventListener('click', () => setTab('set'));
 
-    // reset
     $('btnReset').addEventListener('click', () => {
-      if (!confirm('Slette alle lokale data for denne app i denne browser?')) return;
+      if (!confirm('Ryd alle lokale data i denne browser?')) return;
       lsDelPrefix(LS_PREFIX);
-      // hard reset
       location.reload();
     });
 
-    // forstander lock toggle
     $('btnToggleForstander').addEventListener('click', () => {
       const s = getSettings();
       s.forstanderLocked = !s.forstanderLocked;
@@ -787,29 +905,30 @@ Forstander: {FORSTANDER}
     });
     $('forstanderName').addEventListener('input', () => {
       const s = getSettings();
-      if (s.forstanderLocked) return;
       s.forstanderName = $('forstanderName').value;
       setSettings(s);
       renderStatus();
-      renderEdit();
+      if (state.tab === 'edit') renderEdit();
     });
 
-    // me + year
     $('meInput').addEventListener('input', () => {
+      const raw = $('meInput').value;
       const s = getSettings();
-      s.me = $('meInput').value;
-      s.meResolved = resolveTeacherName(s.me);
+      s.me = raw;
+      s.meResolved = resolveTeacherName(raw);
       setSettings(s);
-      renderAll();
+      renderStatus();
+      if (state.tab === 'k') renderKList();
+      renderSettings();
     });
     $('schoolYearEnd').addEventListener('input', () => {
       const s = getSettings();
-      s.schoolYearEnd = Number($('schoolYearEnd').value) || s.schoolYearEnd;
+      s.schoolYearEnd = Number($('schoolYearEnd').value || s.schoolYearEnd);
       setSettings(s);
-      renderAll();
+      renderSettings();
+      if (state.tab === 'edit') renderEdit();
     });
 
-    // school text lock + restore
     $('btnToggleSchoolText').addEventListener('click', () => {
       const t = getTemplates();
       t.schoolTextLocked = !t.schoolTextLocked;
@@ -821,343 +940,174 @@ Forstander: {FORSTANDER}
       t.schoolText = DEFAULT_SCHOOL_TEXT;
       setTemplates(t);
       renderSettings();
-      renderEdit();
+      if (state.tab === 'edit') renderEdit();
     });
     $('schoolText').addEventListener('input', () => {
       const t = getTemplates();
-      if (t.schoolTextLocked) return;
       t.schoolText = $('schoolText').value;
       setTemplates(t);
-      renderEdit();
+      if (state.tab === 'edit') renderEdit();
     });
 
-    // students upload
+    $('btnToggleTemplate').addEventListener('click', () => {
+      const t = getTemplates();
+      t.templateLocked = !t.templateLocked;
+      setTemplates(t);
+      renderSettings();
+    });
+    $('btnRestoreTemplate').addEventListener('click', () => {
+      const t = getTemplates();
+      t.template = DEFAULT_TEMPLATE;
+      setTemplates(t);
+      renderSettings();
+      if (state.tab === 'edit') renderEdit();
+    });
+    $('templateText').addEventListener('input', () => {
+      const t = getTemplates();
+      t.template = $('templateText').value;
+      setTemplates(t);
+      if (state.tab === 'edit') renderEdit();
+    });
+
     $('studentsFile').addEventListener('change', async (e) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-      const text = await file.text();
+      const f = e.target.files && e.target.files[0];
+      if (!f) return;
+      const text = await readFileText(f);
       const parsed = parseCsv(text);
-      const mapped = mapStudents(parsed);
-      if (!mapped.ok) {
-        $('studentsStatus').textContent = '❌ Kunne ikke mappe kolonner: ' + mapped.error;
+      const map = mapStudentHeaders(parsed.headers);
+
+      const required = ['fornavn','efternavn','klasse'];
+      const ok = required.every(r => map[r]);
+      if (!ok) {
+        alert('Kunne ikke finde de nødvendige kolonner (fornavn, efternavn, klasse). Tjek header-linjen.');
         return;
       }
-      setStudents(mapped.students);
-      // auto: vælg første K-elev hvis mulig
-      const s = getSettings();
-      if (s.meResolved) {
-        const meNorm = normalizeName(s.meResolved);
-        const mine = mapped.students.filter(st => normalizeName(st.kontaktlaerer1)===meNorm || normalizeName(st.kontaktlaerer2)===meNorm);
-        if (mine.length) state.selectedUnilogin = mine[0].unilogin;
-      }
-      renderAll();
+
+      const students = parsed.rows.map(r => normalizeStudentRow(r, map));
+      setStudents(students);
+
+      renderSettings();
+      renderStatus();
+      if (state.tab === 'k') renderKList();
       setTab('set');
     });
 
-    // edit autosave
-    const saveNow = () => {
+    $('marksType').addEventListener('change', () => renderMarksTable());
+    $('marksSearch').addEventListener('input', () => renderMarksTable());
+
+    $('btnExportMarks').addEventListener('click', () => {
+      const type = $('marksType').value;
       const studs = getStudents();
-      if (!state.selectedUnilogin) return;
-      const st = studs.find(x => x.unilogin === state.selectedUnilogin);
-      if (!st) return;
+      if (!studs.length) return;
 
-      const obj = getTextFor(st.unilogin);
-      obj.elevudvikling = $('txtElevudv').value;
-      obj.praktisk = $('txtPraktisk').value;
-      obj.kgruppe = $('txtKgruppe').value;
-      obj.lastSavedTs = Date.now();
-      setTextFor(st.unilogin, obj);
-
-      $('autosavePill').textContent = `Sidst gemt: ${formatTime(obj.lastSavedTs)}`;
-      $('preview').textContent = buildStatement(st, getSettings());
-    };
-
-    // debounce
-    let tmr = null;
-    const debouncedSave = () => {
-      if (tmr) clearTimeout(tmr);
-      tmr = setTimeout(saveNow, 400);
-    };
-
-    ['txtElevudv','txtPraktisk','txtKgruppe'].forEach(id => {
-      $(id).addEventListener('input', debouncedSave);
-      $(id).addEventListener('blur', saveNow);
+      const sorted = sortedStudents(studs);
+      if (type === 'sang') {
+        const marks = getMarks(KEYS.marksSang);
+        const rows = sorted.map(st => {
+          const full = `${st.fornavn} ${st.efternavn}`.trim();
+          const m = marks[st.unilogin] || {};
+          return {
+            Unilogin: st.unilogin,
+            Navn: full,
+            Sang_variant: m.sang_variant || ''
+          };
+        });
+        downloadText('sang_marks.csv', toCsv(rows, ['Unilogin','Navn','Sang_variant']));
+      }
+      if (type === 'gym') {
+        const marks = getMarks(KEYS.marksGym);
+        const roleCodes = Object.keys(SNIPPETS.roller);
+        const headers = ['Unilogin','Navn','Gym_variant', ...roleCodes];
+        const rows = sorted.map(st => {
+          const full = `${st.fornavn} ${st.efternavn}`.trim();
+          const m = marks[st.unilogin] || {};
+          const row = {
+            Unilogin: st.unilogin,
+            Navn: full,
+            Gym_variant: m.gym_variant || ''
+          };
+          roleCodes.forEach(rc => row[rc] = m[rc] ? 1 : 0);
+          return row;
+        });
+        downloadText('gym_marks.csv', toCsv(rows, headers));
+      }
+      if (type === 'elevraad') {
+        const marks = getMarks(KEYS.marksElev);
+        const rows = sorted.map(st => {
+          const full = `${st.fornavn} ${st.efternavn}`.trim();
+          const m = marks[st.unilogin] || {};
+          return {
+            Unilogin: st.unilogin,
+            Navn: full,
+            Elevraad: m.elevraad ? 1 : 0
+          };
+        });
+        downloadText('elevraad_marks.csv', toCsv(rows, ['Unilogin','Navn','Elevraad']));
+      }
     });
 
-    // student input meta
+    $('importSang').addEventListener('change', (e) => importMarksFile(e, 'sang'));
+    $('importGym').addEventListener('change', (e) => importMarksFile(e, 'gym'));
+    $('importElevraad').addEventListener('change', (e) => importMarksFile(e, 'elevraad'));
+
+    ['txtElevudv','txtPraktisk','txtKgruppe'].forEach(id => {
+      $(id).addEventListener('input', () => {
+        if (!state.selectedUnilogin) return;
+        const obj = getTextFor(state.selectedUnilogin);
+        obj.elevudvikling = $('txtElevudv').value;
+        obj.praktisk = $('txtPraktisk').value;
+        obj.kgruppe = $('txtKgruppe').value;
+        obj.lastSavedTs = Date.now();
+        setTextFor(state.selectedUnilogin, obj);
+
+        $('autosavePill').textContent = `Sidst gemt: ${formatTime(obj.lastSavedTs)}`;
+        const st = getStudents().find(x => x.unilogin === state.selectedUnilogin);
+        if (st) $('preview').textContent = buildStatement(st, getSettings());
+      });
+    });
+
     $('fileStudentInput').addEventListener('change', (e) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-      const studs = getStudents();
-      const st = studs.find(x => x.unilogin === state.selectedUnilogin);
-      if (!st) return;
-      const obj = getTextFor(st.unilogin);
-      obj.studentInputMeta = { filename: file.name, ts: Date.now() };
-      setTextFor(st.unilogin, obj);
+      const f = e.target.files && e.target.files[0];
+      if (!f || !state.selectedUnilogin) return;
+      const url = URL.createObjectURL(f);
+      window.open(url, '_blank', 'noopener,noreferrer');
+
+      const obj = getTextFor(state.selectedUnilogin);
+      obj.studentInputMeta = {
+        filename: f.name,
+        ts: Date.now()
+      };
+      setTextFor(state.selectedUnilogin, obj);
       renderEdit();
     });
     $('btnClearStudentInput').addEventListener('click', () => {
-      const studs = getStudents();
-      const st = studs.find(x => x.unilogin === state.selectedUnilogin);
-      if (!st) return;
-      const obj = getTextFor(st.unilogin);
+      if (!state.selectedUnilogin) return;
+      const obj = getTextFor(state.selectedUnilogin);
       obj.studentInputMeta = null;
-      setTextFor(st.unilogin, obj);
+      setTextFor(state.selectedUnilogin, obj);
       $('fileStudentInput').value = '';
       renderEdit();
     });
 
-    // print
     $('btnPrint').addEventListener('click', () => window.print());
-
-    // marks type + export
-    $('marksType').addEventListener('change', () => renderMarksTable());
-    $('btnExportMarks').addEventListener('click', () => exportMarks());
-
-    // imports
-    $('importSang').addEventListener('change', e => importMarksFile(e, 'sang'));
-    $('importGym').addEventListener('change', e => importMarksFile(e, 'gym'));
-    $('importElevraad').addEventListener('change', e => importMarksFile(e, 'elevraad'));
   }
 
-  function exportMarks() {
-    const studs = getStudents();
-    if (!studs.length) return;
-    const type = $('marksType').value;
-
-    let rows = [];
-    let headers = [];
-    let filename = '';
-
-    if (type === 'sang') {
-      const marks = getMarks(KEYS.marksSang);
-      headers = ['Unilogin','Navn','Sang_variant'];
-      filename = 'sang_marks.csv';
-      rows = studs.map(st => ({
-        Unilogin: st.unilogin,
-        Navn: `${st.fornavn} ${st.efternavn}`.trim(),
-        Sang_variant: marks[st.unilogin]?.variant || ''
-      }));
-    } else if (type === 'gym') {
-      const marks = getMarks(KEYS.marksGym);
-      headers = ['Unilogin','Navn','Gym_variant','Fanebaerer','Redskabshold','DGI_hjaelper'];
-      filename = 'gym_marks.csv';
-      rows = studs.map(st => {
-        const m = marks[st.unilogin] || {};
-        return {
-          Unilogin: st.unilogin,
-          Navn: `${st.fornavn} ${st.efternavn}`.trim(),
-          Gym_variant: m.variant || '',
-          Fanebaerer: m.fanebaerer ? 1 : 0,
-          Redskabshold: m.redskabshold ? 1 : 0,
-          DGI_hjaelper: m.dgi_hjaelper ? 1 : 0
-        };
-      });
-    } else {
-      const marks = getMarks(KEYS.marksElev);
-      headers = ['Unilogin','Navn','Elevraad'];
-      filename = 'elevraad_marks.csv';
-      rows = studs.map(st => ({
-        Unilogin: st.unilogin,
-        Navn: `${st.fornavn} ${st.efternavn}`.trim(),
-        Elevraad: marks[st.unilogin]?.yes ? 1 : 0
-      }));
-    }
-
-    const csv = toCsv(rows, headers);
-    downloadText(filename, csv, 'text/csv;charset=utf-8');
-  }
-
-  async function importMarksFile(e, kind) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const text = await file.text();
-    const parsed = parseCsv(text);
-
-    const status = $('importStatus');
-    const studs = getStudents();
-
-    const keyMap = {
-      sang: KEYS.marksSang,
-      gym: KEYS.marksGym,
-      elevraad: KEYS.marksElev
-    };
-    const storeKey = keyMap[kind];
-
-    // find relevant columns
-    const headers = parsed.headers;
-    const normMap = {};
-    headers.forEach(h => normMap[normalizeHeader(h)] = h);
-
-    const colU = normMap['unilogin'] || normMap['unicbrugernavn'] || normMap['username'] || null;
-    const colName = normMap['navn'] || normMap['name'] || null;
-
-    if (!colU && !colName) {
-      status.textContent = `❌ Import ${kind}: mangler Unilogin eller Navn kolonne.`;
-      return;
-    }
-
-    let updated = 0;
-    const marks = getMarks(storeKey);
-
-    parsed.rows.forEach(r => {
-      let u = colU ? (r[colU] || '').trim() : '';
-      if (!u && colName) {
-        // fallback: match på navn (nødfald)
-        const n = normalizeName(r[colName]);
-        const hit = studs.find(st => normalizeName(`${st.fornavn} ${st.efternavn}`) === n);
-        if (hit) u = hit.unilogin;
-      }
-      if (!u) return;
-
-      if (kind === 'sang') {
-        const colV = pickAny(normMap, ['sangvariant','variant','sang_variant']);
-        const v = colV ? (r[colV] || '').trim() : '';
-        if (!v) return;
-        marks[u] = { variant: v };
-        updated++;
-      } else if (kind === 'gym') {
-        const colV = pickAny(normMap, ['gymvariant','variant','gym_variant']);
-        const v = colV ? (r[colV] || '').trim() : '';
-        const fan = truthy(r[pickAny(normMap, ['fanebaerer','fanebærer'])]);
-        const red = truthy(r[pickAny(normMap, ['redskabshold','redskabsholdet'])]);
-        const dgi = truthy(r[pickAny(normMap, ['dgihjaelper','dgi_hjaelper','dgi-hjaelper','dgi hjælper'])]);
-        marks[u] = Object.assign({}, marks[u] || {});
-        if (v) marks[u].variant = v;
-        if (fan !== null) marks[u].fanebaerer = fan;
-        if (red !== null) marks[u].redskabshold = red;
-        if (dgi !== null) marks[u].dgi_hjaelper = dgi;
-        updated++;
-      } else {
-        const colV = pickAny(normMap, ['elevraad','elevråd']);
-        const v = colV ? (r[colV] || '').trim() : '';
-        const yes = truthy(v);
-        if (yes) marks[u] = { yes: true };
-        else delete marks[u];
-        updated++;
-      }
-    });
-
-    setMarks(storeKey, marks);
-    status.textContent = `✅ Import ${kind}: opdaterede ${updated} rækker.`;
-    renderAll();
-  }
-
-  function pickAny(normMap, keys) {
-    for (const k of keys) {
-      const nk = normalizeHeader(k);
-      if (normMap[nk]) return normMap[nk];
-    }
-    return null;
-  }
-  function truthy(v) {
-    if (v === undefined || v === null) return null;
-    const s = normalizeName(String(v));
-    if (!s) return null;
-    if (s === '1' || s === 'ja' || s === 'true' || s === 'yes' || s === 'x') return true;
-    if (s === '0' || s === 'nej' || s === 'false' || s === 'no') return false;
-    return null;
-  }
-
-  function downloadText(filename, text, mime) {
-    const blob = new Blob([text], { type: mime || 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 500);
-  }
-
-  // =============================
-  // Student mapping
-  // =============================
-  function mapStudents(parsed) {
-    const headers = parsed.headers;
-    const normToOrig = {};
-    headers.forEach(h => normToOrig[normalizeHeader(h)] = h);
-
-    const col = (aliases) => {
-      for (const a of aliases) {
-        const k = normalizeHeader(a);
-        if (normToOrig[k]) return normToOrig[k];
-      }
-      return null;
-    };
-
-    const cFornavn = col(['fornavn','firstname','navnfornavn']);
-    const cEfternavn= col(['efternavn','lastname','navnefternavn']);
-    const cUni     = col(['unilogin','uni-cbrugernavn','unicbrugernavn','uni-c brugernavn','username','unic']);
-    const cKoen    = col(['køn','koen','gender']);
-    const cK1      = col(['kontaktlærer1','kontaktlaerer1','relationerkontaktlaerer-navn','relationer-kontaktlærer-navn','relationerkontaktlaerer navn']);
-    const cK2      = col(['kontaktlærer2','kontaktlaerer2','relationerandenkontaktlaerer-navn','relationer-anden kontaktlærer-navn','relationer-anden kontaktlaerer-navn']);
-    const cKlasse  = col(['klasse','class']);
-
-    // Minimum: fornavn, efternavn, unilogin, klasse, kontaktlærere
-    if (!cFornavn || !cEfternavn || !cKlasse || (!cK1 && !cK2)) {
-      return { ok:false, error:`Fandt ikke nok kolonner (kræver Fornavn, Efternavn, Klasse og mindst én af Kontaktlærer1/2).` };
-    }
-
-    const students = [];
-    parsed.rows.forEach((r, idx) => {
-      const fornavn = (r[cFornavn] || '').trim();
-      const efternavn = (r[cEfternavn] || '').trim();
-      const klasse = (r[cKlasse] || '').trim();
-      const k1 = cK1 ? (r[cK1] || '').trim() : '';
-      const k2 = cK2 ? (r[cK2] || '').trim() : '';
-      const koen = cKoen ? (r[cKoen] || '').trim() : '';
-      let unilogin = cUni ? (r[cUni] || '').trim() : '';
-
-      // fallback unilogin: lav stabil key hvis mangler
-      if (!unilogin) {
-        unilogin = `name_${normalizeHeader(fornavn + '_' + efternavn)}_${idx+1}`;
-      }
-
-      students.push({
-        fornavn, efternavn, unilogin,
-        koen,
-        kontaktlaerer1: k1,
-        kontaktlaerer2: k2,
-        klasse
-      });
-    });
-
-    return { ok:true, students };
-  }
-
-  // =============================
-  // HTML escaping
-  // =============================
-  function escapeHtml(s) {
-    return (s ?? '').toString()
-      .replace(/&/g,'&amp;')
-      .replace(/</g,'&lt;')
-      .replace(/>/g,'&gt;')
-      .replace(/"/g,'&quot;')
-      .replace(/'/g,'&#39;');
-  }
-  function escapeAttr(s) {
-    return escapeHtml(s).replace(/\s+/g,' ');
-  }
-
-  // =============================
-  // Boot
-  // =============================
   function init() {
-    // ensure settings/templates exist
+    wireEvents();
     if (!localStorage.getItem(KEYS.settings)) setSettings(defaultSettings());
     if (!localStorage.getItem(KEYS.templates)) setTemplates(defaultTemplates());
 
-    bindEvents();
-
-    // initial tab: if no students -> set
     const studs = getStudents();
-    state.tab = studs.length ? 'k' : 'set';
-    setTab(state.tab);
+    setTab('set');
+
+    const s = getSettings();
+    if (s.me && !s.meResolved) {
+      s.meResolved = resolveTeacherName(s.me);
+      setSettings(s);
+    }
+
+    renderAll();
   }
 
-  window.addEventListener('DOMContentLoaded', init);
-
+  init();
 })();
