@@ -12,6 +12,17 @@ let state = {
 
 function el(id){ return document.getElementById(id); }
 
+// Undgå hard-crash hvis et element-id ændrer sig i HTML.
+function setHTML(id, html){
+  const node = el(id);
+  if(!node){
+    console.warn('[Elevudtalelser] Mangler element i DOM:', id);
+    return null;
+  }
+  node.innerHTML = html;
+  return node;
+}
+
 function init(){
   // landing
   state.view = hasStudents() ? "k" : "settings";
@@ -475,6 +486,10 @@ function computeKontaktCount(){
 
 function renderLibrary(){
   const lib = el("view-library");
+  if(!lib){
+    console.warn('[Elevudtalelser] Mangler element i DOM: view-library');
+    return;
+  }
   lib.innerHTML = "";
 
   const s = load("settings");
@@ -655,7 +670,7 @@ function renderMarksEditor(){
       tbody.push(`<tr data-uni="${uni}"><td>${name}</td><td><input class="ckER" type="checkbox" ${er?"checked":""} title="Med i elevråd"></td></tr>`);
     }
   }
-  el("marksTable").innerHTML = `<thead>${headersHtml}</thead><tbody>${tbody.join("")}</tbody>`;
+  setHTML("marksTable", `<thead>${headersHtml}</thead><tbody>${tbody.join("")}</tbody>`);
 }
 
 function sangSelect(value, map){
