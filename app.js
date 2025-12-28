@@ -294,7 +294,7 @@ Udtalelsen er skrevet med udgangspunkt i elevens hverdag og deltagelse gennem sk
   function genderGroup(genderRaw) {
     const g = normalizeName(genderRaw);
     if (g === 'k' || g.includes('pige') || g.includes('female')) return 0;
-    if (g === 'm' || g.includes('dreng') || g.includes('male')) return 1;
+    if (g === 'm' || g.includes('dreng') || /\bmale\b/.test(g)) return 1;
     return 2;
   }
 
@@ -302,7 +302,7 @@ Udtalelsen er skrevet med udgangspunkt i elevens hverdag og deltagelse gennem sk
     const g = normalizeName(genderRaw);
 
     const isFemale = (g === 'k' || g === 'f' || g === 'p' || g.includes('pige') || g.includes('kvinde') || g.includes('female'));
-    const isMale = (g === 'm' || g === 'd' || g.includes('dreng') || g.includes('mand') || g.includes('male'));
+    const isMale = (g === 'm' || g === 'd' || g.includes('dreng') || g.includes('mand') || /\bmale\b/.test(g));
 
     if (isFemale && !isMale) {
       return { HAN_HUN: 'hun', HAM_HENDE: 'hende', HANS_HENDES: 'hendes', SIG_HAM_HENDE: 'sig' };
@@ -326,7 +326,7 @@ Udtalelsen er skrevet med udgangspunkt i elevens hverdag og deltagelse gennem sk
   // ---------- templating ----------
   function snippetTextByGender(snObj, genderRaw) {
     const g = normalizeName(genderRaw);
-    const isMale = (g === 'm' || g.includes('dreng') || g.includes('male'));
+    const isMale = (g === 'm' || g.includes('dreng') || /\bmale\b/.test(g));
     const txt = isMale ? (snObj.text_m || '') : (snObj.text_k || snObj.text_m || '');
     return txt;
   }
