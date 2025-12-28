@@ -349,14 +349,26 @@ function normalizePlaceholderKey(key) {
     const txt = isMale ? (snObj.text_m || '') : (snObj.text_k || snObj.text_m || '');
     return txt;
   }
-  function applyPlaceholders(text, map) {
-    let out = text || '';
-    for (const [k,v] of Object.entries(map)) {
-      const re1 = new RegExp('{{\\s*' + k + '\\s*}}','g'); // {{KEY}}
-      const re2 = new RegExp('{\\s*' + k + '\\s*}','g');   // {KEY}
-      out = out.replace(re1, v ?? '');
-      out = out.replace(re2, v ?? '');
-    }
+  function applyPlaceholders(text, placeholderMap) {
+  if (!text) return "";
+  const s = String(text);
+
+  // Replaces both {KEY} and {{KEY}} (case-insensitive keys, allows æ/ø/å).
+  // Lookup strategy:
+  // 1) exact key (uppercased)
+  // 2) normalized key (æ/ø/å -> AE/OE/AA + diacritics stripped)
+  return s.replace(/\{\{\s*([^{}]+?)\s*\}\}|\{\s*([^{}]+?)\s*\}/g, (m, k1, k2) => {
+    const rawKey = (k1 || k2 || "").trim();
+    if (!rawKey) return "";
+    const keyUpper = rawKey.toUpperCase();
+    const keyNorm = normalizePlaceholderKey(rawKey);
+
+    const v =
+      (placeholderMap && (placeholderMap[keyUpper] ?? placeholderMap[keyNorm] ?? placeholderMap[rawKey])) ?? "";
+
+    return (v === null || v === undefined) ? "" : String(v);
+  });
+}
     return out;
   }
   function cleanSpacing(text) {
