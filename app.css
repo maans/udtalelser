@@ -209,12 +209,13 @@ tr:hover td{background: rgba(255,255,255,.02)}
 @media print{
   body{background:#fff; color:#000}
   .no-print{display:none !important}
-  .app{max-width:none; padding:0}
-  .view{display:none !important}
-  #view-edit{display:block !important}
-  #view-edit *{display:none !important}
-  #view-edit #preview{display:block !important}
+
+  /* robust: only show preview */
+  body *{visibility:hidden}
+  #preview, #preview *{visibility:visible}
+
   #preview{
+    position:absolute; left:0; top:0;
     border:none;
     background:#fff;
     color:#000;

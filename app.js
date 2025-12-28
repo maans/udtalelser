@@ -680,8 +680,11 @@ Udtalelsen er skrevet med udgangspunkt i elevens hverdag og deltagelse gennem sk
   function applyPlaceholders(text, map) {
     let out = text || '';
     for (const [k,v] of Object.entries(map)) {
-      const re = new RegExp('{\\s*' + k + '\\s*}','g');
-      out = out.replace(re, v ?? '');
+      // supports {{KEY}} and {KEY} (legacy)
+      const re1 = new RegExp('{{\s*' + k + '\s*}}','g');
+      const re2 = new RegExp('{\s*' + k + '\s*}','g');
+      out = out.replace(re1, v ?? '');
+      out = out.replace(re2, v ?? '');
     }
     return out;
   }
@@ -726,6 +729,14 @@ Udtalelsen er skrevet med udgangspunkt i elevens hverdag og deltagelse gennem sk
     }
 
     const fullName = `${student.fornavn} ${student.efternavn}`.trim();
+    // allow placeholders inside snippets
+    const snMap = { "ELEV_FORNAVN": (student.fornavn || '').trim(), "ELEV_NAVN": fullName };
+    sangAfsnit = applyPlaceholders(sangAfsnit, snMap);
+    gymAfsnit = applyPlaceholders(gymAfsnit, snMap);
+    elevraadAfsnit = applyPlaceholders(elevraadAfsnit, snMap);
+    // role afsnit may contain placeholders too
+    // (apply after joining to keep spacing)
+
     const kontakt = [student.kontaktlaerer1, student.kontaktlaerer2].filter(x => (x||'').trim()).join(' / ');
 
     const placeholderMap = {
@@ -748,6 +759,17 @@ Udtalelsen er skrevet med udgangspunkt i elevens hverdag og deltagelse gennem sk
       "KONTAKTGRUPPE_AFSNIT": (free.kgruppe || SNIPPETS.kontaktgruppeDefault),
 
       "AFSLUTNING_AFSNIT": SNIPPETS.afslutningDefault,
+
+      /* legacy placeholders from earlier docs */
+      "ELEVUDVIKLING_FRI": (free.elevudvikling || ''),
+      "PRAKTISK_FRI": (free.praktisk || ''),
+      "KGRUPPE_FRI": (free.kgruppe || SNIPPETS.kontaktgruppeDefault),
+      "SANG_SNIPPET": sangAfsnit,
+      "GYM_SNIPPET": gymAfsnit,
+      "ELEVRAAD_SNIPPET": elevraadAfsnit,
+      "ROLLE_SNIPPETS": rolleAfsnit,
+      "SANG_GYM_AFSNIT": [sangAfsnit, gymAfsnit, elevraadAfsnit, rolleAfsnit].filter(Boolean).join('\n\n')
+
 
       "KONTAKTLAERERE": kontakt,
       "FORSTANDER": settings.forstanderName || ''
