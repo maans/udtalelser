@@ -1,36 +1,25 @@
-# Elevudtalelsesapp (B1.3)
+# Elevudtalelser (B1.4) – lokal test
 
-B1.3 tilføjer 3 input-faner til faglærere:
-- **Sang** (dropdown pr elev → eksport `sang_marks.csv`)
-- **Gymnastik/roller** (dropdown + flueben → eksport `gym_marks.csv`)
-- **Elevråd** (flueben → eksport kun markerede `elevraad_marks.csv`)
+## Sådan kører du appen lokalt
+**Anbefalet (lokal webserver):**
+1. Pak zip-filen ud
+2. Åbn en terminal i mappen
+3. Kør:
+   - Windows: `py -m http.server 8000`
+   - macOS/Linux: `python3 -m http.server 8000`
+4. Åbn i browser:
+   - `http://localhost:8000`
 
-Alle data importeres lokalt i browseren. Intet uploades til nettet.
+> Tip: Appen kan også åbnes direkte som `file://`, men nogle browsere begrænser download/print-funktioner dér.
 
-## Lokal start
-```bash
-npm install
-npm run dev
-```
+## Lokal lagring
+Tekst, du skriver i appen, gemmes automatisk lokalt på din computer og sendes ikke nogen steder, så du kan holde pause og fortsætte senere.
 
-## GitHub Pages
-- Settings → Pages → Source: **GitHub Actions**
-- Push til `main` → appen deployes.
+- Elevliste og faglærerdata gemmes også lokalt (denne browser).
+- Elevinput-filer (PDF/Word) gemmes ikke og skal uploades igen, hvis du vil se dem.
 
-## CSV-formater
-### students.csv (fra kontoret)
-Headere (præcis):
-`Fornavn,Efternavn,UNIlogin,Køn`
-
-Køn: `dreng/pige` eller `m/k` (appens normalisering er tolerant).
-
-### sang_marks.csv (eksport fra Sang-fanen)
-`UNIlogin,SangValgTekst`
-
-### gym_marks.csv (eksport fra Gym-fanen)
-`UNIlogin,GymValgTekst,RollerTekst`  
-RollerTekst er `|`-separeret (fx `Fanebærer|DGI-hjælper`).
-
-### elevraad_marks.csv (eksport fra Elevråd-fanen)
-Kun markerede elever:
-`UNIlogin`
+## Arbejdsgang (kort)
+1) ⚙︎ Indstillinger → Upload elevliste (CSV)
+2) Faglærere: udfyld under “Faglærer-arbejde” og download CSV til deling
+3) Kontaktlærere: importér delings-CSV’er under “Faglærer-vurderinger”
+4) 👤 K-elever → vælg elev → Aa Redigér → skriv fritekst → Print/Gem som PDF

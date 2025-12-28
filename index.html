@@ -1,8 +1,241 @@
-<!doctype html><html lang="da"><head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Elevudtalelsesapp</title>
-</head><body>
-<div id="root"></div>
-<script type="module" src="/src/main.jsx"></script>
-</body></html>
+<!doctype html>
+<html lang="da">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Elevudtalelser (B1.4)</title>
+  <link rel="stylesheet" href="app.css" />
+</head>
+<body>
+  <header class="topbar no-print">
+    <div class="brand">Elevudtalelser</div>
+    <nav class="nav">
+      <button id="nav-k" class="navbtn">👤 K-elever</button>
+      <button id="nav-edit" class="navbtn">Aa Redigér</button>
+      <button id="nav-settings" class="navbtn">⚙︎ Indstillinger</button>
+    </nav>
+  </header>
+
+  <main class="container">
+    <!-- K-elever -->
+    <section id="view-k" class="view">
+      <h1 class="h1">K-elever</h1>
+      <div id="libraryEmpty" class="empty hidden">
+        <p><strong>Der er ingen elever endnu.</strong></p>
+        <p>Gå til <em>⚙︎ Indstillinger</em> og upload elevlisten (CSV).</p>
+        <button class="primary" onclick="document.getElementById('nav-settings').click()">Gå til Indstillinger</button>
+      </div>
+      <div id="libraryListWrap" class="panel">
+        <div class="panel-head">
+          <div class="muted">Klik på en elev for at redigere.</div>
+        </div>
+        <div id="studentList"></div>
+      </div>
+    </section>
+
+    <!-- Redigér -->
+    <section id="view-edit" class="view hidden">
+      <div class="edit-head">
+        <div>
+          <h1 class="h1">Redigér</h1>
+          <div class="muted">Kontaktlærere (fra elevlisten): <span id="fromCSVTeachers"></span></div>
+        </div>
+        <div class="edit-nav no-print">
+          <button id="prevStudent" class="btn" title="Forrige elev">⟵</button>
+          <div id="editTitle" class="edit-title">—</div>
+          <button id="nextStudent" class="btn" title="Næste elev">⟶</button>
+          <button id="printBtn" class="primary" title="Lav PDF af den aktuelle udtalelse">🖨️ Print / Gem som PDF</button>
+        </div>
+      </div>
+
+      <div id="editEmpty" class="empty hidden">
+        <p><strong>Vælg en elev i K-elever.</strong></p>
+      </div>
+
+      <div id="editWrap" class="grid2">
+        <div class="panel">
+          <div class="panel-head">
+            <div class="muted" id="savedTime"></div>
+          </div>
+
+          <details open>
+            <summary>Elevudvikling</summary>
+            <textarea id="draftElev" rows="6" placeholder="Skriv lærerens tekst..."></textarea>
+          </details>
+
+          <details>
+            <summary>Praktisk afsnit</summary>
+            <textarea id="draftPraktisk" rows="6" placeholder="Skriv lærerens tekst..."></textarea>
+          </details>
+
+          <details>
+            <summary>Funktion i kontaktgruppen</summary>
+            <textarea id="draftK" rows="6" placeholder="Skriv lærerens tekst..."></textarea>
+          </details>
+
+          <div class="panel-foot">
+            <div>
+              <div class="label">Elevens eget input (PDF/Word)</div>
+              <div class="muted" id="elevinputMeta"></div>
+            </div>
+            <div class="row">
+              <input id="elevinputFile" type="file" accept=".pdf,.doc,.docx" />
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div class="label">Preview</div>
+            <div class="muted">Vises også ved print.</div>
+          </div>
+          <pre id="previewText" class="preview"></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- Indstillinger -->
+    <section id="view-settings" class="view hidden">
+      <h1 class="h1">Indstillinger</h1>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div class="label">Lokal lagring</div>
+        </div>
+        <p class="muted" id="localSaveText"></p>
+        <button id="wipeAll" class="danger" title="Slet alle lokalt gemte tekster og valg i denne browser">🗑 Ryd alle lokale data (denne browser)</button>
+      </div>
+
+      <div class="grid2">
+        <div class="panel">
+          <div class="panel-head">
+            <div class="label">Navne og periode</div>
+            <div class="muted">Du kan skrive fuldt navn eller initialer (fx RD, MM, MTP).</div>
+          </div>
+
+          <label>Forstandernavn <button id="editPrincipal" class="icon-btn" title="Redigér forstandernavn" type="button">✎</button></label>
+          <input id="principalName" disabled placeholder="Stinne Poulsen" />
+
+          <label>Jeg er (initialer eller navn)</label>
+          <input id="meTeacher" placeholder="fx RD / MM / MTP" />
+          <div class="muted">Bruges til at vise kun dine K-elever.</div>
+
+          <label>Skoleår (slut-år)</label>
+          <input id="schoolYear" placeholder="2026" />
+          <div class="muted">Periode sættes automatisk til August (år-1) → Juni (år).</div>
+<div class="row2">
+            <div>
+              <label>Periode fra</label>
+              <input id="periodFrom" disabled />
+            </div>
+            <div>
+              <label>Dato måned/år</label>
+              <input id="dateMonthYear" disabled />
+            </div>
+          </div>
+
+          <div class="row2">
+            <div>
+              <label>Kontaktgruppe antal (auto)</label>
+              <div class="readonly" id="kontaktCount">—</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div class="label">1) Elevliste (CSV)</div>
+            <div class="muted">Skal indlæses først.</div>
+          </div>
+          <input id="studentsFile" type="file" accept=".csv,.txt" />
+          <div class="muted small">
+            Forventede kolonner: Klasse, Fornavn, Efternavn, Uni-C brugernavn, Køn, Relationer-Kontaktlærer-Navn, Relationer-Anden kontaktlærer-Navn.
+          </div>
+
+          <div id="marksImportHint" class="hint">
+            <strong>Upload først elevlisten.</strong> Faglærer-vurderinger kan først indlæses, når elevlisten er på plads.
+          </div>
+
+          <div id="marksImportBlock" class="panel-sub hidden">
+            <div class="label">2) Faglærer-vurderinger (CSV)</div>
+            <div class="muted small">Importer delingsfiler fra sang/gym/elevråd. Import aktiverer automatisk data.</div>
+            <label>Sang (CSV)</label>
+            <input id="sangFile" type="file" accept=".csv,.txt" />
+            <label>Gymnastik + roller (CSV)</label>
+            <input id="gymFile" type="file" accept=".csv,.txt" />
+            <label>Elevråd (CSV)</label>
+            <input id="elevraadFile" type="file" accept=".csv,.txt" />
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" id="marksEditorWrap">
+        <div class="panel-head">
+          <div class="label">Faglærer-arbejde (producer CSV til deling)</div>
+          <div class="muted small">Udfyld her og download CSV til deling med andre lærere.</div>
+        </div>
+        <div class="row">
+          <label for="marksMode" class="sr-only">Vælg område</label>
+          <select id="marksMode">
+            <option value="sang">Sang</option>
+            <option value="gym">Gymnastik + roller</option>
+            <option value="elevraad">Elevråd</option>
+          </select>
+
+          <button id="exportSang" class="btn" title="Download sang-CSV til deling">Download Sang-CSV</button>
+          <button id="exportGym" class="btn" title="Download gym-CSV til deling">Download Gym-CSV</button>
+          <button id="exportElevraad" class="btn" title="Download elevråd-CSV til deling">Download Elevråd-CSV</button>
+        </div>
+
+        <div class="tableWrap">
+          <table id="marksTable"></table>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div class="label">Skabelon-tekster</div>
+          <div class="muted small">Skolens standardtekst er låst. Klik på blyanten for at redigere.</div>
+          <div class="actions">
+            <button id="tplEdit" class="btn" title="Slå redigering til/fra">✏️ Redigér</button>
+            <button id="tplReset" class="btn" title="Gendan standardtekster">Gendan standard</button>
+          </div>
+        </div>
+
+        <label>Skabelon (med pladsholdere)</label>
+        <textarea id="templateText" rows="10" readonly></textarea>
+
+        <div class="row2">
+          <div>
+            <label>Vælg snippet (vejledende sti)</label>
+            <select id="snippetPath"></select>
+          </div>
+          <div>
+            <label>Snippet-tekst</label>
+            <textarea id="snippetText" rows="6" readonly class="disabled"></textarea>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Print document -->
+    <section class="print-only">
+      <div class="print-header">
+        <div class="print-title">Elevudtalelse</div>
+        <div class="print-date" id="printDate"></div>
+      </div>
+      <pre id="printDoc" class="print-doc"></pre>
+    </section>
+  </main>
+
+  <script type="module" src="src/app.js"></script>
+  <script>
+    // print date
+    document.addEventListener("DOMContentLoaded", ()=>{
+      const d = new Date();
+      document.getElementById("printDate").textContent = d.toLocaleDateString("da-DK", {year:"numeric", month:"long", day:"numeric"});
+    });
+  </script>
+</body>
+</html>
