@@ -32,7 +32,8 @@ const ALIASES = {
   "MG": "Martin Gregersen",
   "MS": "Mia Mejlby Sørensen",
   "MTP": "Mikkel Tejlgaard Pedersen",
-  "MM": "Måns Patrik Mårtensson",
+  // NB: Måns bruger ikke mellemnavn professionelt, og elevlister vil typisk ikke indeholde det.
+  "MM": "Måns Mårtensson",
   "RB": "Randi Borum",
   "RD": "Rasmus Damsgaard",
   "RA": "Rebecka Antonsen",
@@ -514,9 +515,9 @@ function attachHandlers(){
   el("wipeAll").addEventListener("click", ()=>{
     if(confirm("Vil du rydde alle lokalt gemte tekster og valg i denne browser?\nDette kan ikke fortrydes.")){
       wipeAll();
-      state.view="settings";
-      state.selectedUni=null;
-      renderAll();
+      // Nemmeste og mest robuste måde: reload så UI og in-memory state ikke hænger i gamle værdier
+      // (sikrer også at autofyld/felter og import-status nulstilles 100%).
+      location.reload();
     }
   });
 
@@ -762,6 +763,46 @@ function renderAll(){
   renderMarksEditor();
   renderSavedTime();
   renderNavActive();
+  syncTemplatesUI();
+}
+
+function syncTemplatesUI(){
+  // Skabelon-tekster var tidligere blanke, fordi de kun blev opdateret ved bruger-input.
+  const tplEl = el("tplText");
+  const snipSel = el("snippetSelect");
+  const snipTxt = el("snippetText");
+  if(!tplEl || !snipSel || !snipTxt) return;
+
+  // Template
+  const effectiveTemplate = getEffectiveTemplate();
+  if(typeof effectiveTemplate === "string" && tplEl.value !== effectiveTemplate){
+    tplEl.value = effectiveTemplate;
+  }
+
+  // Snippets dropdown
+  const snippets = getEffectiveSnippets();
+  const keys = Object.keys(snippets || {});
+  // If empty, show an empty option to avoid a dead dropdown
+  const current = snipSel.value;
+  snipSel.innerHTML = "";
+  if(keys.length === 0){
+    const opt = document.createElement("option");
+    opt.value = "";
+    opt.textContent = "(ingen)";
+    snipSel.appendChild(opt);
+    snipTxt.value = "";
+    return;
+  }
+
+  keys.sort().forEach(k=>{
+    const opt = document.createElement("option");
+    opt.value = k;
+    opt.textContent = k;
+    snipSel.appendChild(opt);
+  });
+  const pick = keys.includes(current) ? current : keys[0];
+  snipSel.value = pick;
+  snipTxt.value = snippets[pick] || "";
 }
 
 function renderNavActive(){
