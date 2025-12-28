@@ -165,6 +165,21 @@ Udtalelsen er skrevet med udgangspunkt i elevens hverdag og deltagelse gennem sk
     .trim();
 }
 
+function normalizePlaceholderKey(key) {
+  if (!key) return "";
+  return key
+    .toString()
+    .trim()
+    .toUpperCase()
+    .replace(/Æ/g, "AE")
+    .replace(/Ø/g, "OE")
+    .replace(/Å/g, "AA")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+
+
   function callName(rawFirstName) {
     // HU-data: hvis fornavn-feltet indeholder ekstra efternavn, brug kun første ord.
     // Behold bindestreg-navne (fx Anne-Sofie) uændret.
@@ -435,6 +450,8 @@ Udtalelsen er skrevet med udgangspunkt i elevens hverdag og deltagelse gennem sk
 "KONTAKTGRUPPE_BESKRIVELSE": (free.kgruppe || SNIPPETS.kontaktgruppeDefault || ''),
 "KONTAKTLAERER_1_NAVN": (student.kontaktlaerer1 || '').trim(),
 "KONTAKTLAERER_2_NAVN": (student.kontaktlaerer2 || '').trim(),
+      "KONTAKTLÆRER_1_NAVN": (student.kontaktlaerer1 || '').trim(),
+      "KONTAKTLÆRER_2_NAVN": (student.kontaktlaerer2 || '').trim(),
 "FORSTANDER_NAVN": settings.forstanderName || '',
 
       "HAN_HUN": pr.HAN_HUN,
