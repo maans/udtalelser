@@ -300,14 +300,20 @@ Udtalelsen er skrevet med udgangspunkt i elevens hverdag og deltagelse gennem sk
 
   function pronouns(genderRaw) {
     const g = normalizeName(genderRaw);
-    const isMale = (g === 'm' || g.includes('dreng') || g.includes('male'));
-    return {
-      HAN_HUN: isMale ? 'han' : 'hun',
-      HAM_HENDE: isMale ? 'ham' : 'hende',
-      HANS_HENDES: isMale ? 'hans' : 'hendes',
-      SIG_HAM_HENDE: isMale ? 'sig' : 'sig'
-    };
+
+    const isFemale = (g === 'k' || g === 'f' || g === 'p' || g.includes('pige') || g.includes('kvinde') || g.includes('female'));
+    const isMale = (g === 'm' || g === 'd' || g.includes('dreng') || g.includes('mand') || g.includes('male'));
+
+    if (isFemale && !isMale) {
+      return { HAN_HUN: 'hun', HAM_HENDE: 'hende', HANS_HENDES: 'hendes', SIG_HAM_HENDE: 'sig' };
+    }
+    if (isMale && !isFemale) {
+      return { HAN_HUN: 'han', HAM_HENDE: 'ham', HANS_HENDES: 'hans', SIG_HAM_HENDE: 'sig' };
+    }
+    // Ukendt/neutral
+    return { HAN_HUN: 'han/hun', HAM_HENDE: 'ham/hende', HANS_HENDES: 'hans/hendes', SIG_HAM_HENDE: 'sig' };
   }
+
 
   function sortedStudents(all) {
     return all.slice().sort((a,b) =>
@@ -391,9 +397,9 @@ Udtalelsen er skrevet med udgangspunkt i elevens hverdag og deltagelse gennem sk
     const placeholderMap = {
       "ELEV_NAVN": fullName,
       "ELEV_FORNAVN": firstName,
-      "HAN_HUN": (normalizeName(student.koen)==="m" || normalizeName(student.koen).includes("dreng") || normalizeName(student.koen).includes("male")) ? "han" : "hun",
-      "HAM_HENDE": (normalizeName(student.koen)==="m" || normalizeName(student.koen).includes("dreng") || normalizeName(student.koen).includes("male")) ? "ham" : "hende",
-      "HANS_HENDES": (normalizeName(student.koen)==="m" || normalizeName(student.koen).includes("dreng") || normalizeName(student.koen).includes("male")) ? "hans" : "hendes",
+      "HAN_HUN": pr.HAN_HUN,
+      "HAM_HENDE": pr.HAM_HENDE,
+      "HANS_HENDES": pr.HANS_HENDES,
       "ELEV_EFTERNAVN": (student.efternavn || '').trim(),
       "ELEV_KLASSE": (student.klasse || '').trim(),
       "PERIODE_FRA": period.from,
@@ -445,7 +451,7 @@ Udtalelsen er skrevet med udgangspunkt i elevens hverdag og deltagelse gennem sk
     fornavn: new Set(["fornavn","firstname","givenname"]),
     efternavn: new Set(["efternavn","lastname","surname","familyname"]),
     unilogin: new Set(["unilogin","unicbrugernavn","unicusername","unic"]),
-    koen: new Set(["køn","koen","gender"]),
+    koen: new Set(["køn","koen","gender", "kon"]),
     klasse: new Set(["klasse","class","hold"]),
     kontakt1: new Set(["kontaktlærer1","kontaktlaerer1","relationerkontaktlaerernavn","relationerkontaktlærernavn","kontaktlærer","kontaktlaerer"]),
     kontakt2: new Set(["kontaktlærer2","kontaktlaerer2","relationerandenkontaktlaerernavn","relationerandenkontaktlærernavn","andenkontaktlærer","andenkontaktlaerer"])
@@ -462,9 +468,25 @@ Udtalelsen er skrevet med udgangspunkt i elevens hverdag og deltagelse gennem sk
   }
   function normalizeStudentRow(row, map) {
     const get = (field) => (row[map[field]] ?? '').trim();
-    const fornavn = get('fornavn');
-    const efternavn = get('efternavn');
-    const unilogin = get('unilogin') || (normalizeName(fornavn + efternavn).replace(/\s/g,'') + '_missing');
+
+    // Rens fornavn-felt: nogle elever har et "ekstra efternavn" i fornavn-kolonnen.
+    // Regel: hvis fornavn har flere ord og IKKE indeholder bindestreg, så bruges første ord som kaldnavn,
+    // og resten flyttes over i efternavn (foran eksisterende efternavn).
+    const fornavnRaw = get('fornavn');
+    let efternavnRaw = get('efternavn');
+
+    let fornavn = fornavnRaw;
+    if (fornavnRaw && !fornavnRaw.includes('-')) {
+      const parts = fornavnRaw.split(/\s+/).filter(Boolean);
+      if (parts.length > 1) {
+        fornavn = parts[0];
+        const extraSurname = parts.slice(1).join(' ');
+        efternavnRaw = (extraSurname + ' ' + (efternavnRaw || '')).trim();
+      }
+    }
+
+    const efternavn = efternavnRaw;
+    const unilogin = get('unilogin') || (normalizeName((fornavn + ' ' + efternavn)).replace(/\s/g, '') + '_missing');
     const koen = get('koen');
     const klasse = get('klasse');
     const k1 = resolveTeacherName(get('kontakt1'));
