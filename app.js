@@ -765,9 +765,9 @@ function normalizePlaceholderKey(key) {
                 <td>${escapeHtml(st.klasse||'')}</td>
                 ${cols.map(c => {
                   const active = (m.sang_variant === c);
-                  return `<td><span class="pillbtn ${active?'active':''}" data-set="${c}">${escapeHtml(c)}</span></td>`;
+                  return `<td><button type="button" class="markbtn ${active?\'on\':\'\'}" data-set="${c}" title="${escapeAttr(SNIPPETS.sang[c].title||c)}"><span class="check">✓</span></button></td>`;
                 }).join('')}
-                <td><span class="pillbtn" data-clear="1">x</span></td>
+                <td><button type="button" class="markbtn clear" data-clear="1" title="Ryd valg"><span class="check">×</span></button></td>
               </tr>`;
             }).join('')}
           </tbody>
@@ -820,13 +820,13 @@ function normalizePlaceholderKey(key) {
                 <td>${escapeHtml(st.klasse||'')}</td>
                 ${variants.map(v => {
                   const active = (m.gym_variant === v);
-                  return `<td><span class="pillbtn ${active?'active':''}" data-gym="${v}">${escapeHtml(v)}</span></td>`;
+                  return `<td><button type="button" class="markbtn ${active?\'on\':\'\'}" data-gym="${v}" title="${escapeAttr(SNIPPETS.gym[v].title||v)}"><span class="check">✓</span></button></td>`;
                 }).join('')}
                 ${roles.map(r => {
                   const checked = !!m[r];
                   return `<td><input type="checkbox" data-role="${r}" ${checked?'checked':''} /></td>`;
                 }).join('')}
-                <td><span class="pillbtn" data-clear="1">x</span></td>
+                <td><button type="button" class="markbtn clear" data-clear="1" title="Ryd valg"><span class="check">×</span></button></td>
               </tr>`;
             }).join('')}
           </tbody>
@@ -878,7 +878,7 @@ function normalizePlaceholderKey(key) {
                 <td>${escapeHtml(full)}</td>
                 <td>${escapeHtml(st.klasse||'')}</td>
                 <td><input type="checkbox" data-er="1" ${checked?'checked':''} /></td>
-                <td><span class="pillbtn" data-clear="1">x</span></td>
+                <td><button type="button" class="markbtn clear" data-clear="1" title="Ryd valg"><span class="check">×</span></button></td>
               </tr>`;
             }).join('')}
           </tbody>
@@ -1176,18 +1176,4 @@ function normalizePlaceholderKey(key) {
   }
 
   init();
-})();function renderMarkGrid({ key, options, value, onSet, onClear }) {
-  const btn = (opt) => {
-    const isOn = value === opt.value;
-    return `<button class="mark-toggle ${isOn ? 'is-on' : ''}" data-key="${key}" data-val="${opt.value}" title="${escapeHtml(opt.label)}" type="button">
-      <span class="check">✓</span>
-    </button>`;
-  };
-  const clearBtn = `<button class="mark-clear" data-key="${key}" data-val="" title="Ryd valg" type="button">×</button>`;
-  return `<div class="mark-grid">
-    ${options.map(btn).join('')}
-    ${clearBtn}
-  </div>`;
-}
-
-
+})();
