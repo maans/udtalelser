@@ -149,17 +149,21 @@ Udtalelsen er skrevet med udgangspunkt i elevens hverdag og deltagelse gennem sk
 
   // ---------- normalize ----------
   function normalizeName(input) {
-    if (!input) return "";
-    return input
-      .toString()
-      .trim()
-      .toLowerCase()
-      .replace(/\./g, " ")
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/\s+/g, " ")
-      .trim();
-  }
+  if (!input) return "";
+  return input
+    .toString()
+    .trim()
+    .toLowerCase()
+    .replace(/\./g, " ")
+    // Danish letters are not decomposed by NFD, so transliterate explicitly
+    .replace(/æ/g, "ae")
+    .replace(/ø/g, "oe")
+    .replace(/å/g, "aa")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
   function callName(rawFirstName) {
     // HU-data: hvis fornavn-feltet indeholder ekstra efternavn, brug kun første ord.
