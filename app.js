@@ -160,6 +160,15 @@ Udtalelsen er skrevet med udgangspunkt i elevens hverdag og deltagelse gennem sk
       .replace(/\s+/g, " ")
       .trim();
   }
+
+  function callName(rawFirstName) {
+    // HU-data: hvis fornavn-feltet indeholder ekstra efternavn, brug kun første ord.
+    // Behold bindestreg-navne (fx Anne-Sofie) uændret.
+    const s = (rawFirstName ?? '').toString().trim();
+    if (!s) return '';
+    const parts = s.split(/\s+/).filter(Boolean);
+    return parts.length ? parts[0] : s;
+  }
   function normalizeHeader(input) { return normalizeName(input).replace(/[^a-z0-9]+/g, ""); }
   function resolveTeacherName(inputRaw) {
     const norm = normalizeName(inputRaw);
@@ -361,6 +370,7 @@ Udtalelsen er skrevet med udgangspunkt i elevens hverdag og deltagelse gennem sk
     if (marksER.elevraad) elevraadAfsnit = snippetTextByGender(SNIPPETS.elevraad.YES, student.koen);
 
     const fullName = `${student.fornavn} ${student.efternavn}`.trim();
+    const firstName = callName(student.fornavn);
     const pr = pronouns(student.koen);
     const snMap = {
       "ELEV_FORNAVN": (student.fornavn||'').trim(),
@@ -380,7 +390,10 @@ Udtalelsen er skrevet med udgangspunkt i elevens hverdag og deltagelse gennem sk
 
     const placeholderMap = {
       "ELEV_NAVN": fullName,
-      "ELEV_FORNAVN": (student.fornavn || '').trim(),
+      "ELEV_FORNAVN": firstName,
+      "HAN_HUN": (normalizeName(student.koen)==="m" || normalizeName(student.koen).includes("dreng") || normalizeName(student.koen).includes("male")) ? "han" : "hun",
+      "HAM_HENDE": (normalizeName(student.koen)==="m" || normalizeName(student.koen).includes("dreng") || normalizeName(student.koen).includes("male")) ? "ham" : "hende",
+      "HANS_HENDES": (normalizeName(student.koen)==="m" || normalizeName(student.koen).includes("dreng") || normalizeName(student.koen).includes("male")) ? "hans" : "hendes",
       "ELEV_EFTERNAVN": (student.efternavn || '').trim(),
       "ELEV_KLASSE": (student.klasse || '').trim(),
       "PERIODE_FRA": period.from,
@@ -408,7 +421,7 @@ Udtalelsen er skrevet med udgangspunkt i elevens hverdag og deltagelse gennem sk
 
       /* legacy placeholders */
       "NAVN": fullName,
-      "FORNAVN": (student.fornavn || '').trim(),
+      "FORNAVN": firstName,
       "KLASSE": (student.klasse || '').trim(),
       "ELEVUDVIKLING_FRI": (free.elevudvikling || ''),
       "PRAKTISK_FRI": (free.praktisk || ''),
