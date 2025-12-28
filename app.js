@@ -765,7 +765,7 @@ function normalizePlaceholderKey(key) {
                 <td>${escapeHtml(st.klasse||'')}</td>
                 ${cols.map(c => {
                   const active = (m.sang_variant === c);
-                  return `<td><button type="button" class="markbtn ${active?\'on\':\'\'}" data-set="${c}" title="${escapeAttr(SNIPPETS.sang[c].title||c)}"><span class="check">✓</span></button></td>`;
+                  return `<td><button type="button" class="markbtn ${active?'on':''}" data-set="${c}" title="${escapeAttr(SNIPPETS.sang[c].title||c)}"><span class="check">✓</span></button></td>`;
                 }).join('')}
                 <td><button type="button" class="markbtn clear" data-clear="1" title="Ryd valg"><span class="check">×</span></button></td>
               </tr>`;
@@ -820,7 +820,7 @@ function normalizePlaceholderKey(key) {
                 <td>${escapeHtml(st.klasse||'')}</td>
                 ${variants.map(v => {
                   const active = (m.gym_variant === v);
-                  return `<td><button type="button" class="markbtn ${active?\'on\':\'\'}" data-gym="${v}" title="${escapeAttr(SNIPPETS.gym[v].title||v)}"><span class="check">✓</span></button></td>`;
+                  return `<td><button type="button" class="markbtn ${active?'on':''}" data-gym="${v}" title="${escapeAttr(SNIPPETS.gym[v].title||v)}"><span class="check">✓</span></button></td>`;
                 }).join('')}
                 ${roles.map(r => {
                   const checked = !!m[r];
