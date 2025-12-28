@@ -485,9 +485,10 @@ function computeKontaktCount(){
 }
 
 function renderLibrary(){
-  const lib = el("view-library");
+  // View id changed: "Bibliotek" -> "K-elever".
+  const lib = el("view-k");
   if(!lib){
-    console.warn('[Elevudtalelser] Mangler element i DOM: view-library');
+    console.warn('[Elevudtalelser] Mangler element i DOM: view-k');
     return;
   }
   lib.innerHTML = "";
