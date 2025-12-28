@@ -244,7 +244,7 @@ Udtalelsen er skrevet med udgangspunkt i elevens hverdag og deltagelse gennem sk
   }
 
   // ---------- app state ----------
-  const state = { tab: 'set', selectedUnilogin: null };
+  const state = { tab: 'set', selectedUnilogin: null, studentInputUrls: {} };
 
   function defaultSettings() {
     return {
@@ -288,6 +288,18 @@ Udtalelsen er skrevet med udgangspunkt i elevens hverdag og deltagelse gennem sk
     if (g === 'm' || g.includes('dreng') || g.includes('male')) return 1;
     return 2;
   }
+
+  function pronouns(genderRaw) {
+    const g = normalizeName(genderRaw);
+    const isMale = (g === 'm' || g.includes('dreng') || g.includes('male'));
+    return {
+      HAN_HUN: isMale ? 'han' : 'hun',
+      HAM_HENDE: isMale ? 'ham' : 'hende',
+      HANS_HENDES: isMale ? 'hans' : 'hendes',
+      SIG_HAM_HENDE: isMale ? 'sig' : 'sig'
+    };
+  }
+
   function sortedStudents(all) {
     return all.slice().sort((a,b) =>
       (genderGroup(a.koen) - genderGroup(b.koen)) ||
@@ -349,7 +361,16 @@ Udtalelsen er skrevet med udgangspunkt i elevens hverdag og deltagelse gennem sk
     if (marksER.elevraad) elevraadAfsnit = snippetTextByGender(SNIPPETS.elevraad.YES, student.koen);
 
     const fullName = `${student.fornavn} ${student.efternavn}`.trim();
-    const snMap = { "ELEV_FORNAVN": (student.fornavn||'').trim(), "ELEV_NAVN": fullName };
+    const pr = pronouns(student.koen);
+    const snMap = {
+      "ELEV_FORNAVN": (student.fornavn||'').trim(),
+      "ELEV_NAVN": fullName,
+      "FORNAVN": (student.fornavn||'').trim(),
+      "NAVN": fullName,
+      "HAN_HUN": pr.HAN_HUN,
+      "HAM_HENDE": pr.HAM_HENDE,
+      "HANS_HENDES": pr.HANS_HENDES
+    };
     sangAfsnit = applyPlaceholders(sangAfsnit, snMap);
     gymAfsnit = applyPlaceholders(gymAfsnit, snMap);
     elevraadAfsnit = applyPlaceholders(elevraadAfsnit, snMap);
@@ -380,6 +401,10 @@ Udtalelsen er skrevet med udgangspunkt i elevens hverdag og deltagelse gennem sk
 
       "KONTAKTLAERERE": kontakt,
       "FORSTANDER": settings.forstanderName || '',
+
+      "HAN_HUN": pr.HAN_HUN,
+      "HAM_HENDE": pr.HAM_HENDE,
+      "HANS_HENDES": pr.HANS_HENDES,
 
       /* legacy placeholders */
       "NAVN": fullName,
@@ -614,6 +639,8 @@ Udtalelsen er skrevet med udgangspunkt i elevens hverdag og deltagelse gennem sk
     } else {
       $('studentInputMeta').textContent = '';
     }
+
+    $('btnOpenStudentInput').textContent = (state.selectedUnilogin && state.studentInputUrls[state.selectedUnilogin]) ? 'Åbn fil' : 'Vælg fil';
 
     $('preview').textContent = buildStatement(st, getSettings());
   }
@@ -859,6 +886,8 @@ Udtalelsen er skrevet med udgangspunkt i elevens hverdag og deltagelse gennem sk
     $('tab-edit').addEventListener('click', () => setTab('edit'));
     $('tab-set').addEventListener('click', () => setTab('set'));
 
+    $('btnReload').addEventListener('click', () => location.reload());
+
     $('btnReset').addEventListener('click', () => {
       if (!confirm('Ryd alle lokale data i denne browser?')) return;
       lsDelPrefix(LS_PREFIX);
@@ -1017,11 +1046,25 @@ Udtalelsen er skrevet med udgangspunkt i elevens hverdag og deltagelse gennem sk
       });
     });
 
+    $('btnOpenStudentInput').addEventListener('click', () => {
+      const url = state.selectedUnilogin ? state.studentInputUrls[state.selectedUnilogin] : null;
+      if (url) {
+        const win = window.open(url, '_blank', 'noopener,noreferrer');
+        if (!win) alert('Popup blev stadig blokeret. Tillad popups for siden og prøv igen.');
+      } else {
+        $('fileStudentInput').click();
+      }
+    });
+
     $('fileStudentInput').addEventListener('change', (e) => {
       const f = e.target.files && e.target.files[0];
       if (!f || !state.selectedUnilogin) return;
       const url = URL.createObjectURL(f);
-      window.open(url, '_blank', 'noopener,noreferrer');
+      state.studentInputUrls[state.selectedUnilogin] = url;
+      const win = window.open(url, '_blank', 'noopener,noreferrer');
+      if (!win) {
+        alert('Popup blev blokeret af browseren. Tillad popups for siden, og klik derefter på “Åbn fil”.');
+      }
 
       const obj = getTextFor(state.selectedUnilogin);
       obj.studentInputMeta = { filename: f.name, ts: Date.now() };
@@ -1033,6 +1076,7 @@ Udtalelsen er skrevet med udgangspunkt i elevens hverdag og deltagelse gennem sk
       const obj = getTextFor(state.selectedUnilogin);
       obj.studentInputMeta = null;
       setTextFor(state.selectedUnilogin, obj);
+      delete state.studentInputUrls[state.selectedUnilogin];
       $('fileStudentInput').value = '';
       renderEdit();
     });
