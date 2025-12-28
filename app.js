@@ -424,6 +424,18 @@ Udtalelsen er skrevet med udgangspunkt i elevens hverdag og deltagelse gennem sk
 
       "KONTAKTLAERERE": kontakt,
       "FORSTANDER": settings.forstanderName || '',
+// Synonymer til skabeloner/snippets (forskellige placeholder-navne)
+"ELEV_FULDE_NAVN": fullName,
+"ELEV_FULD_E_NAVN": fullName,
+"ELEV_UDVIKLING_AFSNIT": (free.elevudvikling || ''),
+"ELEV_UDVIKLING_FRI": (free.elevudvikling || ''),
+"PRAKTISK_FRI": (free.praktisk || ''),
+"KGRUPPE_FRI": (free.kgruppe || ''),
+"KONTAKTGRUPPE_ANTAL": String(settings.contactGroupCount || ''),
+"KONTAKTGRUPPE_BESKRIVELSE": (free.kgruppe || SNIPPETS.kontaktgruppeDefault || ''),
+"KONTAKTLAERER_1_NAVN": (student.kontaktlaerer1 || '').trim(),
+"KONTAKTLAERER_2_NAVN": (student.kontaktlaerer2 || '').trim(),
+"FORSTANDER_NAVN": settings.forstanderName || '',
 
       "HAN_HUN": pr.HAN_HUN,
       "HAM_HENDE": pr.HAM_HENDE,
