@@ -353,10 +353,11 @@ function normalizePlaceholderKey(key) {
   if (!text) return "";
   const s = String(text);
 
-  // Replaces both {KEY} and {{KEY}} (case-insensitive keys, allows æ/ø/å).
+  // Replaces both {KEY} and {{KEY}} (allows æ/ø/å).
   // Lookup strategy:
-  // 1) exact key (uppercased)
+  // 1) exact uppercased key
   // 2) normalized key (æ/ø/å -> AE/OE/AA + diacritics stripped)
+  // 3) raw key as-is
   return s.replace(/\{\{\s*([^{}]+?)\s*\}\}|\{\s*([^{}]+?)\s*\}/g, (m, k1, k2) => {
     const rawKey = (k1 || k2 || "").trim();
     if (!rawKey) return "";
@@ -369,8 +370,6 @@ function normalizePlaceholderKey(key) {
     return (v === null || v === undefined) ? "" : String(v);
   });
 }
-    return out;
-  }
   function cleanSpacing(text) {
     return (text || '')
       .replace(/[ \t]+\n/g, '\n')
