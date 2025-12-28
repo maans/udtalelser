@@ -52,16 +52,18 @@ function attachHandlers(){
     const idx=headerIndex(headers);
     // expected headers (tolerant)
     const H = (name)=> idx[normalizeKey(name)] || idx[normalizeKey(name.replaceAll("-"," ").replaceAll("_"," "))];
-    const colUni = H("Uni-C brugernavn") || H("UNIlogin") || H("Uni-C brugernavn");
+    // Uni-login column name varies across exports
+    const colUni = H("Uni-C brugernavn") || H("UNIlogin") || H("UNI login") || H("UNILogin") || H("Unilogin") || H("UniLogin") || H("Uni login");
     const colFornavn = H("Fornavn");
     const colEfternavn = H("Efternavn");
     const colKlasse = H("Klasse");
     const colKoen = H("Køn") || H("Koen");
-    const colK1 = H("Relationer-Kontaktlærer-Navn") || H("Relationer Kontaktlærer Navn");
-    const colK2 = H("Relationer-Anden kontaktlærer-Navn") || H("Relationer Anden kontaktlærer Navn");
+    // Contact teacher columns also vary
+    const colK1 = H("Relationer-Kontaktlærer-Navn") || H("Relationer Kontaktlærer Navn") || H("Kontaktlærer1") || H("Kontaktlærer 1") || H("Kontaktlærer") || H("Kontaktlaerer1") || H("Kontaktlaerer 1");
+    const colK2 = H("Relationer-Anden kontaktlærer-Navn") || H("Relationer Anden kontaktlærer Navn") || H("Kontaktlærer2") || H("Kontaktlærer 2") || H("Kontaktlaerer2") || H("Kontaktlaerer 2") || H("Anden kontaktlærer") || H("Anden kontaktlaerer");
 
     if(!colUni){
-      alert("Kunne ikke finde kolonnen 'Uni-C brugernavn' i elevlisten.");
+      alert("Kunne ikke finde Uni-login kolonnen i elevlisten. Forvent f.eks. 'Uni-C brugernavn' eller 'Unilogin'.");
       return;
     }
 
