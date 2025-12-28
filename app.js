@@ -395,7 +395,7 @@ function el(id){ return document.getElementById(id); }
 function setHTML(id, html){
   const node = el(id);
   if(!node){
-    console.warn('[Elevudtalelser] Mangler element i DOM:', id);
+    console.warn('[Elevudtalelser (B1.4g)] Mangler element i DOM:', id);
     return null;
   }
   node.innerHTML = html;
