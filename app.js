@@ -75,7 +75,7 @@
         "text_m": "{{FORNAVN}} har deltaget i fællessang og kor og har derigennem fået kendskab til nye sange og har oplevet det fællesskab, som fællessang kan give.",
         "text_k": "{{FORNAVN}} har deltaget i fællessang og kor og har derigennem fået kendskab til nye sange og har oplevet det fællesskab, som fællessang kan give."
       }
-    }},
+    },
     gym:  {
   "G1": {
     "title": "Meget engageret",
@@ -272,6 +272,16 @@ function buildOverridePackage(scope) {
     pkg.payload.elevraad = { label: 'Elevråd', text };
   }
 
+  if (scope === 'templates') {
+    const t = getTemplates();
+    const s2 = getSettings();
+    pkg.payload.templates = {
+      forstanderNavn: (s2.forstanderName || '').trim(),
+      schoolText: String(t.schoolText ?? DEFAULT_SCHOOL_TEXT),
+      template: String(t.template ?? DEFAULT_TEMPLATE)
+    };
+  }
+
   return pkg;
 }
 
@@ -291,6 +301,20 @@ function importOverridePackage(expectedScope, obj) {
   }
   if (obj.scope === 'all' || obj.scope === 'elevraad') {
     if (p.elevraad) overrides.elevraad = p.elevraad;
+  }
+
+  if (expectedScope === 'templates' || obj.scope === 'templates' || obj.scope === 'all') {
+    // Templates er ikke snippets-overrides, men indstillinger/templates.
+    if (p.templates) {
+      const t = getTemplates();
+      if (typeof p.templates.schoolText === 'string') t.schoolText = p.templates.schoolText;
+      if (typeof p.templates.template === 'string') t.template = p.templates.template;
+      setTemplates(t);
+
+      const s = getSettings();
+      if (typeof p.templates.forstanderNavn === 'string') s.forstanderName = p.templates.forstanderNavn;
+      setSettings(s);
+    }
   }
 
   setSnippetOverrides(overrides);
@@ -1288,7 +1312,27 @@ function renderKList() {
       t.template = $('templateText').value;
       setTemplates(t);
       if (state.tab === 'edit') renderEdit();
-    
+    });
+
+    // Del / importér skabeloner (leder)
+    if (document.getElementById('btnDownloadTemplates')) {
+      $('btnDownloadTemplates').addEventListener('click', () => {
+        const pkg = buildOverridePackage('templates');
+        downloadJson('templates_override.json', pkg);
+      });
+      $('btnImportTemplates').addEventListener('click', () => $('fileImportTemplates').click());
+      $('fileImportTemplates').addEventListener('change', async (e) => {
+        const f = e.target.files && e.target.files[0];
+        if (!f) return;
+        const txt = await f.text();
+        const obj = JSON.parse(txt);
+        importOverridePackage('templates', obj);
+        renderSettings();
+        if (state.tab === 'edit') renderEdit();
+        e.target.value = '';
+      });
+    }
+
 // --- Faglærer-tekster (snippets) ---
 const sangInputs = ['S1','S2','S3'].flatMap(k => ['sangLabel_'+k, 'sangText_'+k]);
 sangInputs.forEach(id => {
@@ -1411,8 +1455,6 @@ if (document.getElementById('btnDownloadElevraad')) {
     renderSettings();
   });
 }
-
-});
 
     $('studentsFile').addEventListener('change', async (e) => {
       const f = e.target.files && e.target.files[0];

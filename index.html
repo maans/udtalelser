@@ -166,6 +166,18 @@
 <textarea id="templateText" rows="14"></textarea>
 <div class="muted small">Brug placeholders som <code>{{ELEV_FORNAVN}}</code>, <code>{{SANG_AFSNIT}}</code>, <code>{{PRAKTISK_AFSNIT}}</code> osv.</div>
 </details>
+
+<details class="fold" id="templatesShareFold">
+<summary>Del / importér skabeloner (leder)</summary>
+<div class="muted small" style="margin:.35rem 0 .6rem 0">
+  Gælder <b>Forstandernavn</b>, <b>Skolens standardtekst</b> og <b>Udtalelses-skabelon</b>. Download filen og del den med kolleger.
+</div>
+<div class="row gap wrap" style="margin:.5rem 0">
+  <button class="btn" id="btnDownloadTemplates" type="button">⬇️ Download skabeloner</button>
+  <button class="btn ghost" id="btnImportTemplates" type="button">⬆️ Importér skabeloner</button>
+  <input id="fileImportTemplates" type="file" accept=".json" style="display:none"/>
+</div>
+</details>
 </div>
 </div>
 <div class="card no-print" style="margin-top:1rem">
