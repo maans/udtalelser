@@ -58,24 +58,24 @@
   "vsi": "Viola Simonsen"
 };
 
-  const SNIPPETS = {
+  let SNIPPETS = {
     sang: {
-  "S1": {
-    "title": "Meget aktiv deltagelse",
-    "text_m": "{{FORNAVN}} har deltaget meget engageret i fællessang gennem hele året. {{HAN_HUN}} har bidraget positivt til fællesskabet og vist lyst til at udvikle sin sangstemme.",
-    "text_k": "{{FORNAVN}} har deltaget meget engageret i fællessang gennem hele året. {{HAN_HUN}} har bidraget positivt til fællesskabet og vist lyst til at udvikle sin sangstemme."
-  },
-  "S2": {
-    "title": "Stabil deltagelse",
-    "text_m": "{{FORNAVN}} har deltaget stabilt i fællessang og har mødt undervisningen med en positiv indstilling. {{HAN_HUN}} har været en god del af fællesskabet.",
-    "text_k": "{{FORNAVN}} har deltaget stabilt i fællessang og har mødt undervisningen med en positiv indstilling. {{HAN_HUN}} har været en god del af fællesskabet."
-  },
-  "S3": {
-    "title": "Varierende deltagelse",
-    "text_m": "{{FORNAVN}} har haft en varierende deltagelse i fællessang. {{HAN_HUN}} har dog i perioder vist engagement og vilje til at indgå i fællesskabet.",
-    "text_k": "{{FORNAVN}} har haft en varierende deltagelse i fællessang. {{HAN_HUN}} har dog i perioder vist engagement og vilje til at indgå i fællesskabet."
-  }
-},
+      "S1": {
+        "title": "Sang – niveau 1",
+        "text_m": "{{FORNAVN}} har bidraget til fællessang på allerbedste vis. Med sangglæde, engagement og nysgerrighed har {{FORNAVN}} været en drivkraft i timerne og en inspiration for andre. {{FORNAVN}} har herigennem oplevet det fællesskab, som fællessang kan give.",
+        "text_k": "{{FORNAVN}} har bidraget til fællessang på allerbedste vis. Med sangglæde, engagement og nysgerrighed har {{FORNAVN}} været en drivkraft i timerne og en inspiration for andre. {{FORNAVN}} har herigennem oplevet det fællesskab, som fællessang kan give."
+      },
+      "S2": {
+        "title": "Sang – niveau 2",
+        "text_m": "{{FORNAVN}} har med godt humør bidraget til fællessang og kor og har derigennem vist sangglæde og åbenhed og fået kendskab til nye sange. {{FORNAVN}} har oplevet det fællesskab, som fællessang kan give.",
+        "text_k": "{{FORNAVN}} har med godt humør bidraget til fællessang og kor og har derigennem vist sangglæde og åbenhed og fået kendskab til nye sange. {{FORNAVN}} har oplevet det fællesskab, som fællessang kan give."
+      },
+      "S3": {
+        "title": "Sang – niveau 3",
+        "text_m": "{{FORNAVN}} har deltaget i fællessang og kor og har derigennem fået kendskab til nye sange og har oplevet det fællesskab, som fællessang kan give.",
+        "text_k": "{{FORNAVN}} har deltaget i fællessang og kor og har derigennem fået kendskab til nye sange og har oplevet det fællesskab, som fællessang kan give."
+      }
+    }},
     gym:  {
   "G1": {
     "title": "Meget engageret",
@@ -113,15 +113,17 @@
     elevraad: {
       YES: {
         title: "Elevrådsrepræsentant",
-        text_m: "{{ELEV_FORNAVN}} har været repræsentant i elevrådet og har taget ansvar i fællesskabet.",
-        text_k: "{{ELEV_FORNAVN}} har været repræsentant i elevrådet og har taget ansvar i fællesskabet."
+        text_m: "{{ELEV_FORNAVN}} har været en del af elevrådet på Himmerlands Ungdomsskole, hvor elevrådet blandt andet har stået for ugentlige fællesmøder for elever og lærere. Derudover har elevrådsarbejdet omfattet en række forskellige opgaver i løbet af året med ansvar for at sætte aktiviteter i gang i fællesskabets ånd. I den forbindelse har {{ELEV_FORNAVN}} vist engagement og vilje til at påtage sig og gennemføre forskellige opgaver og aktiviteter.",
+        text_k: "{{ELEV_FORNAVN}} har været en del af elevrådet på Himmerlands Ungdomsskole, hvor elevrådet blandt andet har stået for ugentlige fællesmøder for elever og lærere. Derudover har elevrådsarbejdet omfattet en række forskellige opgaver i løbet af året med ansvar for at sætte aktiviteter i gang i fællesskabets ånd. I den forbindelse har {{ELEV_FORNAVN}} vist engagement og vilje til at påtage sig og gennemføre forskellige opgaver og aktiviteter."
       }
     },
     kontaktgruppeDefault: "I kontaktgruppen har vi arbejdet med trivsel, ansvar og fællesskab.",
     afslutningDefault: "Vi ønsker eleven alt det bedste fremover."
   };
 
-  const DEFAULT_SCHOOL_TEXT =
+    const SNIPPETS_DEFAULT = JSON.parse(JSON.stringify(SNIPPETS));
+
+const DEFAULT_SCHOOL_TEXT =
 `På Himmerlands Ungdomsskole arbejder vi med både faglighed, fællesskab og personlig udvikling.
 Udtalelsen er skrevet med udgangspunkt i elevens hverdag og deltagelse gennem skoleåret.`;
 
@@ -147,7 +149,155 @@ Udtalelsen er skrevet med udgangspunkt i elevens hverdag og deltagelse gennem sk
     keys.forEach(k => localStorage.removeItem(k));
   }
 
-  // ---------- normalize ----------
+  
+// ---------- snippet overrides (deling mellem lærere) ----------
+const SNIPPETS_OVERRIDE_KEY = 'udt_snippets_override_v1';
+const OVERRIDE_SCHEMA = 'hu-elevudtalelser-snippets-override@1';
+
+function getSnippetOverrides() {
+  return lsGet(SNIPPETS_OVERRIDE_KEY, {}) || {};
+}
+function setSnippetOverrides(o) {
+  lsSet(SNIPPETS_OVERRIDE_KEY, o || {});
+}
+
+function applySnippetOverrides() {
+  const o = getSnippetOverrides();
+  // start fra defaults (deep clone)
+  SNIPPETS = JSON.parse(JSON.stringify(SNIPPETS_DEFAULT));
+
+  // sang
+  if (o.sang && o.sang.items) {
+    Object.keys(o.sang.items).forEach(k => {
+      if (!SNIPPETS.sang[k]) SNIPPETS.sang[k] = { title: k, text_m: '', text_k: '' };
+      const it = o.sang.items[k];
+      if (typeof it.label === 'string') SNIPPETS.sang[k].title = it.label;
+      if (typeof it.text === 'string') {
+        SNIPPETS.sang[k].text_m = it.text;
+        SNIPPETS.sang[k].text_k = it.text;
+      }
+    });
+  }
+
+  // gym varianter
+  if (o.gym && o.gym.variants) {
+    Object.keys(o.gym.variants).forEach(k => {
+      if (!SNIPPETS.gym[k]) SNIPPETS.gym[k] = { title: k, text_m: '', text_k: '' };
+      const it = o.gym.variants[k];
+      if (typeof it.label === 'string') SNIPPETS.gym[k].title = it.label;
+      if (typeof it.text === 'string') {
+        SNIPPETS.gym[k].text_m = it.text;
+        SNIPPETS.gym[k].text_k = it.text;
+      }
+    });
+  }
+
+  // roller
+  if (o.gym && o.gym.roles) {
+    Object.keys(o.gym.roles).forEach(k => {
+      if (!SNIPPETS.roller[k]) SNIPPETS.roller[k] = { title: k, text_m: '', text_k: '' };
+      const it = o.gym.roles[k];
+      if (typeof it.label === 'string') SNIPPETS.roller[k].title = it.label;
+      if (typeof it.text === 'string') {
+        SNIPPETS.roller[k].text_m = it.text;
+        SNIPPETS.roller[k].text_k = it.text;
+      }
+    });
+  }
+
+  // elevråd (YES)
+  if (o.elevraad && typeof o.elevraad.text === 'string') {
+    if (!SNIPPETS.elevraad.YES) SNIPPETS.elevraad.YES = { title: 'Elevrådsrepræsentant', text_m: '', text_k: '' };
+    SNIPPETS.elevraad.YES.text_m = o.elevraad.text;
+    SNIPPETS.elevraad.YES.text_k = o.elevraad.text;
+    if (typeof o.elevraad.label === 'string') SNIPPETS.elevraad.YES.title = o.elevraad.label;
+  }
+}
+
+function downloadJson(filename, obj) {
+  const blob = new Blob([JSON.stringify(obj, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function buildOverridePackage(scope) {
+  const today = new Date().toISOString().slice(0,10);
+  const s = getSettings();
+  const author = (s && s.me) ? String(s.me) : '';
+  const pkg = { schema: OVERRIDE_SCHEMA, scope, author, createdAt: today, payload: {} };
+
+  if (scope === 'sang') {
+    const items = {};
+    ['S1','S2','S3'].forEach(k => {
+      const label = ($('sangLabel_'+k)?.value || '').trim() || k;
+      const text = ($('sangText_'+k)?.value || '').trim();
+      items[k] = { label, text };
+    });
+    pkg.payload.sang = { items, order: ['S1','S2','S3'] };
+  }
+
+  if (scope === 'gym') {
+    const variants = {};
+    ['G1','G2','G3'].forEach(k => {
+      const label = ($('gymLabel_'+k)?.value || '').trim() || k;
+      const text = ($('gymText_'+k)?.value || '').trim();
+      variants[k] = { label, text };
+    });
+
+    const roles = {};
+    const roleRows = Array.from(document.querySelectorAll('[data-role-key]'));
+    roleRows.forEach(row => {
+      const key = row.getAttribute('data-role-key');
+      const label = (row.querySelector('.roleLabel')?.value || '').trim() || key;
+      const text = (row.querySelector('.roleText')?.value || '').trim();
+      if (key) roles[key] = { label, text };
+    });
+
+    pkg.payload.gym = {
+      variants,
+      variantOrder: ['G1','G2','G3'],
+      roles,
+      roleOrder: Object.keys(roles)
+    };
+  }
+
+  if (scope === 'elevraad') {
+    const text = ($('elevraadText')?.value || '').trim();
+    pkg.payload.elevraad = { label: 'Elevråd', text };
+  }
+
+  return pkg;
+}
+
+function importOverridePackage(expectedScope, obj) {
+  if (!obj || obj.schema !== OVERRIDE_SCHEMA) throw new Error('Forkert fil: schema matcher ikke.');
+  if (!obj.scope) throw new Error('Forkert fil: mangler scope.');
+  if (obj.scope !== expectedScope && obj.scope !== 'all') throw new Error('Forkert fil: scope matcher ikke.');
+
+  const overrides = getSnippetOverrides();
+  const p = obj.payload || {};
+
+  if (obj.scope === 'all' || obj.scope === 'sang') {
+    if (p.sang && p.sang.items) overrides.sang = p.sang;
+  }
+  if (obj.scope === 'all' || obj.scope === 'gym') {
+    if (p.gym) overrides.gym = p.gym;
+  }
+  if (obj.scope === 'all' || obj.scope === 'elevraad') {
+    if (p.elevraad) overrides.elevraad = p.elevraad;
+  }
+
+  setSnippetOverrides(overrides);
+  applySnippetOverrides();
+}
+
+// ---------- normalize ----------
   function normalizeName(input) {
   if (!input) return "";
   return input
@@ -197,11 +347,6 @@ function normalizePlaceholderKey(key) {
   }
 
   // ---------- util ----------
-  function escapeHtml(s) {
-    return (s ?? '').toString()
-      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-  }
   function escapeAttr(s) { return (s ?? '').toString().replace(/"/g,'&quot;'); }
   function $(id){ return document.getElementById(id); }
 
@@ -603,10 +748,110 @@ function normalizePlaceholderKey(key) {
       $('contactCount').value = '';
     }
 
+    renderSnippetsEditor();
     renderMarksTable();
   }
 
-  function renderKList() {
+  
+function renderSnippetsEditor() {
+  // Hvis UI ikke findes (ældre HTML), gør intet
+  if (!$('sangText_S1')) return;
+
+  // Sikr vi viser de aktuelle (merged) værdier
+  const sangKeys = ['S1','S2','S3'];
+  sangKeys.forEach(k => {
+    const it = SNIPPETS.sang[k] || { title: k, text_m: '', text_k: '' };
+    $('sangLabel_'+k).value = it.title || k;
+    $('sangText_'+k).value = (it.text_m || it.text_k || '');
+  });
+
+  const gymKeys = ['G1','G2','G3'];
+  gymKeys.forEach(k => {
+    const it = SNIPPETS.gym[k] || { title: k, text_m: '', text_k: '' };
+    $('gymLabel_'+k).value = it.title || k;
+    $('gymText_'+k).value = (it.text_m || it.text_k || '');
+  });
+
+  // Elevråd
+  const er = (SNIPPETS.elevraad && SNIPPETS.elevraad.YES) ? SNIPPETS.elevraad.YES : { text_m: '', text_k: '' };
+  $('elevraadText').value = (er.text_m || er.text_k || '');
+
+  // Roller (gym)
+  const list = document.getElementById('gymRolesList');
+  if (!list) return;
+  list.innerHTML = '';
+  Object.keys(SNIPPETS.roller || {}).forEach(key => {
+    const it = SNIPPETS.roller[key];
+    const row = document.createElement('div');
+    row.className = 'roleRow';
+    row.setAttribute('data-role-key', key);
+    row.innerHTML = `
+      <div class="row gap wrap" style="align-items:center">
+        <div class="field" style="min-width:220px;flex:1">
+          <label>Rolle-navn</label>
+          <input class="roleLabel" type="text" value="${escapeHtml(it.title || key)}">
+        </div>
+        <div class="field" style="flex:2;min-width:280px">
+          <label>Tekst</label>
+          <textarea class="roleText" rows="3">${escapeHtml((it.text_m || it.text_k || ''))}</textarea>
+        </div>
+        <button class="btn danger" type="button" data-remove-role="${escapeHtml(key)}">Slet</button>
+      </div>
+    `;
+    list.appendChild(row);
+  });
+}
+
+function escapeHtml(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function commitSnippetsFromUI(scope) {
+  const overrides = getSnippetOverrides();
+
+  if (scope === 'sang') {
+    const items = {};
+    ['S1','S2','S3'].forEach(k => {
+      items[k] = {
+        label: ($('sangLabel_'+k).value || '').trim() || k,
+        text: ($('sangText_'+k).value || '').trim()
+      };
+    });
+    overrides.sang = { items, order: ['S1','S2','S3'] };
+  }
+
+  if (scope === 'gym') {
+    const variants = {};
+    ['G1','G2','G3'].forEach(k => {
+      variants[k] = {
+        label: ($('gymLabel_'+k).value || '').trim() || k,
+        text: ($('gymText_'+k).value || '').trim()
+      };
+    });
+    const roles = {};
+    Array.from(document.querySelectorAll('[data-role-key]')).forEach(row => {
+      const key = row.getAttribute('data-role-key');
+      if (!key) return;
+      roles[key] = {
+        label: (row.querySelector('.roleLabel')?.value || '').trim() || key,
+        text: (row.querySelector('.roleText')?.value || '').trim()
+      };
+    });
+    overrides.gym = { variants, roles, variantOrder: ['G1','G2','G3'], roleOrder: Object.keys(roles) };
+  }
+
+  if (scope === 'elevraad') {
+    overrides.elevraad = { label: 'Elevråd', text: ($('elevraadText').value || '').trim() };
+  }
+
+  setSnippetOverrides(overrides);
+  applySnippetOverrides();
+  // opdater visninger
+  if (state.tab === 'edit') renderEdit();
+  renderMarksTable();
+}
+
+function renderKList() {
     const s = getSettings();
     const studs = getStudents();
     const meNorm = normalizeName(s.meResolved);
@@ -1043,7 +1288,131 @@ function normalizePlaceholderKey(key) {
       t.template = $('templateText').value;
       setTemplates(t);
       if (state.tab === 'edit') renderEdit();
+    
+// --- Faglærer-tekster (snippets) ---
+const sangInputs = ['S1','S2','S3'].flatMap(k => ['sangLabel_'+k, 'sangText_'+k]);
+sangInputs.forEach(id => {
+  if (!document.getElementById(id)) return;
+  $(id).addEventListener('input', () => commitSnippetsFromUI('sang'));
+});
+
+const gymInputs = ['G1','G2','G3'].flatMap(k => ['gymLabel_'+k, 'gymText_'+k]);
+gymInputs.forEach(id => {
+  if (!document.getElementById(id)) return;
+  $(id).addEventListener('input', () => commitSnippetsFromUI('gym'));
+});
+
+if (document.getElementById('elevraadText')) {
+  $('elevraadText').addEventListener('input', () => commitSnippetsFromUI('elevraad'));
+}
+
+if (document.getElementById('btnDownloadSang')) {
+  $('btnDownloadSang').addEventListener('click', () => {
+    const pkg = buildOverridePackage('sang');
+    downloadJson('snippets_sang_override.json', pkg);
+  });
+  $('btnImportSang').addEventListener('click', () => $('fileImportSang').click());
+  $('fileImportSang').addEventListener('change', async (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    const txt = await f.text();
+    const obj = JSON.parse(txt);
+    importOverridePackage('sang', obj);
+    renderSettings();
+    e.target.value = '';
+  });
+  $('btnRestoreSang').addEventListener('click', () => {
+    const o = getSnippetOverrides();
+    delete o.sang;
+    setSnippetOverrides(o);
+    applySnippetOverrides();
+    renderSettings();
+  });
+}
+
+if (document.getElementById('btnDownloadGym')) {
+  $('btnDownloadGym').addEventListener('click', () => {
+    const pkg = buildOverridePackage('gym');
+    downloadJson('snippets_gym_override.json', pkg);
+  });
+  $('btnImportGymSnippets').addEventListener('click', () => $('fileImportGymSnippets').click());
+  $('fileImportGymSnippets').addEventListener('change', async (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    const txt = await f.text();
+    const obj = JSON.parse(txt);
+    importOverridePackage('gym', obj);
+    renderSettings();
+    e.target.value = '';
+  });
+  $('btnRestoreGymSnippets').addEventListener('click', () => {
+    const o = getSnippetOverrides();
+    delete o.gym;
+    setSnippetOverrides(o);
+    applySnippetOverrides();
+    renderSettings();
+  });
+
+  $('btnAddRole').addEventListener('click', () => {
+    const keyRaw = prompt('Kort nøgle til rollen (fx FANEBÆRER, REDSKAB, DGI):');
+    if (!keyRaw) return;
+    const key = keyRaw.trim().toUpperCase().replace(/\s+/g,'_');
+    if (!key) return;
+    const o = getSnippetOverrides();
+    if (!o.gym) o.gym = { variants: {}, roles: {} };
+    if (!o.gym.roles) o.gym.roles = {};
+    if (!o.gym.roles[key]) o.gym.roles[key] = { label: keyRaw.trim(), text: '' };
+    setSnippetOverrides(o);
+    applySnippetOverrides();
+    renderSettings();
+  });
+
+  const rolesList = document.getElementById('gymRolesList');
+  if (rolesList) {
+    rolesList.addEventListener('click', (ev) => {
+      const btn = ev.target.closest('[data-remove-role]');
+      if (!btn) return;
+      const key = btn.getAttribute('data-remove-role');
+      if (!key) return;
+      const o = getSnippetOverrides();
+      // Hvis rollen kun findes som override, så fjern den her; ellers gem "tom" override for at kunne skjule?
+      // Minimal: fjern override-rollen + fjern fra defaults via et "tombstone"
+      if (!o.gym) o.gym = {};
+      if (!o.gym.roles) o.gym.roles = {};
+      // Tombstone for at kunne fjerne en default-rolle:
+      o.gym.roles[key] = { label: '', text: '' , _deleted: true };
+      setSnippetOverrides(o);
+      applySnippetOverrides();
+      renderSettings();
     });
+  }
+}
+
+if (document.getElementById('btnDownloadElevraad')) {
+  $('btnDownloadElevraad').addEventListener('click', () => {
+    const pkg = buildOverridePackage('elevraad');
+    downloadJson('snippets_elevraad_override.json', pkg);
+  });
+  $('btnImportElevraadSnippets').addEventListener('click', () => $('fileImportElevraadSnippets').click());
+  $('fileImportElevraadSnippets').addEventListener('change', async (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    const txt = await f.text();
+    const obj = JSON.parse(txt);
+    importOverridePackage('elevraad', obj);
+    renderSettings();
+    e.target.value = '';
+  });
+  $('btnRestoreElevraad').addEventListener('click', () => {
+    const o = getSnippetOverrides();
+    delete o.elevraad;
+    setSnippetOverrides(o);
+    applySnippetOverrides();
+    renderSettings();
+  });
+}
+
+});
 
     $('studentsFile').addEventListener('change', async (e) => {
       const f = e.target.files && e.target.files[0];
@@ -1167,6 +1536,7 @@ function normalizePlaceholderKey(key) {
     wireEvents();
     if (!localStorage.getItem(KEYS.settings)) setSettings(defaultSettings());
     if (!localStorage.getItem(KEYS.templates)) setTemplates(defaultTemplates());
+    applySnippetOverrides();
 
     const s = getSettings();
     if (s.me && !s.meResolved) { s.meResolved = resolveTeacherName(s.me); setSettings(s); }

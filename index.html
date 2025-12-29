@@ -169,6 +169,108 @@
 </div>
 </div>
 <div class="card no-print" style="margin-top:1rem">
+  <div class="cardTitle">Faglærer-tekster (snippets)</div>
+  <div class="muted small" style="margin-bottom:.5rem">
+    Redigér tekster direkte her. Når du klikker “Download ændringer”, får du en fil du kan sende til Måns.
+  </div>
+
+  <details open>
+    <summary><b>Sang</b> (3 niveauer)</summary>
+    <div class="row gap wrap" style="margin:.5rem 0">
+      <button class="btn" id="btnDownloadSang" type="button">⬇️ Download ændringer</button>
+      <button class="btn ghost" id="btnImportSang" type="button">⬆️ Importér ændringer</button>
+      <button class="btn ghost" id="btnRestoreSang" type="button">↩️ Gendan standard</button>
+      <input id="fileImportSang" type="file" accept=".json" style="display:none"/>
+    </div>
+
+    <div class="field">
+      <label>Niveau 1 – titel</label>
+      <input id="sangLabel_S1" type="text">
+    </div>
+    <div class="field">
+      <label>Niveau 1 – tekst</label>
+      <textarea id="sangText_S1" rows="3"></textarea>
+    </div>
+
+    <div class="field">
+      <label>Niveau 2 – titel</label>
+      <input id="sangLabel_S2" type="text">
+    </div>
+    <div class="field">
+      <label>Niveau 2 – tekst</label>
+      <textarea id="sangText_S2" rows="3"></textarea>
+    </div>
+
+    <div class="field">
+      <label>Niveau 3 – titel</label>
+      <input id="sangLabel_S3" type="text">
+    </div>
+    <div class="field">
+      <label>Niveau 3 – tekst</label>
+      <textarea id="sangText_S3" rows="3"></textarea>
+    </div>
+
+    <div class="muted small">Brug fx <code>{{FORNAVN}}</code>. (Appen indsætter automatisk korrekt fornavn.)</div>
+  </details>
+
+  <details>
+    <summary><b>Gymnastik</b> (3 niveauer + roller)</summary>
+    <div class="row gap wrap" style="margin:.5rem 0">
+      <button class="btn" id="btnDownloadGym" type="button">⬇️ Download ændringer</button>
+      <button class="btn ghost" id="btnImportGymSnippets" type="button">⬆️ Importér ændringer</button>
+      <button class="btn ghost" id="btnRestoreGymSnippets" type="button">↩️ Gendan standard</button>
+      <button class="btn ghost" id="btnAddRole" type="button">➕ Tilføj rolle</button>
+      <input id="fileImportGymSnippets" type="file" accept=".json" style="display:none"/>
+    </div>
+
+    <div class="field">
+      <label>Niveau 1 – titel</label>
+      <input id="gymLabel_G1" type="text">
+    </div>
+    <div class="field">
+      <label>Niveau 1 – tekst</label>
+      <textarea id="gymText_G1" rows="3"></textarea>
+    </div>
+
+    <div class="field">
+      <label>Niveau 2 – titel</label>
+      <input id="gymLabel_G2" type="text">
+    </div>
+    <div class="field">
+      <label>Niveau 2 – tekst</label>
+      <textarea id="gymText_G2" rows="3"></textarea>
+    </div>
+
+    <div class="field">
+      <label>Niveau 3 – titel</label>
+      <input id="gymLabel_G3" type="text">
+    </div>
+    <div class="field">
+      <label>Niveau 3 – tekst</label>
+      <textarea id="gymText_G3" rows="3"></textarea>
+    </div>
+
+    <hr style="margin:1rem 0;border:none;border-top:1px solid var(--border)"/>
+    <div class="muted small" style="margin-bottom:.5rem">Roller (fx Fanebærer, Redskabsholdet, DGI). Slet fjerner rollen.</div>
+    <div id="gymRolesList"></div>
+  </details>
+
+  <details>
+    <summary><b>Elevråd</b></summary>
+    <div class="row gap wrap" style="margin:.5rem 0">
+      <button class="btn" id="btnDownloadElevraad" type="button">⬇️ Download ændringer</button>
+      <button class="btn ghost" id="btnImportElevraadSnippets" type="button">⬆️ Importér ændringer</button>
+      <button class="btn ghost" id="btnRestoreElevraad" type="button">↩️ Gendan standard</button>
+      <input id="fileImportElevraadSnippets" type="file" accept=".json" style="display:none"/>
+    </div>
+    <div class="field">
+      <label>Elevråd – tekst</label>
+      <textarea id="elevraadText" rows="4"></textarea>
+    </div>
+  </details>
+</div>
+
+<div class="card no-print" style="margin-top:1rem">
 <div class="cardTitle">Faglærer-arbejde (producer CSV til deling)</div>
 <div class="row gap wrap">
 <label class="muted small">Type</label>
