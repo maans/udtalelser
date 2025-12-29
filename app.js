@@ -531,12 +531,18 @@ function normalizePlaceholderKey(key) {
   }
 
   // ---------- app state ----------
-  const state = { tab: 'set', selectedUnilogin: null, studentInputUrls: {} };
+  const state = {
+    tab: 'set',
+    selectedUnilogin: null,
+    studentInputUrls: {},
+    // The current visible K-elev list (after any filters). Used for prev/next navigation in Redigér.
+    visibleKElevIds: []
+  };
 
   function defaultSettings() {
     return {
       contactGroupCount: "",
-      forstanderName: "Stinne Poulsen",
+      forstanderName: "Stinne Krogh Poulsen",
       forstanderLocked: true,
       me: "",
       meResolved: "",
@@ -800,9 +806,13 @@ function normalizePlaceholderKey(key) {
 
   // ---------- UI rendering ----------
   function setTab(tab) {
-    state.tab = tab;
     const students = getStudents();
     if (!students.length && tab !== 'set') tab = 'set';
+
+    // Redigér kræver valgt elev. Hvis ingen er valgt, send brugeren til K-elever.
+    if (tab === 'edit' && !state.selectedUnilogin) tab = 'k';
+
+    state.tab = tab;
 
     ['k','edit','set'].forEach(t => {
       const btn = $('tab-' + (t==='set'?'set':t));
@@ -814,7 +824,15 @@ function normalizePlaceholderKey(key) {
     renderAll();
   }
 
+  function updateTabVisibility() {
+    const editBtn = $('tab-edit');
+    if (!editBtn) return;
+    // Skjul Redigér, hvis ingen elev er valgt.
+    editBtn.style.display = state.selectedUnilogin ? '' : 'none';
+  }
+
   function renderAll() {
+    updateTabVisibility();
     renderStatus();
     if (state.tab === 'set') renderSettings();
     if (state.tab === 'k') renderKList();
@@ -982,16 +1000,43 @@ function renderKList() {
     if (!studs.length) {
       kMessage.innerHTML = `<b>Upload elevliste først</b><br><span class="muted">Gå til Indstillinger → Elevliste (CSV).</span>`;
       kList.innerHTML = '';
+      state.visibleKElevIds = [];
       return;
     }
     if (!meNorm) {
-      kMessage.innerHTML = `<b>Udfyld “Jeg er” i Indstillinger</b><br><span class="muted">Skriv fx MM, RD, MTP eller fuldt navn.</span>`;
+      // Ingen blindgyde: lad brugeren udfylde "Jeg er" direkte her.
+      kMessage.innerHTML = `
+        <div class="field" style="max-width:520px">
+          <label><b>Hvem er du?</b></label>
+          <input id="kMeInline" type="text" placeholder="fx MM, RD, MTP eller fuldt navn" value="${escapeAttr(s.me || '')}">
+          <div class="muted small" style="margin-top:.25rem">Kan altid ændres senere i Indstillinger.</div>
+        </div>
+      `;
       kList.innerHTML = '';
+      state.visibleKElevIds = [];
+      const inp = $('kMeInline');
+      if (inp) {
+        // Autofocus on first render
+        setTimeout(() => { try { inp.focus(); } catch {} }, 0);
+        inp.addEventListener('input', () => {
+          const raw = inp.value;
+          const s2 = getSettings();
+          s2.me = raw;
+          s2.meResolved = resolveTeacherName(raw);
+          setSettings(s2);
+          renderStatus();
+          // Live update the list as soon as it matches
+          renderKList();
+        });
+      }
       return;
     }
 
     const mine = sortedStudents(studs)
       .filter(st => normalizeName(st.kontaktlaerer1) === meNorm || normalizeName(st.kontaktlaerer2) === meNorm);
+
+    // Expose current visible ids for Redigér navigation.
+    state.visibleKElevIds = mine.map(st => st.unilogin);
 
     if (!mine.length) {
       kMessage.innerHTML = `<b>Ingen K-elever matcher</b><br>
@@ -1096,6 +1141,31 @@ function renderKList() {
     state.openEditSection = null;
   }
 
+  function getVisibleKElevIds() {
+    if (state.visibleKElevIds && state.visibleKElevIds.length) return state.visibleKElevIds.slice();
+    const s = getSettings();
+    const studs = getStudents();
+    const meNorm = normalizeName(s.meResolved);
+    if (!studs.length || !meNorm) return [];
+    return sortedStudents(studs)
+      .filter(st => normalizeName(st.kontaktlaerer1) === meNorm || normalizeName(st.kontaktlaerer2) === meNorm)
+      .map(st => st.unilogin);
+  }
+
+  function gotoAdjacentStudent(dir) {
+    const ids = getVisibleKElevIds();
+    if (!ids.length || !state.selectedUnilogin) return;
+    const i = ids.indexOf(state.selectedUnilogin);
+    if (i === -1) return;
+    const nextIndex = i + (dir === 'next' ? 1 : -1);
+    if (nextIndex < 0 || nextIndex >= ids.length) return;
+    state.selectedUnilogin = ids[nextIndex];
+    state.openEditSection = null;
+    // Ensure edit tab stays visible
+    updateTabVisibility();
+    renderEdit();
+  }
+
   function renderEdit() {
     const studs = getStudents();
     const msg = $('editMessage');
@@ -1106,6 +1176,9 @@ function renderKList() {
       pill.textContent = 'Ingen elev valgt';
       setEditEnabled(false);
       $('preview').textContent = '';
+      const bPrev = $('btnPrevStudent'); const bNext = $('btnNextStudent');
+      if (bPrev) bPrev.style.display = 'none';
+      if (bNext) bNext.style.display = 'none';
       return;
     }
     if (!state.selectedUnilogin) {
@@ -1113,6 +1186,9 @@ function renderKList() {
       pill.textContent = 'Ingen elev valgt';
       setEditEnabled(false);
       $('preview').textContent = '';
+      const bPrev = $('btnPrevStudent'); const bNext = $('btnNextStudent');
+      if (bPrev) bPrev.style.display = 'none';
+      if (bNext) bNext.style.display = 'none';
       return;
     }
 
@@ -1122,12 +1198,29 @@ function renderKList() {
       pill.textContent = 'Ingen elev valgt';
       setEditEnabled(false);
       $('preview').textContent = '';
+      const bPrev = $('btnPrevStudent'); const bNext = $('btnNextStudent');
+      if (bPrev) bPrev.style.display = 'none';
+      if (bNext) bNext.style.display = 'none';
       return;
     }
 
     msg.innerHTML = '';
     const full = `${st.fornavn} ${st.efternavn}`.trim();
     pill.textContent = `${full} · ${st.klasse || ''}`;
+
+    // Prev/Next buttons
+    const ids = getVisibleKElevIds();
+    const idx = ids.indexOf(st.unilogin);
+    const bPrev = $('btnPrevStudent');
+    const bNext = $('btnNextStudent');
+    if (bPrev) {
+      bPrev.style.display = '';
+      bPrev.disabled = (idx <= 0);
+    }
+    if (bNext) {
+      bNext.style.display = '';
+      bNext.disabled = (idx === -1 || idx >= ids.length - 1);
+    }
 
     setEditEnabled(true);
 
@@ -1389,8 +1482,25 @@ function renderKList() {
   // ---------- events ----------
   function wireEvents() {
     $('tab-k').addEventListener('click', () => setTab('k'));
+    // Redigér-tab er skjult når ingen elev er valgt, men vær robust hvis nogen alligevel klikker.
     $('tab-edit').addEventListener('click', () => setTab('edit'));
     $('tab-set').addEventListener('click', () => setTab('set'));
+
+    const navEdit = (delta) => {
+      const ids = getVisibleKElevIds();
+      const idx = ids.indexOf(state.selectedUnilogin);
+      const nextIdx = idx + delta;
+      if (idx === -1 || nextIdx < 0 || nextIdx >= ids.length) return;
+      state.selectedUnilogin = ids[nextIdx];
+      state.openEditSection = null;
+      // Stay in Redigér
+      state.tab = 'edit';
+      renderAll();
+    };
+    const bPrev = $('btnPrevStudent');
+    const bNext = $('btnNextStudent');
+    if (bPrev) bPrev.addEventListener('click', () => navEdit(-1));
+    if (bNext) bNext.addEventListener('click', () => navEdit(+1));
 
     $('btnReload').addEventListener('click', () => location.reload());
 
@@ -1729,6 +1839,21 @@ if (document.getElementById('btnDownloadElevraad')) {
       $('fileStudentInput').value = '';
       renderEdit();
     });
+
+    function navigateStudent(delta) {
+      if (!state.selectedUnilogin) return;
+      const ids = getVisibleKElevIds();
+      const idx = ids.indexOf(state.selectedUnilogin);
+      const nextIdx = idx + delta;
+      if (idx === -1 || nextIdx < 0 || nextIdx >= ids.length) return;
+      state.selectedUnilogin = ids[nextIdx];
+      state.openEditSection = null;
+      renderAll();
+    }
+    const bPrev = $('btnPrevStudent');
+    const bNext = $('btnNextStudent');
+    if (bPrev) bPrev.addEventListener('click', () => navigateStudent(-1));
+    if (bNext) bNext.addEventListener('click', () => navigateStudent(1));
 
     $('btnPrint').addEventListener('click', () => window.print());
   }
