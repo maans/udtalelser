@@ -643,7 +643,7 @@ function normalizePlaceholderKey(key) {
       return;
     }
 
-    const mine = sortedStudents(studs)
+    const mine = sortedStudents(getStudents())
       .filter(st => normalizeName(st.kontaktlaerer1) === meNorm || normalizeName(st.kontaktlaerer2) === meNorm);
 
     if (!mine.length) {
@@ -777,7 +777,7 @@ function renderMarksTable() {
   }
 
   // Filter + sort
-  const list = sortedStudents(studs).filter(st => {
+  const list = sortedStudents(getStudents()).filter(st => {
     if (!q) return true;
     const full = normalizeName(`${st.fornavn} ${st.efternavn}`);
     return full.includes(q);
@@ -959,7 +959,7 @@ function renderMarksElevraad(wrap, list) {
   };
 }
 
-    const list = sortedStudents(studs).filter(st => {
+    const list = sortedStudents(getStudents()).filter(st => {
       if (!q) return true;
       const full = normalizeName(`${st.fornavn} ${st.efternavn}`);
       return full.includes(q);
@@ -1005,7 +1005,7 @@ $('marksType').addEventListener('change', () => renderMarksTable());
       const type = $('marksType').value;
       const studs = getStudents();
       if (!studs.length) return;
-      const sorted = sortedStudents(studs);
+      const sorted = sortedStudents(getStudents());
 
       if (type === 'sang') {
         const marks = getMarks(KEYS.marksSang);
