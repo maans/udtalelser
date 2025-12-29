@@ -992,7 +992,19 @@ function commitSnippetsFromUI(scope) {
 function renderKList() {
     const s = getSettings();
     const studs = getStudents();
-    const meNorm = normalizeName(s.meResolved);
+    // K-elever skal være selvbærende: brugeren kan angive sine INITIALER her (2-3 bogstaver).
+    // Vi viser altid inputfeltet og viser først elever, når initialerne kan resolves via alias-map.
+    const rawMe = ((s.me || '') + '').trim();
+    const meClean = rawMe
+      .toUpperCase()
+      .replace(/\s+/g, '')
+      .replace(/[^A-ZÆØÅ]/g, '')
+      .slice(0, 3);
+
+    // Strict resolve: kun hvis alias-map kender initialerne.
+    const meNormKey = normalizeName(meClean);
+    const meResolvedStrict = (meClean.length >= 2 && TEACHER_ALIAS_MAP[meNormKey]) ? TEACHER_ALIAS_MAP[meNormKey] : '';
+    const meNorm = normalizeName(meResolvedStrict);
 
     const kMessage = $('kMessage');
     const kList = $('kList');
@@ -1003,142 +1015,52 @@ function renderKList() {
       state.visibleKElevIds = [];
       return;
     }
-    if (!meNorm || meNorm.length < 2) {
-      // Ingen blindgyde: lad brugeren udfylde "Jeg er" direkte her.
-      kMessage.innerHTML = `
-        <div class="field" style="max-width:520px">
-          <label><b>Hvem er du?</b></label>
-          <input id="kMeInline" type="text" placeholder="fx MM, RD, MTP eller fuldt navn" value="${escapeAttr(s.me || '')}">
-          <div class="muted small" style="margin-top:.25rem">Kan altid ændres senere i Indstillinger.</div>
-          <div class="muted small" id="kMeInlineHint" style="margin-top:.25rem"></div>
-        </div>
-      `;
+    // Input UI (altid synlig i K-elever)
+    kMessage.innerHTML = `
+      <div class="field" style="max-width:420px">
+        <label><b>Hvem er du?</b> <span class="muted small">(initialer)</span></label>
+        <input id="kMeInline" type="text" inputmode="text" autocapitalize="characters" autocomplete="off" spellcheck="false"
+               placeholder="Skriv 2-3 bogstaver (fx MM, RD, MTP)" maxlength="3" value="${escapeAttr(meClean)}"
+               style="text-transform:uppercase; letter-spacing:.08em">
+        <div class="muted small" style="margin-top:.25rem">Kun initialer (2-3 bogstaver). Kan ændres senere i Indstillinger.</div>
+        <div class="muted small" id="kMeInlineHint" style="margin-top:.25rem"></div>
+      </div>
+    `;
 
-      const rawMe = (s.me || '').trim();
-      const rawNorm = normalizeName(rawMe);
+    const hint = $('kMeInlineHint');
 
-      // Substring fallback (1+ chars): helps first-time users who type just "M" / "MM" etc.
-      const mine = rawNorm
-        ? sortedStudents(studs).filter(st => {
-            const k1 = normalizeName(st.kontaktlaerer1);
-            const k2 = normalizeName(st.kontaktlaerer2);
-            return (k1 && k1.includes(rawNorm)) || (k2 && k2.includes(rawNorm));
-          })
-        : [];
+    // Hvis vi ikke kan resolve initialerne via alias-map, viser vi ingen liste endnu.
+    if (!meResolvedStrict) {
+      state.visibleKElevIds = [];
+      kList.innerHTML = '';
+      if (hint) {
+        if (!meClean) hint.textContent = 'Skriv dine initialer for at se dine K-elever.';
+        else if (meClean.length < 2) hint.textContent = 'Skriv mindst 2 bogstaver.';
+        else hint.textContent = 'Ukendte initialer – brug fx MM, RD, MTP (2-3 bogstaver).';
+      }
+    } else {
+      // Vi har et resolved fuldt navn – vis K-elever.
+      const mine = sortedStudents(studs)
+        .filter(st => normalizeName(st.kontaktlaerer1) === meNorm || normalizeName(st.kontaktlaerer2) === meNorm);
 
+      // Expose current visible ids for Redigér navigation.
       state.visibleKElevIds = mine.map(st => st.unilogin);
 
-      const hint = $('kMeInlineHint');
-      if (hint) {
-        hint.textContent = rawNorm
-          ? (mine.length ? `${mine.length} elev(e) matcher – klik for at redigere.` : 'Ingen match endnu – skriv lidt mere.')
-          : 'Skriv initialer eller navn for at se dine K-elever.';
-      }
-
       if (!mine.length) {
+        if (hint) hint.textContent = `0 elever matcher ${meResolvedStrict}.`;
         kList.innerHTML = '';
       } else {
-        // Reuse the normal list renderer by falling through into the list builder below.
-        // (We simply set a temporary resolved label for display.)
+
         const prog = mine.reduce((acc, st) => {
-          const f=getTextFor(st.unilogin);
-          acc.u += (f.elevudvikling||'').trim()?1:0;
-          acc.p += (f.praktisk||'').trim()?1:0;
-          acc.k += (f.kgruppe||'').trim()?1:0;
-          return acc;
-        }, {u:0,p:0,k:0});
-
-        // Keep the input visible; show progress under it.
-        if (hint) {
-          hint.textContent = `${mine.length} elev(e) matcher · U ${prog.u}/${mine.length} · P ${prog.p}/${mine.length} · K ${prog.k}/${mine.length}`;
-        }
-
-        kList.innerHTML = mine.map(st => {
-          const full = `${st.fornavn || ''} ${st.efternavn || ''}`.trim();
-          const free = getTextFor(st.unilogin);
-          const hasU = !!(free.elevudvikling || '').trim();
-          const hasP = !!(free.praktisk || '').trim();
-          const hasK = !!(free.kgruppe || '').trim();
-          const badge = (label, ok, sec) => {
-            const cls = ok ? 'ok' : 'miss';
-            return `<span class="badge ${cls}" data-open="${sec}">${label}</span>`;
-          };
-          return `
-            <div class="item" data-id="${escapeAttr(st.unilogin)}">
-              <div class="title">${escapeHtml(full)} <span class="muted">· ${escapeHtml(st.klasse || '')}</span></div>
-              <div class="badges">
-                ${badge('U', hasU, 'elevudv')}
-                ${badge('P', hasP, 'praktisk')}
-                ${badge('K', hasK, 'kgruppe')}
-              </div>
-            </div>
-          `;
-        }).join('');
-
-        // Click handlers (same as below)
-        kList.querySelectorAll('.item').forEach(el => {
-          el.addEventListener('click', (ev) => {
-            const id = el.getAttribute('data-id');
-            if (!id) return;
-            state.selectedUnilogin = id;
-            const badgeEl = ev.target && ev.target.closest ? ev.target.closest('.badge') : null;
-            state.openEditSection = badgeEl ? badgeEl.getAttribute('data-open') : null;
-            updateTabVisibility();
-            setTab('edit');
-          });
-        });
-      }
-
-      const inp = $('kMeInline');
-      if (inp) {
-        // Autofocus on first render
-        setTimeout(() => { try { inp.focus(); } catch {} }, 0);
-        inp.addEventListener('input', () => {
-          // Preserve caret across re-render
-          const ss = inp.selectionStart;
-          const se = inp.selectionEnd;
-          const raw = inp.value;
-          const s2 = getSettings();
-          s2.me = raw;
-          s2.meResolved = (raw.trim().length >= 2) ? resolveTeacherName(raw) : '';
-          setSettings(s2);
-          renderStatus();
-          renderKList();
-          const inp2 = $('kMeInline');
-          if (inp2) {
-            try { inp2.focus(); inp2.setSelectionRange(ss, se); } catch {}
-          }
-        });
-      }
-      return;
-    }
-
-    const mine = sortedStudents(studs)
-      .filter(st => normalizeName(st.kontaktlaerer1) === meNorm || normalizeName(st.kontaktlaerer2) === meNorm);
-
-    // Expose current visible ids for Redigér navigation.
-    state.visibleKElevIds = mine.map(st => st.unilogin);
-
-    if (!mine.length) {
-      kMessage.innerHTML = `<b>Ingen K-elever matcher</b><br>
-        <ul class="muted small">
-          <li>Tjek at “Jeg er” er korrekt (Indstillinger).</li>
-          <li>Tjek at elevlisten indeholder kontaktlærernavne i Kontaktlærer1/2.</li>
-        </ul>`;
-      kList.innerHTML = '';
-      return;
-    }
-
-    const prog = mine.reduce((acc, st) => {
       const f=getTextFor(st.unilogin);
       acc.u += (f.elevudvikling||'').trim()?1:0;
       acc.p += (f.praktisk||'').trim()?1:0;
       acc.k += (f.kgruppe||'').trim()?1:0;
       return acc;
-    }, {u:0,p:0,k:0});
-    kMessage.innerHTML = `<b>${mine.length}</b> elever matcher <b>${escapeHtml(s.meResolved)}</b>. Klik for at redigere.<br><span class="muted small">Udfyldt: U ${prog.u}/${mine.length} · P ${prog.p}/${mine.length} · K ${prog.k}/${mine.length}</span>`;
+        }, {u:0,p:0,k:0});
+        if (hint) hint.textContent = `${mine.length} elev(e) matcher ${meResolvedStrict} · U ${prog.u}/${mine.length} · P ${prog.p}/${mine.length} · K ${prog.k}/${mine.length}`;
 
-    kList.innerHTML = mine.map(st => {
+        kList.innerHTML = mine.map(st => {
       const full = `${st.fornavn || ''} ${st.efternavn || ''}`.trim();
       const free = getTextFor(st.unilogin);
       const hasU = !!(free.elevudvikling || '').trim();
@@ -1153,9 +1075,9 @@ function renderKList() {
         <div class="itemTitle">${escapeHtml(full)} ${badges}</div>
         <div class="itemMeta">${escapeHtml(st.klasse || '')}</div>
       </div>`;
-    }).join('');
+        }).join('');
 
-    [...kList.querySelectorAll('.item')].forEach(el => {
+        [...kList.querySelectorAll('.item')].forEach(el => {
       el.addEventListener('click', (ev) => {
         const b = ev.target && ev.target.closest ? ev.target.closest('.miniBadgeBtn') : null;
         if (b) {
@@ -1171,7 +1093,37 @@ function renderKList() {
       el.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el.click(); }
       });
-    });
+        });
+      }
+    }
+
+    // Wire input
+    const inp = $('kMeInline');
+    if (inp) {
+      setTimeout(() => { try { inp.focus(); } catch {} }, 0);
+      inp.addEventListener('input', () => {
+        const ss = inp.selectionStart;
+        const se = inp.selectionEnd;
+        const raw = inp.value || '';
+        const cleaned = raw
+          .toUpperCase()
+          .replace(/\s+/g, '')
+          .replace(/[^A-ZÆØÅ]/g, '')
+          .slice(0, 3);
+        const s2 = getSettings();
+        s2.me = cleaned;
+        // Only set resolved if alias-map knows it (prevents "MÅN" etc. from becoming "k-lærer" value)
+        const nk = normalizeName(cleaned);
+        s2.meResolved = (cleaned.length >= 2 && TEACHER_ALIAS_MAP[nk]) ? TEACHER_ALIAS_MAP[nk] : '';
+        setSettings(s2);
+        renderStatus();
+        renderKList();
+        const inp2 = $('kMeInline');
+        if (inp2) {
+          try { inp2.focus(); inp2.setSelectionRange(Math.min(ss, inp2.value.length), Math.min(se, inp2.value.length)); } catch {}
+        }
+      });
+    }
   }
 
   function setEditEnabled(enabled) {

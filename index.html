@@ -35,7 +35,10 @@
 <!-- Redigér -->
 <section class="view" id="view-edit">
 <div class="viewHeader no-print">
-<h1>Redigér</h1>
+<div class="viewTitleRow">
+  <h1>Redigér</h1>
+  <button class="btn no-print" id="btnPrint">🖨️ Print / Gem som PDF</button>
+</div>
 <div class="row gap wrap">
   <div class="pill" id="editStudentPill">Ingen elev valgt</div>
   <div class="pill muted" id="autosavePill"></div>
@@ -46,9 +49,7 @@
     <div class="navSlot left">
       <button class="btn small no-print" id="btnPrevStudent" type="button" title="Forrige elev">◀ Forrige</button>
     </div>
-    <div class="navSlot center">
-      <button class="btn no-print" id="btnPrint">🖨️ Print / Gem som PDF</button>
-    </div>
+    <div class="navSlot center"></div>
     <div class="navSlot right">
       <button class="btn small no-print" id="btnNextStudent" type="button" title="Næste elev">Næste ▶</button>
     </div>
