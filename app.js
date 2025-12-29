@@ -1170,13 +1170,13 @@ function renderKList() {
     const studs = getStudents();
     const msg = $('editMessage');
     const pill = $('editStudentPill');
+    const bPrev = $('btnPrevStudent'); const bNext = $('btnNextStudent');
 
     if (!studs.length) {
       msg.innerHTML = `<b>Upload elevliste først</b><br><span class="muted">Gå til Indstillinger → Elevliste (CSV).</span>`;
       pill.textContent = 'Ingen elev valgt';
       setEditEnabled(false);
       $('preview').textContent = '';
-      const bPrev = $('btnPrevStudent'); const bNext = $('btnNextStudent');
       if (bPrev) bPrev.style.display = 'none';
       if (bNext) bNext.style.display = 'none';
       return;
@@ -1186,7 +1186,6 @@ function renderKList() {
       pill.textContent = 'Ingen elev valgt';
       setEditEnabled(false);
       $('preview').textContent = '';
-      const bPrev = $('btnPrevStudent'); const bNext = $('btnNextStudent');
       if (bPrev) bPrev.style.display = 'none';
       if (bNext) bNext.style.display = 'none';
       return;
@@ -1198,7 +1197,6 @@ function renderKList() {
       pill.textContent = 'Ingen elev valgt';
       setEditEnabled(false);
       $('preview').textContent = '';
-      const bPrev = $('btnPrevStudent'); const bNext = $('btnNextStudent');
       if (bPrev) bPrev.style.display = 'none';
       if (bNext) bNext.style.display = 'none';
       return;
@@ -1211,8 +1209,6 @@ function renderKList() {
     // Prev/Next buttons
     const ids = getVisibleKElevIds();
     const idx = ids.indexOf(st.unilogin);
-    const bPrev = $('btnPrevStudent');
-    const bNext = $('btnNextStudent');
     if (bPrev) {
       bPrev.style.display = '';
       bPrev.disabled = (idx <= 0);
