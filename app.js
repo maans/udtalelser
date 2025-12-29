@@ -752,7 +752,7 @@ function normalizePlaceholderKey(key) {
           <thead>
             <tr>
               <th>Navn</th><th>Klasse</th>
-              ${cols.map(c => `<th title="${escapeAttr(SNIPPETS.sang[c].title || c)}">${escapeHtml(c)}<br><span class="small muted">${escapeHtml(SNIPPETS.sang[c].title||'')}</span></th>`).join('')}
+              ${cols.map(c => `<th title="${escapeAttr(SNIPPETS.sang[c].title || c)}">${escapeHtml(SNIPPETS.sang[c].title || c)}</th>`).join('')}
               <th>–</th>
             </tr>
           </thead>
@@ -767,7 +767,6 @@ function normalizePlaceholderKey(key) {
                   const active = (m.sang_variant === c);
                   return `<td><button type="button" class="markbtn ${active?'on':''}" data-set="${c}" title="${escapeAttr(SNIPPETS.sang[c].title||c)}"><span class="check">✓</span></button></td>`;
                 }).join('')}
-                <td><button type="button" class="markbtn clear" data-clear="1" title="Ryd valg"><span class="check">×</span></button></td>
               </tr>`;
             }).join('')}
           </tbody>
@@ -779,16 +778,12 @@ function normalizePlaceholderKey(key) {
           btn.addEventListener('click', () => {
             const code = btn.getAttribute('data-set');
             marks[u] = marks[u] || {};
-            marks[u].sang_variant = code;
+            marks[u].sang_variant = (marks[u].sang_variant === code ? \"\" : code);
             setMarks(KEYS.marksSang, marks);
             renderMarksTable();
           });
         });
-        tr.querySelector('[data-clear]').addEventListener('click', () => {
-          marks[u] = marks[u] || {};
-          marks[u].sang_variant = "";
-          setMarks(KEYS.marksSang, marks);
-          renderMarksTable();
+renderMarksTable();
         });
       });
       return;
@@ -806,7 +801,7 @@ function normalizePlaceholderKey(key) {
           <thead>
             <tr>
               <th>Navn</th><th>Klasse</th>
-              ${variants.map(v => `<th title="${escapeAttr(SNIPPETS.gym[v].title||v)}">${escapeHtml(v)}<br><span class="small muted">${escapeHtml(SNIPPETS.gym[v].title||'')}</span></th>`).join('')}
+              ${variants.map(v => `<th title="${escapeAttr(SNIPPETS.gym[v].title||v)}">${escapeHtml(SNIPPETS.gym[v].title || v)}</th>`).join('')}
               ${roles.map(r => `<th title="${escapeAttr(SNIPPETS.roller[r].title||r)}">${escapeHtml(SNIPPETS.roller[r].title||r)}</th>`).join('')}
               <th>–</th>
             </tr>
@@ -826,7 +821,6 @@ function normalizePlaceholderKey(key) {
                   const checked = !!m[r];
                   return `<td><input type="checkbox" data-role="${r}" ${checked?'checked':''} /></td>`;
                 }).join('')}
-                <td><button type="button" class="markbtn clear" data-clear="1" title="Ryd valg"><span class="check">×</span></button></td>
               </tr>`;
             }).join('')}
           </tbody>
@@ -838,7 +832,7 @@ function normalizePlaceholderKey(key) {
           btn.addEventListener('click', () => {
             const code = btn.getAttribute('data-gym');
             marks[u] = marks[u] || {};
-            marks[u].gym_variant = code;
+            marks[u].gym_variant = (marks[u].gym_variant === code ? \"\" : code);
             setMarks(KEYS.marksGym, marks);
             renderMarksTable();
           });
@@ -851,10 +845,7 @@ function normalizePlaceholderKey(key) {
             setMarks(KEYS.marksGym, marks);
           });
         });
-        tr.querySelector('[data-clear]').addEventListener('click', () => {
-          marks[u] = {};
-          setMarks(KEYS.marksGym, marks);
-          renderMarksTable();
+renderMarksTable();
         });
       });
       return;
@@ -867,7 +858,7 @@ function normalizePlaceholderKey(key) {
       wrap.innerHTML = `
         <table>
           <thead>
-            <tr><th>Navn</th><th>Klasse</th><th>Elevrådsrepræsentant</th><th>–</th></tr>
+            <tr><th>Navn</th><th>Klasse</th><th>Elevrådsrepræsentant</th></tr>
           </thead>
           <tbody>
             ${list.map(st => {
@@ -878,7 +869,6 @@ function normalizePlaceholderKey(key) {
                 <td>${escapeHtml(full)}</td>
                 <td>${escapeHtml(st.klasse||'')}</td>
                 <td><input type="checkbox" data-er="1" ${checked?'checked':''} /></td>
-                <td><button type="button" class="markbtn clear" data-clear="1" title="Ryd valg"><span class="check">×</span></button></td>
               </tr>`;
             }).join('')}
           </tbody>
@@ -891,10 +881,7 @@ function normalizePlaceholderKey(key) {
           marks[u].elevraad = e.target.checked;
           setMarks(KEYS.marksElev, marks);
         });
-        tr.querySelector('[data-clear]').addEventListener('click', () => {
-          marks[u] = {};
-          setMarks(KEYS.marksElev, marks);
-          renderMarksTable();
+renderMarksTable();
         });
       });
       return;
