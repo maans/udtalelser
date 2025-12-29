@@ -35,6 +35,10 @@ code{font-family:var(--mono)}
 .editNavRow .navSlot.left{justify-content:flex-start;}
 .editNavRow .navSlot.center{justify-content:center;}
 .editNavRow .navSlot.right{justify-content:flex-end;}
+.editNavRow .navSlot.center{justify-content:center;text-align:center;}
+.navActiveName{font-size:1.25rem;font-weight:700;line-height:1.15;}
+.navActiveMeta{margin-top:.1rem;}
+
 .pill{
   display:inline-flex; align-items:center;
   padding:.35rem .7rem;

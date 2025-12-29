@@ -536,10 +536,11 @@ function normalizePlaceholderKey(key) {
     selectedUnilogin: null,
     studentInputUrls: {},
     // The current visible K-elev list (after any filters). Used for prev/next navigation in Redigér.
-    visibleKElevIds: []
+    visibleKElevIds: [],
+    kMeDraft: ''
   };
 
-  function defaultSettings() {
+function defaultSettings() {
     return {
       contactGroupCount: "",
       forstanderName: "Stinne Krogh Poulsen",
@@ -992,141 +993,146 @@ function commitSnippetsFromUI(scope) {
 function renderKList() {
     const s = getSettings();
     const studs = getStudents();
-    // K-elever skal være selvbærende: brugeren kan angive sine INITIALER her (2-3 bogstaver).
-    // Vi viser altid inputfeltet og viser først elever, når initialerne kan resolves via alias-map.
-    const rawMe = ((s.me || '') + '').trim();
-    const meClean = rawMe
-      .toUpperCase()
-      .replace(/\s+/g, '')
-      .replace(/[^A-ZÆØÅ]/g, '')
-      .slice(0, 3);
-
-    // Strict resolve: kun hvis alias-map kender initialerne.
-    const meNormKey = normalizeName(meClean);
-    const meResolvedStrict = (meClean.length >= 2 && TEACHER_ALIAS_MAP[meNormKey]) ? TEACHER_ALIAS_MAP[meNormKey] : '';
-    const meNorm = normalizeName(meResolvedStrict);
-
-    const kMessage = $('kMessage');
+    const kMsg = $('kMessage');
     const kList = $('kList');
 
-    if (!studs.length) {
-      kMessage.innerHTML = `<b>Upload elevliste først</b><br><span class="muted">Gå til Indstillinger → Elevliste (CSV).</span>`;
-      kList.innerHTML = '';
+    // If "Jeg er" is not confirmed yet, show an inline input that commits on ENTER.
+    // User may type initials OR full name; we only update settings when ENTER is pressed.
+    if (!((s.meResolved || '') + '').trim()) {
       state.visibleKElevIds = [];
+      if (kList) kList.innerHTML = '';
+
+      const draft = (state.kMeDraft || '').trim();
+
+      if (kMsg) {
+        kMsg.innerHTML = `
+          <div class="field" style="max-width:520px">
+            <label><b>Hvem er du?</b> <span class="muted small">(initialer eller navn)</span></label>
+            <input id="kMeInline" type="text" inputmode="text" autocapitalize="words" autocomplete="off" spellcheck="false"
+                   placeholder="Skriv initialer eller navn og tryk Enter" value="${escapeAttr(draft)}">
+            <div class="muted small" style="margin-top:.25rem">Tip: Initialer findes i alias-map. Du kan også skrive et helt navn og trykke Enter.</div>
+            <div class="muted small" id="kMeInlineHint" style="margin-top:.25rem"></div>
+          </div>
+        `;
+      }
+
+      const inp = $('kMeInline');
+      const hint = $('kMeInlineHint');
+
+      if (hint) hint.textContent = 'Tryk Enter for at vise dine K-elever.';
+
+      if (inp) {
+        // Restore focus/caret nicely
+        try { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); } catch {}
+        inp.addEventListener('input', (e) => {
+          state.kMeDraft = (e.target.value || '');
+        }, { passive: true });
+
+        inp.addEventListener('keydown', (e) => {
+          if (e.key !== 'Enter') return;
+          e.preventDefault();
+
+          const raw = ((inp.value || '') + '').trim();
+          if (!raw) {
+            if (hint) hint.textContent = 'Skriv noget først (initialer eller navn).';
+            return;
+          }
+
+          // Resolve via alias-map if input looks like initials (2-3 letters). Otherwise accept as full name.
+          const cleaned = raw.toUpperCase().replace(/\s+/g,'').replace(/[^A-ZÆØÅ]/g,'').slice(0,3);
+          let resolved = '';
+          if (cleaned.length >= 2 && cleaned.length <= 3) {
+            const key = normalizeName(cleaned);
+            resolved = TEACHER_ALIAS_MAP[key] || '';
+          }
+          if (!resolved) {
+            resolved = raw; // accept full name (may include spaces and diacritics)
+          }
+
+          const s2 = getSettings();
+          s2.me = raw;
+          s2.meResolved = resolved;
+          setSettings(s2);
+
+          state.kMeDraft = '';
+
+          renderStatus();
+          renderKList();
+        });
+
+        // Allow Esc to clear draft
+        inp.addEventListener('keydown', (e) => {
+          if (e.key !== 'Escape') return;
+          state.kMeDraft = '';
+          inp.value = '';
+          if (hint) hint.textContent = 'Tryk Enter for at vise dine K-elever.';
+        });
+      }
       return;
     }
-    // Input UI (altid synlig i K-elever)
-    kMessage.innerHTML = `
-      <div class="field" style="max-width:420px">
-        <label><b>Hvem er du?</b> <span class="muted small">(initialer)</span></label>
-        <input id="kMeInline" type="text" inputmode="text" autocapitalize="characters" autocomplete="off" spellcheck="false"
-               placeholder="Skriv 2-3 bogstaver (fx MM, RD, MTP)" maxlength="3" value="${escapeAttr(meClean)}"
-               style="text-transform:uppercase; letter-spacing:.08em">
-        <div class="muted small" style="margin-top:.25rem">Kun initialer (2-3 bogstaver). Kan ændres senere i Indstillinger.</div>
-        <div class="muted small" id="kMeInlineHint" style="margin-top:.25rem"></div>
-      </div>
-    `;
 
-    const hint = $('kMeInlineHint');
+    // Confirmed teacher name present -> show list.
+    const meResolved = ((s.meResolved || '') + '').trim();
+    const meNorm = normalizeName(meResolved);
 
-    // Hvis vi ikke kan resolve initialerne via alias-map, viser vi ingen liste endnu.
-    if (!meResolvedStrict) {
-      state.visibleKElevIds = [];
-      kList.innerHTML = '';
-      if (hint) {
-        if (!meClean) hint.textContent = 'Skriv dine initialer for at se dine K-elever.';
-        else if (meClean.length < 2) hint.textContent = 'Skriv mindst 2 bogstaver.';
-        else hint.textContent = 'Ukendte initialer – brug fx MM, RD, MTP (2-3 bogstaver).';
+    if (kMsg) kMsg.innerHTML = '';
+    const mine = sortedStudents(studs)
+      .filter(st => normalizeName(st.kontaktlaerer1) === meNorm || normalizeName(st.kontaktlaerer2) === meNorm);
+
+    state.visibleKElevIds = mine.map(st => st.unilogin);
+
+    if (!mine.length) {
+      if (kMsg) {
+        kMsg.innerHTML = `<div class="muted">${escapeHtml(0)} elever matcher <b>${escapeHtml(meResolved)}</b>.</div>`;
       }
-    } else {
-      // Vi har et resolved fuldt navn – vis K-elever.
-      const mine = sortedStudents(studs)
-        .filter(st => normalizeName(st.kontaktlaerer1) === meNorm || normalizeName(st.kontaktlaerer2) === meNorm);
+      if (kList) kList.innerHTML = '';
+      return;
+    }
 
-      // Expose current visible ids for Redigér navigation.
-      state.visibleKElevIds = mine.map(st => st.unilogin);
-
-      if (!mine.length) {
-        if (hint) hint.textContent = `0 elever matcher ${meResolvedStrict}.`;
-        kList.innerHTML = '';
-      } else {
-
-        const prog = mine.reduce((acc, st) => {
-      const f=getTextFor(st.unilogin);
+    const prog = mine.reduce((acc, st) => {
+      const f = getTextFor(st.unilogin);
       acc.u += (f.elevudvikling||'').trim()?1:0;
       acc.p += (f.praktisk||'').trim()?1:0;
       acc.k += (f.kgruppe||'').trim()?1:0;
       return acc;
-        }, {u:0,p:0,k:0});
-        if (hint) hint.textContent = `${mine.length} elev(e) matcher ${meResolvedStrict} · U ${prog.u}/${mine.length} · P ${prog.p}/${mine.length} · K ${prog.k}/${mine.length}`;
+    }, {u:0,p:0,k:0});
 
-        kList.innerHTML = mine.map(st => {
-      const full = `${st.fornavn || ''} ${st.efternavn || ''}`.trim();
-      const free = getTextFor(st.unilogin);
-      const hasU = !!(free.elevudvikling || '').trim();
-      const hasP = !!(free.praktisk || '').trim();
-      const hasK = !!(free.kgruppe || '').trim();
-      const badge = (label, ok, sec) => {
-        if (!ok) return '';
-        return `<span class="miniBadgeBtn" role="button" tabindex="0" data-sec="${escapeAttr(sec)}" title="Åbn ${escapeAttr(label)}">${escapeHtml(label)}</span>`;
-      };
-      const badges = `<span class="miniBadges">${badge('U', hasU, 'elevudv')}${badge('P', hasP, 'praktisk')}${badge('K', hasK, 'kgruppe')}</span>`;
-      return `<div class="item" role="button" tabindex="0" data-unilogin="${escapeAttr(st.unilogin)}">
-        <div class="itemTitle">${escapeHtml(full)} ${badges}</div>
-        <div class="itemMeta">${escapeHtml(st.klasse || '')}</div>
-      </div>`;
-        }).join('');
+    if (kMsg) {
+      kMsg.innerHTML = `
+        <div class="muted"><b>${mine.length}</b> elev(e) matcher <b>${escapeHtml(meResolved)}</b>. Klik for at redigere.</div>
+        <div class="muted small">U ${prog.u}/${mine.length} · P ${prog.p}/${mine.length} · K ${prog.k}/${mine.length}</div>
+      `;
+    }
 
-        [...kList.querySelectorAll('.item')].forEach(el => {
-      el.addEventListener('click', (ev) => {
-        const b = ev.target && ev.target.closest ? ev.target.closest('.miniBadgeBtn') : null;
-        if (b) {
-          ev.stopPropagation();
+    if (kList) {
+      kList.innerHTML = mine.map(st => {
+        const full = `${st.fornavn || ''} ${st.efternavn || ''}`.trim();
+        const free = getTextFor(st.unilogin);
+        const hasU = !!(free.elevudvikling || '').trim();
+        const hasP = !!(free.praktisk || '').trim();
+        const hasK = !!(free.kgruppe || '').trim();
+
+        return `
+          <div class="card clickable" data-unilogin="${escapeAttr(st.unilogin)}">
+            <div class="cardTitle">${escapeHtml(full)}</div>
+            <div class="cardSub muted small">${escapeHtml(st.klasse || '')}</div>
+            <div class="cardFlags muted small">${hasU?'U':''}${hasP?' P':''}${hasK?' K':''}</div>
+          </div>
+        `;
+      }).join('');
+
+      kList.querySelectorAll('[data-unilogin]').forEach(el => {
+        el.addEventListener('click', () => {
           state.selectedUnilogin = el.getAttribute('data-unilogin');
-          state.openEditSection = b.getAttribute('data-sec') || null;
-          setTab('edit');
-          return;
-        }
-        state.selectedUnilogin = el.getAttribute('data-unilogin');
-        setTab('edit');
-      });
-      el.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el.click(); }
-      });
+          state.tab = 'edit';
+          renderTabs();
+          renderEdit();
         });
-      }
-    }
-
-    // Wire input
-    const inp = $('kMeInline');
-    if (inp) {
-      setTimeout(() => { try { inp.focus(); } catch {} }, 0);
-      inp.addEventListener('input', () => {
-        const ss = inp.selectionStart;
-        const se = inp.selectionEnd;
-        const raw = inp.value || '';
-        const cleaned = raw
-          .toUpperCase()
-          .replace(/\s+/g, '')
-          .replace(/[^A-ZÆØÅ]/g, '')
-          .slice(0, 3);
-        const s2 = getSettings();
-        s2.me = cleaned;
-        // Only set resolved if alias-map knows it (prevents "MÅN" etc. from becoming "k-lærer" value)
-        const nk = normalizeName(cleaned);
-        s2.meResolved = (cleaned.length >= 2 && TEACHER_ALIAS_MAP[nk]) ? TEACHER_ALIAS_MAP[nk] : '';
-        setSettings(s2);
-        renderStatus();
-        renderKList();
-        const inp2 = $('kMeInline');
-        if (inp2) {
-          try { inp2.focus(); inp2.setSelectionRange(Math.min(ss, inp2.value.length), Math.min(se, inp2.value.length)); } catch {}
-        }
       });
     }
-  }
+}
 
-  function setEditEnabled(enabled) {
+function setEditEnabled(enabled) {
     ['txtElevudv','txtPraktisk','txtKgruppe','fileStudentInput','btnClearStudentInput','btnPrint']
       .forEach(id => { const el = $(id); if (el) el.disabled = !enabled; });
   }
@@ -1249,7 +1255,12 @@ function renderKList() {
     if (navRow) navRow.style.display = '';
     if (hint) hint.innerHTML = '';
     const full = `${st.fornavn} ${st.efternavn}`.trim();
-    pill.textContent = `${full} · ${st.klasse || ''}`;
+    // Move the full active student name into the nav row center (bigger), to free vertical space.
+    if (pill) { pill.style.display = 'none'; }
+    const centerSlot = navRow ? navRow.querySelector('.navSlot.center') : null;
+    if (centerSlot) {
+      centerSlot.innerHTML = `<div class="navActiveName">${escapeHtml(full)}</div>` + (st.klasse ? `<div class="navActiveMeta muted small">${escapeHtml(st.klasse)}</div>` : ``);
+    }
 
     
     const firstNameById = (id) => {
