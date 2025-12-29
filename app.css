@@ -308,3 +308,27 @@ tr:hover td{background: rgba(255,255,255,.02)}
 }
 .miniBadgeBtn:hover{background:rgba(0,0,0,.08);}
 .miniBadges{margin-left:8px;}
+
+
+/* v11 UX: compact callout for K-elever summary (no big box) */
+.callout.compact{
+  padding: 6px 0;
+  border: none;
+  background: transparent;
+}
+
+/* K-elever card header row */
+.cardTopRow{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:12px;
+}
+.cardFlags{
+  white-space:nowrap;
+}
+
+/* Redigér nav: keep class a bit separated */
+.navActiveMeta{
+  margin-top:4px;
+}

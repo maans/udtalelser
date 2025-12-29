@@ -698,7 +698,7 @@ function defaultSettings() {
       "HAM_HENDE": pr.HAM_HENDE,
       "HANS_HENDES": pr.HANS_HENDES,
       "ELEV_EFTERNAVN": (student.efternavn || '').trim(),
-      "ELEV_KLASSE": (student.klasse || '').trim(),
+      "ELEV_KLASSE": formatClassLabel(student.klasse),
       "PERIODE_FRA": period.from,
       "PERIODE_TIL": period.to,
       "DATO_MAANED_AAR": period.dateMonthYear,
@@ -994,6 +994,7 @@ function renderKList() {
     const s = getSettings();
     const studs = getStudents();
     const kMsg = $('kMessage');
+    if (kMsg) kMsg.classList.remove('compact');
     const kList = $('kList');
 
     // If "Jeg er" is not confirmed yet, show an inline input that commits on ENTER.
@@ -1098,6 +1099,7 @@ function renderKList() {
     }, {u:0,p:0,k:0});
 
     if (kMsg) {
+      kMsg.classList.add('compact');
       kMsg.innerHTML = `
         <div class="muted"><b>${mine.length}</b> elev(e) matcher <b>${escapeHtml(meResolved)}</b>. Klik for at redigere.</div>
         <div class="muted small">U ${prog.u}/${mine.length} · P ${prog.p}/${mine.length} · K ${prog.k}/${mine.length}</div>
@@ -1114,9 +1116,11 @@ function renderKList() {
 
         return `
           <div class="card clickable" data-unilogin="${escapeAttr(st.unilogin)}">
-            <div class="cardTitle">${escapeHtml(full)}</div>
-            <div class="cardSub muted small">${escapeHtml(st.klasse || '')}</div>
-            <div class="cardFlags muted small">${hasU?'U':''}${hasP?' P':''}${hasK?' K':''}</div>
+            <div class="cardTopRow">
+              <div class="cardTitle"><b>${escapeHtml(full)}</b></div>
+              <div class="cardFlags muted small">${hasU?'U':''}${hasP?' P':''}${hasK?' K':''}</div>
+            </div>
+            <div class="cardSub muted small">${escapeHtml(formatClassLabel(st.klasse || ''))}</div>
           </div>
         `;
       }).join('');
@@ -1136,7 +1140,16 @@ function setEditEnabled(enabled) {
     ['txtElevudv','txtPraktisk','txtKgruppe','fileStudentInput','btnClearStudentInput','btnPrint']
       .forEach(id => { const el = $(id); if (el) el.disabled = !enabled; });
   }
-  function formatTime(ts) {
+  function formatClassLabel(raw) {
+  const k = ((raw || '') + '').trim();
+  if (!k) return '';
+  // Accept "9", "10", "9.", "10." etc.
+  const m = k.match(/^(\d{1,2})\.?$/);
+  if (m) return `${m[1]}. klasse`;
+  return k;
+}
+
+function formatTime(ts) {
     const d = new Date(ts);
     return d.toLocaleTimeString('da-DK', {hour:'2-digit', minute:'2-digit'});
   }
@@ -1259,7 +1272,7 @@ function setEditEnabled(enabled) {
     if (pill) { pill.style.display = 'none'; }
     const centerSlot = navRow ? navRow.querySelector('.navSlot.center') : null;
     if (centerSlot) {
-      centerSlot.innerHTML = `<div class="navActiveName">${escapeHtml(full)}</div>` + (st.klasse ? `<div class="navActiveMeta muted small">${escapeHtml(st.klasse)}</div>` : ``);
+      centerSlot.innerHTML = `<div class="navActiveName">${escapeHtml(full)}</div>` + (st.klasse ? `<div class="navActiveMeta muted small">${escapeHtml(formatClassLabel(st.klasse))}</div>` : ``);
     }
 
     
