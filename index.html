@@ -91,78 +91,252 @@
 </section>
 <!-- Indstillinger -->
 <section class="view" id="view-set">
-<div class="viewHeader">
-<h1>Indstillinger</h1>
-<p class="muted">Alt gemmes lokalt i denne browser (localStorage). Ingen server.</p>
-</div>
-<div class="grid2">
-<!-- Venstre: System & Data -->
-<div class="card">
-<div class="cardTitle">Data &amp; nulstil</div>
-<button class="btn danger" id="btnReset" type="button">🧹 Ryd alle lokale data (denne browser)</button>
-<div class="muted small" style="margin:.5rem 0 1rem 0">
-            Sletter alle nøgler der starter med <code>udt_</code> og genstarter appen.
+  <div class="viewHeader">
+    <h1>Indstillinger</h1>
+    <p class="muted">Alt gemmes lokalt i denne browser (localStorage). Ingen server.</p>
+  </div>
+
+  <div class="subtabs no-print" id="settingsSubtabs" role="tablist" aria-label="Indstillinger">
+    <button class="subtab active" type="button" data-subtab="general" id="settingsTab-general">Generelt</button>
+    <button class="subtab" type="button" data-subtab="data" id="settingsTab-data">Data &amp; import</button>
+    <button class="subtab" type="button" data-subtab="texts" id="settingsTab-texts">Tekster / skabeloner</button>
+    <button class="subtab" type="button" data-subtab="advanced" id="settingsTab-advanced">Avanceret</button>
+  </div>
+
+  <!-- GENERELT -->
+  <div class="settingsSubtab active" data-subtab="general" id="settingsSubtab-general">
+    <div class="grid2">
+      <div class="card">
+        <div class="cardTitle">Identitet</div>
+        <div class="field">
+          <label>Jeg er (initialer eller navn)</label>
+          <input id="meInput" placeholder="fx MM, RD, MTP eller fuldt navn" type="text"/>
+          <div class="muted small">Fortolkes via alias-map og bruges til filter af K-elever.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="cardTitle">Periode</div>
+        <div class="grid2 tight">
+          <div class="field">
+            <label>Skoleår (slut-år)</label>
+            <input id="schoolYearEnd" type="number" min="2020" max="2100"/>
           </div>
-<div class="cardSubTitle">Elevliste (CSV) – skal indlæses først</div>
-<input accept=".csv,.txt" id="studentsFile" type="file"/>
-<div class="muted small" id="studentsStatus" style="margin-top:.35rem"></div>
-<details class="fold no-print" style="margin-top:.8rem">
-<summary>Accepterede kolonner (eksempler)</summary>
-<div class="muted small">
-<div><b>Primært:</b> Fornavn, Efternavn, Unilogin, Køn, Kontaktlærer1, Kontaktlærer2, Klasse</div>
-<div><b>Uni-C:</b> Klasse, Fornavn, Efternavn, Uni-C brugernavn, Køn, Relationer-Kontaktlærer-Navn, Relationer-Anden kontaktlærer-Navn</div>
-<div>Appen mapper kolonner robust (case-insensitivt, trim, accepter Unilogin/Uni-C brugernavn).</div>
-</div>
-</details>
-<div class="divider"></div>
-<div class="cardSubTitle">Import af faglærer-CSV’er (for kontaktlærere)</div>
-<div class="grid3">
-<div class="field">
-<label>sang_marks.csv</label>
-<input accept=".csv,.txt" id="importSang" type="file"/>
-</div>
-<div class="field">
-<label>gym_marks.csv</label>
-<input accept=".csv,.txt" id="importGym" type="file"/>
-</div>
+          <div class="field">
+            <label>Kontaktgruppe antal (auto)</label>
+            <input id="contactCount" type="text" readonly/>
+          </div>
+          <div class="field">
+            <label>Periode fra (auto)</label>
+            <input id="periodFrom" readonly type="text"/>
+          </div>
+          <div class="field">
+            <label>Dato måned/år (auto)</label>
+            <input id="dateMonthYear" readonly type="text"/>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-<div class="field">
-<label>Jeg er (initialer eller navn)</label>
-<input id="meInput" placeholder="fx MM, RD, MTP eller fuldt navn" type="text"/>
-<div class="muted small">Fortolkes via alias-map og bruges til filter af K-elever.</div>
-</div>
-<div class="field">
-<label>Skoleår (slut-år)</label>
-<input id="schoolYearEnd" max="2100" min="2000" step="1" type="number"/>
-</div>
-<div class="field">
-<label>Periode fra (auto)</label>
-<input id="periodFrom" readonly="" type="text"/>
-</div>
-<div class="field">
-<label>Dato måned/år (auto)</label>
-<input id="dateMonthYear" readonly="" type="text"/>
-</div>
-<div class="field">
-<label>Kontaktgruppe antal (auto)</label>
-<input id="contactCount" readonly="" type="text"/>
-</div>
+  <!-- DATA -->
+  <div class="settingsSubtab" data-subtab="data" id="settingsSubtab-data">
+    <div class="card">
+      <div class="cardTitle">Data &amp; nulstil</div>
+      <button class="btn danger" id="btnReset" type="button">🧹 Ryd alle lokale data (denne browser)</button>
+      <div class="muted small" style="margin:.5rem 0 1rem 0">
+        Sletter alle nøgler der starter med <code>udt_</code> og genstarter appen.
+      </div>
 
+      <div class="cardSubTitle">Elevliste (CSV) – skal indlæses først</div>
+      <input accept=".csv,.txt" id="studentsFile" type="file"/>
+      <div class="muted small" id="studentsStatus" style="margin-top:.35rem"></div>
 
-<details class="fold" id="templatesShareFold">
-<summary>Del / importér skabeloner (leder)</summary>
-<div class="muted small" style="margin:.35rem 0 .6rem 0">
-  Gælder <b>Forstandernavn</b>, <b>Skolens standardtekst</b> og <b>Udtalelses-skabelon</b>. Download filen og del den med kolleger.
-</div>
-<div class="row gap wrap" style="margin:.5rem 0">
-  <button class="btn" id="btnDownloadTemplates" type="button">⬇️ Download skabeloner</button>
-  <button class="btn ghost" id="btnImportTemplates" type="button">⬆️ Importér skabeloner</button>
-  <input id="fileImportTemplates" type="file" accept=".json" style="display:none"/>
-</div>
-</details>
-</div>
-</div>
-</div>
+      <details class="fold no-print" style="margin-top:.8rem">
+        <summary>Accepterede kolonner (eksempler)</summary>
+        <div class="muted small">
+          <div><b>Primært:</b> Fornavn, Efternavn, Unilogin, Køn, Kontaktlærer1, Kontaktlærer2, Klasse</div>
+          <div><b>Uni-C:</b> Klasse, Fornavn, Efternavn, Uni-C brugernavn, Relationer-Kontaktlærer-Navn, Relationer-Anden kontaktlærer-Navn</div>
+          <div>Appen mapper kolonner robust (case-insensitivt, trim, accepter Unilogin/Uni-C brugernavn).</div>
+        </div>
+      </details>
+
+      <div class="divider"></div>
+
+      <div class="cardSubTitle">Import af faglærer-CSV’er (for kontaktlærere)</div>
+      <div class="grid3">
+        <div class="field">
+          <label>sang_marks.csv</label>
+          <input accept=".csv,.txt" id="importSang" type="file"/>
+        </div>
+        <div class="field">
+          <label>gym_marks.csv</label>
+          <input accept=".csv,.txt" id="importGym" type="file"/>
+        </div>
+        <div class="field">
+          <label>elevraad_marks.csv</label>
+          <input accept=".csv,.txt" id="importElevraad" type="file"/>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TEKSTER -->
+  <div class="settingsSubtab" data-subtab="texts" id="settingsSubtab-texts">
+    <div class="grid2">
+      <div class="card">
+        <div class="cardTitle">Skole og skabelon</div>
+
+        <div class="field">
+          <label>Forstandernavn</label>
+          <div class="row gap">
+            <input id="forstanderName" type="text"/>
+            <button class="btn ghost" id="btnToggleForstander" title="Lås op / lås" type="button">✏️</button>
+          </div>
+        </div>
+
+        <details class="fold" id="schoolTextFold">
+          <summary>Skolens standardtekst</summary>
+          <div class="row gap wrap" style="margin:.5rem 0">
+            <button class="btn ghost" id="btnToggleSchoolText" type="button">✏️ Redigér</button>
+            <button class="btn ghost" id="btnRestoreSchoolText" type="button">↩️ Gendan standard</button>
+          </div>
+          <textarea id="schoolText" rows="10"></textarea>
+        </details>
+
+        <details class="fold" id="templateFold">
+          <summary>Udtalelses-skabelon (med placeholders)</summary>
+          <div class="row gap wrap" style="margin:.5rem 0">
+            <button class="btn ghost" id="btnToggleTemplate" type="button">✏️ Redigér</button>
+            <button class="btn ghost" id="btnRestoreTemplate" type="button">↩️ Gendan standard</button>
+          </div>
+          <textarea id="templateText" rows="14"></textarea>
+          <div class="muted small">Brug placeholders som <code>{{ELEV_FORNAVN}}</code>, <code>{{SANG_AFSNIT}}</code>, <code>{{PRAKTISK_AFSNIT}}</code> osv.</div>
+        </details>
+
+        <details class="fold" id="templatesShareFold">
+          <summary>Del / importér skabeloner (leder)</summary>
+          <div class="muted small" style="margin:.35rem 0 .6rem 0">
+            Gælder <b>Forstandernavn</b>, <b>Skolens standardtekst</b> og <b>Udtalelses-skabelon</b>. Download filen og del den med kolleger.
+          </div>
+          <div class="row gap wrap" style="margin:.5rem 0">
+            <button class="btn" id="btnExportTemplates" type="button">⬇️ Download skabeloner</button>
+            <button class="btn ghost" id="btnImportTemplates" type="button">⬆️ Importér skabeloner</button>
+            <input id="fileImportTemplates" type="file" accept=".json" style="display:none"/>
+          </div>
+        </details>
+      </div>
+
+      <div class="card no-print">
+        <div class="cardTitle">Faglærer-tekster (snippets)</div>
+        <div class="muted small" style="margin-bottom:.5rem">
+          Redigér tekster direkte her. Når du klikker “Download ændringer”, får du en fil du kan sende til Måns.
+        </div>
+
+        <details open>
+          <summary><b>Sang</b> (3 niveauer)</summary>
+          <div class="row gap wrap" style="margin:.5rem 0">
+            <button class="btn" id="btnDownloadSang" type="button">⬇️ Download ændringer</button>
+            <button class="btn ghost" id="btnImportSang" type="button">⬆️ Importér ændringer</button>
+            <button class="btn ghost" id="btnRestoreSang" type="button">↩️ Gendan standard</button>
+            <input id="fileImportSang" type="file" accept=".json" style="display:none"/>
+          </div>
+
+          <div class="field">
+            <label>Niveau 1 – titel</label>
+            <input id="sangLabel_S1" type="text"/>
+          </div>
+          <div class="field">
+            <label>Niveau 1 – tekst</label>
+            <textarea id="sangText_S1" rows="4"></textarea>
+          </div>
+
+          <div class="field">
+            <label>Niveau 2 – titel</label>
+            <input id="sangLabel_S2" type="text"/>
+          </div>
+          <div class="field">
+            <label>Niveau 2 – tekst</label>
+            <textarea id="sangText_S2" rows="4"></textarea>
+          </div>
+
+          <div class="field">
+            <label>Niveau 3 – titel</label>
+            <input id="sangLabel_S3" type="text"/>
+          </div>
+          <div class="field">
+            <label>Niveau 3 – tekst</label>
+            <textarea id="sangText_S3" rows="4"></textarea>
+          </div>
+        </details>
+
+        <details>
+          <summary><b>Gymnastik</b> (3 niveauer + roller)</summary>
+          <div class="row gap wrap" style="margin:.5rem 0">
+            <button class="btn" id="btnDownloadGym" type="button">⬇️ Download ændringer</button>
+            <button class="btn ghost" id="btnImportGym" type="button">⬆️ Importér ændringer</button>
+            <button class="btn ghost" id="btnRestoreGym" type="button">↩️ Gendan standard</button>
+            <input id="fileImportGym" type="file" accept=".json" style="display:none"/>
+          </div>
+
+          <div class="field">
+            <label>Niveau 1 – titel</label>
+            <input id="gymLabel_G1" type="text"/>
+          </div>
+          <div class="field">
+            <label>Niveau 1 – tekst</label>
+            <textarea id="gymText_G1" rows="4"></textarea>
+          </div>
+
+          <div class="field">
+            <label>Niveau 2 – titel</label>
+            <input id="gymLabel_G2" type="text"/>
+          </div>
+          <div class="field">
+            <label>Niveau 2 – tekst</label>
+            <textarea id="gymText_G2" rows="4"></textarea>
+          </div>
+
+          <div class="field">
+            <label>Niveau 3 – titel</label>
+            <input id="gymLabel_G3" type="text"/>
+          </div>
+          <div class="field">
+            <label>Niveau 3 – tekst</label>
+            <textarea id="gymText_G3" rows="4"></textarea>
+          </div>
+
+          <div class="divider"></div>
+          <div class="cardSubTitle">Roller</div>
+          <div id="gymRolesList"></div>
+        </details>
+
+        <details>
+          <summary><b>Elevråd</b></summary>
+          <div class="row gap wrap" style="margin:.5rem 0">
+            <button class="btn" id="btnDownloadElevraad" type="button">⬇️ Download ændringer</button>
+            <button class="btn ghost" id="btnImportElevraad" type="button">⬆️ Importér ændringer</button>
+            <button class="btn ghost" id="btnRestoreElevraad" type="button">↩️ Gendan standard</button>
+            <input id="fileImportElevraad" type="file" accept=".json" style="display:none"/>
+          </div>
+
+          <div class="field">
+            <label>Tekst</label>
+            <textarea id="elevraadText" rows="6"></textarea>
+          </div>
+        </details>
+      </div>
+    </div>
+  </div>
+
+  <!-- AVANCERET -->
+  <div class="settingsSubtab" data-subtab="advanced" id="settingsSubtab-advanced">
+    <div class="card">
+      <div class="cardTitle">Avanceret</div>
+      <div class="muted">Her kan der senere komme alias-map forklaring og systeminfo.</div>
+      <div class="muted small" style="margin-top:.5rem">localStorage-prefix: <code>udt_</code></div>
+    </div>
+  </div>
 </section>
 </main>
 <footer class="footer no-print">
@@ -170,160 +344,4 @@
 </footer>
 <script src="app.js"></script>
 </body>
-</html
-<div class="card no-print" style="margin-top:1rem">
-  <div class="cardTitle">Tekster (snippets)</div>
-  <div class="muted small" style="margin-bottom:.5rem">
-    Redigér tekster direkte her. Når du klikker “Download ændringer”, får du en fil du kan sende til Måns.
-  </div>
-
-  <!-- Skolens tekster -->
-  <div class="field">
-<label>elevraad_marks.csv</label>
-<input accept=".csv,.txt" id="importElevraad" type="file"/>
-</div>
-</div>
-<div class="muted small" id="importStatus"></div>
-</div>
-<!-- Højre: Identitet + skabeloner -->
-<div class="card">
-<div class="cardTitle">Navne og periode</div>
-<div class="field">
-<label>Forstandernavn</label>
-<div class="row gap">
-<input id="forstanderName" type="text"/>
-<button class="btn ghost" id="btnToggleForstander" title="Lås op / lås" type="button">✏️</button>
-</div>
-</div>
-<details class="fold snippetFold" id="schoolTextFold">
-<summary>Skolens standardtekst</summary>
-<div class="row gap wrap" style="margin:.5rem 0">
-<button class="btn ghost" id="btnToggleSchoolText" type="button">✏️ Redigér</button>
-<button class="btn ghost" id="btnRestoreSchoolText" type="button">↩️ Gendan standard</button>
-</div>
-<textarea id="schoolText" rows="10"></textarea>
-</details>
-  <details class="fold snippetFold" id="templateFold">
-<summary>Udtalelses-skabelon (med placeholders)</summary>
-<div class="row gap wrap" style="margin:.5rem 0">
-<button class="btn ghost" id="btnToggleTemplate" type="button">✏️ Redigér</button>
-<button class="btn ghost" id="btnRestoreTemplate" type="button">↩️ Gendan standard</button>
-</div>
-<textarea id="templateText" rows="14"></textarea>
-<div class="muted small">Brug placeholders som <code>{{ELEV_FORNAVN}}</code>, <code>{{SANG_AFSNIT}}</code>, <code>{{PRAKTISK_AFSNIT}}</code> osv.</div>
-</details>
-
-
-  <details class="fold snippetFold">
-    <summary><b>Sang</b> (3 niveauer)</summary>
-    <div class="row gap wrap" style="margin:.5rem 0">
-      <button class="btn" id="btnDownloadSang" type="button">⬇️ Download ændringer</button>
-      <button class="btn ghost" id="btnImportSang" type="button">⬆️ Importér ændringer</button>
-      <button class="btn ghost" id="btnRestoreSang" type="button">↩️ Gendan standard</button>
-      <input id="fileImportSang" type="file" accept=".json" style="display:none"/>
-    </div>
-
-    <div class="field">
-      <label>Niveau 1 – titel</label>
-      <input id="sangLabel_S1" type="text">
-    </div>
-    <div class="field">
-      <label>Niveau 1 – tekst</label>
-      <textarea id="sangText_S1" rows="3"></textarea>
-    </div>
-
-    <div class="field">
-      <label>Niveau 2 – titel</label>
-      <input id="sangLabel_S2" type="text">
-    </div>
-    <div class="field">
-      <label>Niveau 2 – tekst</label>
-      <textarea id="sangText_S2" rows="3"></textarea>
-    </div>
-
-    <div class="field">
-      <label>Niveau 3 – titel</label>
-      <input id="sangLabel_S3" type="text">
-    </div>
-    <div class="field">
-      <label>Niveau 3 – tekst</label>
-      <textarea id="sangText_S3" rows="3"></textarea>
-    </div>
-
-    <div class="muted small">Brug fx <code>{{FORNAVN}}</code>. (Appen indsætter automatisk korrekt fornavn.)</div>
-  </details>
-
-  <details>
-    <summary><b>Gymnastik</b> (3 niveauer + roller)</summary>
-    <div class="row gap wrap" style="margin:.5rem 0">
-      <button class="btn" id="btnDownloadGym" type="button">⬇️ Download ændringer</button>
-      <button class="btn ghost" id="btnImportGymSnippets" type="button">⬆️ Importér ændringer</button>
-      <button class="btn ghost" id="btnRestoreGymSnippets" type="button">↩️ Gendan standard</button>
-      <button class="btn ghost" id="btnAddRole" type="button">➕ Tilføj rolle</button>
-      <input id="fileImportGymSnippets" type="file" accept=".json" style="display:none"/>
-    </div>
-
-    <div class="field">
-      <label>Niveau 1 – titel</label>
-      <input id="gymLabel_G1" type="text">
-    </div>
-    <div class="field">
-      <label>Niveau 1 – tekst</label>
-      <textarea id="gymText_G1" rows="3"></textarea>
-    </div>
-
-    <div class="field">
-      <label>Niveau 2 – titel</label>
-      <input id="gymLabel_G2" type="text">
-    </div>
-    <div class="field">
-      <label>Niveau 2 – tekst</label>
-      <textarea id="gymText_G2" rows="3"></textarea>
-    </div>
-
-    <div class="field">
-      <label>Niveau 3 – titel</label>
-      <input id="gymLabel_G3" type="text">
-    </div>
-    <div class="field">
-      <label>Niveau 3 – tekst</label>
-      <textarea id="gymText_G3" rows="3"></textarea>
-    </div>
-
-    <hr style="margin:1rem 0;border:none;border-top:1px solid var(--border)"/>
-    <div class="muted small" style="margin-bottom:.5rem">Roller (fx Fanebærer, Redskabsholdet, DGI). Slet fjerner rollen.</div>
-    <div id="gymRolesList"></div>
-  </details>
-
-  <details>
-    <summary><b>Elevråd</b></summary>
-    <div class="row gap wrap" style="margin:.5rem 0">
-      <button class="btn" id="btnDownloadElevraad" type="button">⬇️ Download ændringer</button>
-      <button class="btn ghost" id="btnImportElevraadSnippets" type="button">⬆️ Importér ændringer</button>
-      <button class="btn ghost" id="btnRestoreElevraad" type="button">↩️ Gendan standard</button>
-      <input id="fileImportElevraadSnippets" type="file" accept=".json" style="display:none"/>
-    </div>
-    <div class="field">
-      <label>Elevråd – tekst</label>
-      <textarea id="elevraadText" rows="4"></textarea>
-    </div>
-  </details>
-</div>
-
-<div class="card no-print" style="margin-top:1rem">
-<div class="cardTitle">Faglærer-arbejde (producer CSV til deling)</div>
-<div class="row gap wrap">
-<label class="muted small">Type</label>
-<select id="marksType">
-<option value="sang">Sang</option>
-<option value="gym">Gym/roller</option>
-<option value="elevraad">Elevråd</option>
-</select>
-<label class="muted small">Find elev</label>
-<input class="search" id="marksSearch" placeholder="Søg på navn…" type="text"/>
-<button class="btn" id="btnExportMarks" type="button">⬇️ Eksportér CSV</button>
-</div>
-<div class="muted small" id="marksLegend" style="margin-top:.6rem"></div>
-<div class="tableWrap" id="marksTableWrap"></div>
-
->
+</html>

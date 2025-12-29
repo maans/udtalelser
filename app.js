@@ -533,6 +533,7 @@ function normalizePlaceholderKey(key) {
   // ---------- app state ----------
   const state = {
     tab: 'set',
+    settingsSubtab: 'general',
     selectedUnilogin: null,
     studentInputUrls: {},
     // The current visible K-elev list (after any filters). Used for prev/next navigation in Redigér.
@@ -815,6 +816,8 @@ function defaultSettings() {
 
     state.tab = tab;
 
+    if (tab === 'set') setSettingsSubtab('general');
+
     ['k','edit','set'].forEach(t => {
       const btn = $('tab-' + (t==='set'?'set':t));
       if (btn) btn.classList.toggle('active', tab === t);
@@ -823,11 +826,16 @@ function defaultSettings() {
     });
 
     renderAll();
-    if (tab === 'set') {
-      wireSnippetAccordion();
-      collapseSnippetFolds();
-    }
   }
+
+function setSettingsSubtab(sub) {
+    state.settingsSubtab = sub || 'general';
+    const btns = document.querySelectorAll('#settingsSubtabs .subtab');
+    btns.forEach(b => b.classList.toggle('active', b.dataset.subtab === state.settingsSubtab));
+    const panes = document.querySelectorAll('#view-set .settingsSubtab');
+    panes.forEach(p => p.classList.toggle('active', p.dataset.subtab === state.settingsSubtab));
+}
+
 
   function updateTabVisibility() {
     const editBtn = $('tab-edit');
@@ -835,31 +843,6 @@ function defaultSettings() {
     // Skjul Redigér, hvis ingen elev er valgt.
     editBtn.style.display = state.selectedUnilogin ? '' : 'none';
   }
-
-
-  // Snippet-accordion i Indstillinger: ingen sektioner åbne ved indgang, og max én åben ad gangen.
-  let _snippetAccordionWired = false;
-  function wireSnippetAccordion() {
-    if (_snippetAccordionWired) return;
-    _snippetAccordionWired = true;
-
-    document.addEventListener('toggle', (ev) => {
-      const d = ev.target;
-      if (!(d instanceof HTMLDetailsElement)) return;
-      if (!d.classList.contains('snippetFold')) return;
-      if (!d.open) return;
-
-      // Luk alle andre snippet-folds
-      document.querySelectorAll('details.snippetFold[open]').forEach(other => {
-        if (other !== d) other.open = false;
-      });
-    }, true);
-  }
-
-  function collapseSnippetFolds() {
-    document.querySelectorAll('details.snippetFold').forEach(d => { d.open = false; });
-  }
-
 
   function renderAll() {
     updateTabVisibility();
@@ -880,6 +863,9 @@ function defaultSettings() {
     const s = getSettings();
     const t = getTemplates();
     const studs = getStudents();
+
+    // Ensure correct subtab visibility
+    if (typeof setSettingsSubtab === 'function') setSettingsSubtab(state.settingsSubtab);
 
     $('forstanderName').value = s.forstanderName || '';
     $('forstanderName').readOnly = !!s.forstanderLocked;
@@ -1621,6 +1607,16 @@ $('preview').textContent = buildStatement(st, getSettings());
     // Redigér-tab er skjult når ingen elev er valgt, men vær robust hvis nogen alligevel klikker.
     $('tab-edit').addEventListener('click', () => setTab('edit'));
     $('tab-set').addEventListener('click', () => setTab('set'));
+
+    // Indstillinger: subtabs
+    const st = document.getElementById('settingsSubtabs');
+    if (st) {
+      st.addEventListener('click', (e) => {
+        const b = e.target && e.target.closest && e.target.closest('button[data-subtab]');
+        if (!b) return;
+        setSettingsSubtab(b.dataset.subtab);
+      });
+    }
 
     const navEdit = (delta) => {
       // Guard: if buttons are disabled, ignore.
