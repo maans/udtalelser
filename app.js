@@ -59,6 +59,53 @@
   "vsi": "Viola Simonsen"
 };
 
+  function teacherSuggestionsFromQuery(qRaw) {
+    const q = (qRaw || '').trim();
+    if (!q) return [];
+    const qNorm = normalizeName(q);
+    const qUpper = q.toUpperCase();
+
+    const out = [];
+
+    // 1) Initials-style matching (prefix match on alias keys)
+    for (const k in TEACHER_ALIAS_MAP) {
+      if (!Object.prototype.hasOwnProperty.call(TEACHER_ALIAS_MAP, k)) continue;
+      if (k.toUpperCase().startsWith(qUpper.replace(/\s+/g,''))) {
+        out.push({ value: k.toUpperCase(), label: `${k.toUpperCase()} → ${TEACHER_ALIAS_MAP[k]}` });
+      }
+    }
+
+    // 2) Name matching on alias values (contains match)
+    if (q.length >= 2) {
+      const seen = new Set(out.map(x => x.label));
+      for (const k in TEACHER_ALIAS_MAP) {
+        if (!Object.prototype.hasOwnProperty.call(TEACHER_ALIAS_MAP, k)) continue;
+        const name = TEACHER_ALIAS_MAP[k] || '';
+        if (normalizeName(name).includes(qNorm)) {
+          const lab = `${name} (${k.toUpperCase()})`;
+          if (!seen.has(lab)) {
+            out.push({ value: name, label: lab });
+            seen.add(lab);
+          }
+        }
+      }
+    }
+
+    // De-dupe by value+label
+    const dedup = [];
+    const seenKey = new Set();
+    for (const it of out) {
+      const key = `${it.value}||${it.label}`;
+      if (seenKey.has(key)) continue;
+      seenKey.add(key);
+      dedup.push(it);
+    }
+
+    return dedup.slice(0, 12);
+  }
+
+
+
   let SNIPPETS = {
     sang: {
       "S1": {
@@ -1013,6 +1060,8 @@ function renderKList() {
     const kMsg = $('kMessage');
     if (kMsg) kMsg.classList.remove('compact');
     const kList = $('kList');
+    const kMeta = $('kHeaderMeta');
+    if (kMeta) kMeta.textContent = 'Kontaktlærer1/2 matcher “Jeg er”.';
 
     // If "Jeg er" is not confirmed yet, show an inline input that commits on ENTER.
     // User may type initials OR full name; we only update settings when ENTER is pressed.
@@ -1027,7 +1076,8 @@ function renderKList() {
           <div class="field" style="max-width:520px">
             <label><b>Hvem er du?</b> <span class="muted small">(initialer eller navn)</span></label>
             <input id="kMeInline" type="text" inputmode="text" autocapitalize="words" autocomplete="off" spellcheck="false"
-                   placeholder="Skriv initialer eller navn og tryk Enter" value="${escapeAttr(draft)}">
+                   placeholder="Skriv initialer eller navn og tryk Enter" value="${escapeAttr(draft)}" list="kTeacherSuggest">
+            <datalist id="kTeacherSuggest"></datalist>
             <div class="muted small" style="margin-top:.25rem">Tip: Initialer findes i alias-map. Du kan også skrive et helt navn og trykke Enter.</div>
             <div class="muted small" id="kMeInlineHint" style="margin-top:.25rem"></div>
           </div>
@@ -1036,6 +1086,23 @@ function renderKList() {
 
       const inp = $('kMeInline');
       const hint = $('kMeInlineHint');
+
+      const dl = $('kTeacherSuggest');
+
+      // Live suggestions while typing (like a search dropdown).
+      const updateSuggest = () => {
+        const v = (inp.value || '').trim();
+        if (!dl) return;
+        const items = teacherSuggestionsFromQuery(v);
+        dl.innerHTML = items.map(it => `<option value="${escapeAttr(it.value)}">${escapeHtml(it.label)}</option>`).join('');
+        if (hint) {
+          if (!v) hint.textContent = 'Tryk Enter for at vise dine K-elever.';
+          else if (!items.length) hint.textContent = 'Ingen match endnu — prøv initialer (fx “MM”) eller et efternavn.';
+          else hint.textContent = 'Vælg evt. et forslag (dropdown) og tryk Enter.';
+        }
+      };
+
+      updateSuggest();
 
       if (hint) hint.textContent = 'Tryk Enter for at vise dine K-elever.';
 
@@ -1046,7 +1113,8 @@ function renderKList() {
           state.kMeDraft = (e.target.value || '');
         }, { passive: true });
 
-        inp.addEventListener('keydown', (e) => {
+                inp.addEventListener('input', () => { state.kMeDraft = inp.value; updateSuggest(); });
+inp.addEventListener('keydown', (e) => {
           if (e.key !== 'Enter') return;
           e.preventDefault();
 
@@ -1100,9 +1168,8 @@ function renderKList() {
     state.visibleKElevIds = mine.map(st => st.unilogin);
 
     if (!mine.length) {
-      if (kMsg) {
-        kMsg.innerHTML = `<div class="muted">${escapeHtml(0)} elever matcher <b>${escapeHtml(meResolved)}</b>.</div>`;
-      }
+      if (kMsg) kMsg.innerHTML = '';
+      if (kMeta) kMeta.innerHTML = `0 match: <b>${escapeHtml(meResolved)}</b>`;
       if (kList) kList.innerHTML = '';
       return;
     }
@@ -1115,12 +1182,9 @@ function renderKList() {
       return acc;
     }, {u:0,p:0,k:0});
 
-    if (kMsg) {
-      kMsg.classList.add('compact');
-      kMsg.innerHTML = `
-        <div class="muted"><b>${mine.length}</b> elev(e) matcher <b>${escapeHtml(meResolved)}</b>. Klik for at redigere.</div>
-        <div class="muted small">U ${prog.u}/${mine.length} · P ${prog.p}/${mine.length} · K ${prog.k}/${mine.length}</div>
-      `;
+    if (kMsg) { kMsg.innerHTML = ''; } 
+    if (kMeta) {
+      kMeta.innerHTML = `<b>${mine.length}</b> match: <b>${escapeHtml(meResolved)}</b> · U ${prog.u}/${mine.length} · P ${prog.p}/${mine.length} · K ${prog.k}/${mine.length}`;
     }
 
     if (kList) {
