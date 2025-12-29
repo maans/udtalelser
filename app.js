@@ -1308,18 +1308,24 @@ function renderKList() {
     const ids = getVisibleKElevIds();
     const idx = ids.indexOf(st.unilogin);
     if (bPrev) {
-      bPrev.style.display = '';
       const prevId = (idx > 0) ? ids[idx-1] : null;
-      const prevName = prevId ? firstNameById(prevId) : '';
-      bPrev.textContent = prevName ? `◀ ${prevName}` : '◀ Forrige';
-      bPrev.disabled = (idx <= 0);
+      if (!prevId) {
+        bPrev.style.display = 'none';
+      } else {
+        bPrev.style.display = '';
+        const prevName = firstNameById(prevId) || '';
+        bPrev.textContent = prevName ? `◀ ${prevName}` : '◀ Forrige';
+      }
     }
     if (bNext) {
-      bNext.style.display = '';
       const nextId = (idx !== -1 && idx < ids.length-1) ? ids[idx+1] : null;
-      const nextName = nextId ? firstNameById(nextId) : '';
-      bNext.textContent = nextName ? `${nextName} ▶` : 'Næste ▶';
-      bNext.disabled = (idx === -1 || idx >= ids.length - 1);
+      if (!nextId) {
+        bNext.style.display = 'none';
+      } else {
+        bNext.style.display = '';
+        const nextName = firstNameById(nextId) || '';
+        bNext.textContent = nextName ? `${nextName} ▶` : 'Næste ▶';
+      }
     }
 
     setEditEnabled(true);
