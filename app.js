@@ -959,6 +959,8 @@ function renderMarksElevraad(wrap, list) {
   };
 }
 
+  // --- disabled duplicate block (Plan B hotfix) ---
+  if (false) {
     const list = sortedStudents(getStudents()).filter(st => {
       if (!q) return true;
       const full = normalizeName(`${st.fornavn} ${st.efternavn}`);
@@ -998,6 +1000,7 @@ function renderMarksElevraad(wrap, list) {
 
       
 
+  } // end disabled duplicate block
 $('marksType').addEventListener('change', () => renderMarksTable());
     $('marksSearch').addEventListener('input', () => renderMarksTable());
 
