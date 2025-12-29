@@ -1166,7 +1166,12 @@ $('importSang').addEventListener('change', (e) => importMarksFile(e, 'sang'));
     $('btnPrint').addEventListener('click', () => window.print());
   }
 
-  function init() {
+  function wireEvents() {
+  // NOTE: Denne Plan-B build binder events direkte i modul-scope længere oppe.
+  // wireEvents() eksisterer kun for at undgå runtime-fejl, fordi init() kalder den.
+}
+
+function init() {
     wireEvents();
     if (!localStorage.getItem(KEYS.settings)) setSettings(defaultSettings());
     if (!localStorage.getItem(KEYS.templates)) setTemplates(defaultTemplates());
