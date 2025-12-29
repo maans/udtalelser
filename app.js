@@ -1069,13 +1069,13 @@ function renderKList() {
   }
 
   function updateEditRatios() {
-    const rE = ratio10($('txtElevudv')?.value, SECTION_TARGETS.elevudv);
-    const rP = ratio10($('txtPraktisk')?.value, SECTION_TARGETS.praktisk);
-    const rK = ratio10($('txtKgruppe')?.value, SECTION_TARGETS.kgruppe);
+    const nE = ($('txtElevudv')?.value || '').trim().length;
+    const nP = ($('txtPraktisk')?.value || '').trim().length;
+    const nK = ($('txtKgruppe')?.value || '').trim().length;
 
-    const elE = $('ratioElevudv'); if (elE) elE.textContent = rE.score ? `${rE.score}/10` : '';
-    const elP = $('ratioPraktisk'); if (elP) elP.textContent = rP.score ? `${rP.score}/10` : '';
-    const elK = $('ratioKgruppe'); if (elK) elK.textContent = rK.score ? `${rK.score}/10` : '';
+    const elE = $('ratioElevudv'); if (elE) elE.textContent = nE ? `antal tegn: ${nE}` : '';
+    const elP = $('ratioPraktisk'); if (elP) elP.textContent = nP ? `antal tegn: ${nP}` : '';
+    const elK = $('ratioKgruppe'); if (elK) elK.textContent = nK ? `antal tegn: ${nK}` : '';
   }
 
   function maybeOpenEditSection() {
