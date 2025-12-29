@@ -1,0 +1,48 @@
+{
+  "schema": "hu-elevudtalelser-snippets-override@1",
+  "scope": "gym",
+  "author": "",
+  "createdAt": "2025-12-29",
+  "payload": {
+    "gym": {
+      "variants": {
+        "G1": {
+          "label": "Meget engageret",
+          "text": "{{FORNAVN}} har deltaget meget engageret i fællesgymnastik og har vist stor lyst til at udfordre sig selv. {{HAN_HUN}} har bidraget positivt til holdets fællesskab."
+        },
+        "G2": {
+          "label": "Stabil deltagelse",
+          "text": "{{FORNAVN}} har deltaget stabilt i fællesgymnastik og har mødt undervisningen med en positiv indstilling."
+        },
+        "G3": {
+          "label": "Varierende deltagelse",
+          "text": "{{FORNAVN}} har haft en varierende deltagelse i fællesgymnastik, men har i perioder vist vilje til at indgå i fællesskabet."
+        }
+      },
+      "variantOrder": [
+        "G1",
+        "G2",
+        "G3"
+      ],
+      "roles": {
+        "FANEBÆRER": {
+          "label": "Fanebærer",
+          "text": "{{FORNAVN}} har været udtaget som fanebærer til skolens fælles gymnastikopvisninger. Et hverv {{HAN_HUN}} har varetaget ansvarsfuldt og respektfuldt."
+        },
+        "REDSKAB": {
+          "label": "Redskabshold",
+          "text": "{{FORNAVN}} har været en del af redskabsholdet, som {{HAN_HUN}} frivilligt har meldt sig til. {{HAN_HUN}} har ydet en stor indsats og taget ansvar."
+        },
+        "DGI": {
+          "label": "DGI-instruktør",
+          "text": "{{FORNAVN}} har deltaget aktivt i skolens frivillige samarbejde med foreningslivet og har vist engagement og ansvar."
+        }
+      },
+      "roleOrder": [
+        "FANEBÆRER",
+        "REDSKAB",
+        "DGI"
+      ]
+    }
+  }
+}

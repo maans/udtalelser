@@ -9,6 +9,7 @@
     settings: LS_PREFIX + 'settings',
     students:  LS_PREFIX + 'students',
     templates: LS_PREFIX + 'templates',
+    templatesImported: LS_PREFIX + 'templates_imported',
     marksSang: LS_PREFIX + 'marks_sang',
     marksGym:  LS_PREFIX + 'marks_gym',
     marksElev: LS_PREFIX + 'marks_elevraad',
@@ -151,67 +152,155 @@ Udtalelsen er skrevet med udgangspunkt i elevens hverdag og deltagelse gennem sk
 
   
 // ---------- snippet overrides (deling mellem lærere) ----------
-const SNIPPETS_OVERRIDE_KEY = 'udt_snippets_override_v1';
+const SNIPPETS_LEGACY_KEY = 'udt_snippets_override_v1';
+const SNIPPETS_IMPORTED_KEY = 'udt_snippets_imported_v1';
+const SNIPPETS_DRAFT_KEY = 'udt_snippets_draft_v1';
 const OVERRIDE_SCHEMA = 'hu-elevudtalelser-snippets-override@1';
+// --- Remote overrides from GitHub Pages (optional) -------------------------
+// If files exist in /overrides/, they are merged on top of defaults.
+// Missing files are ignored silently.
+const REMOTE_OVERRIDE_FILES = {
+  sang: './overrides/sang_override.json',
+  gym: './overrides/gym_override.json',
+  elevraad: './overrides/elevraad_override.json',
+  templates: './overrides/templates_override.json',
+};
+let REMOTE_OVERRIDES = { sang: null, gym: null, elevraad: null, templates: null };
 
-function getSnippetOverrides() {
-  return lsGet(SNIPPETS_OVERRIDE_KEY, {}) || {};
+function cacheBust(url){
+  const v = Date.now();
+  return url + (url.includes('?') ? '&' : '?') + 'v=' + v;
 }
-function setSnippetOverrides(o) {
-  lsSet(SNIPPETS_OVERRIDE_KEY, o || {});
+async function fetchJsonIfExists(url){
+  try{
+    const res = await fetch(cacheBust(url), { cache: 'no-store' });
+    if (!res.ok) return null; // 404 etc.
+    return await res.json();
+  }catch(_e){
+    return null;
+  }
+}
+function unwrapOverridePack(pack){
+  if (!pack) return null;
+  // Accept either full package {schema,scope,payload} or raw payload object
+  if (pack.payload) return pack.payload;
+  return pack;
+}
+async function loadRemoteOverrides(){
+  const [sang, gym, elevraad, templates] = await Promise.all([
+    fetchJsonIfExists(REMOTE_OVERRIDE_FILES.sang),
+    fetchJsonIfExists(REMOTE_OVERRIDE_FILES.gym),
+    fetchJsonIfExists(REMOTE_OVERRIDE_FILES.elevraad),
+    fetchJsonIfExists(REMOTE_OVERRIDE_FILES.templates),
+  ]);
+  REMOTE_OVERRIDES = {
+    sang: unwrapOverridePack(sang),
+    gym: unwrapOverridePack(gym),
+    elevraad: unwrapOverridePack(elevraad),
+    templates: unwrapOverridePack(templates),
+  };
 }
 
+
+function getSnippetImported() {
+  return lsGet(SNIPPETS_IMPORTED_KEY, {}) || {};
+}
+function setSnippetImported(o) {
+  lsSet(SNIPPETS_IMPORTED_KEY, o || {});
+}
+function getSnippetDraft() {
+  // Backward compatibility: migrate legacy key -> draft
+  const draft = lsGet(SNIPPETS_DRAFT_KEY, null);
+  if (draft) return draft || {};
+  const legacy = lsGet(SNIPPETS_LEGACY_KEY, null);
+  if (legacy) {
+    lsSet(SNIPPETS_DRAFT_KEY, legacy);
+    try { localStorage.removeItem(SNIPPETS_LEGACY_KEY); } catch {}
+    return legacy || {};
+  }
+  return {};
+}
+function setSnippetDraft(o) {
+  lsSet(SNIPPETS_DRAFT_KEY, o || {});
+}
 function applySnippetOverrides() {
-  const o = getSnippetOverrides();
+  const remote = REMOTE_OVERRIDES || {};
+  const imported = getSnippetImported();
+  const draft = getSnippetDraft();
+
   // start fra defaults (deep clone)
   SNIPPETS = JSON.parse(JSON.stringify(SNIPPETS_DEFAULT));
 
-  // sang
-  if (o.sang && o.sang.items) {
-    Object.keys(o.sang.items).forEach(k => {
-      if (!SNIPPETS.sang[k]) SNIPPETS.sang[k] = { title: k, text_m: '', text_k: '' };
-      const it = o.sang.items[k];
-      if (typeof it.label === 'string') SNIPPETS.sang[k].title = it.label;
-      if (typeof it.text === 'string') {
-        SNIPPETS.sang[k].text_m = it.text;
-        SNIPPETS.sang[k].text_k = it.text;
-      }
-    });
+  function applyPack(pack){
+    if(!pack) return;
+
+    // If a full override package was stored, unwrap payload
+    if (pack.payload) pack = pack.payload;
+
+    // --- Sang
+    const sang = pack.sang && (pack.sang.items ? pack.sang : pack.sang.sang); // accept nested
+    if (sang && sang.items) {
+      Object.keys(sang.items).forEach(k => {
+        const it = sang.items[k] || {};
+        if (!SNIPPETS.sang[k]) SNIPPETS.sang[k] = { title: k, text_m: '', text_k: '' };
+        if (typeof it.label === 'string' && it.label.trim()) SNIPPETS.sang[k].title = it.label.trim();
+        if (typeof it.text === 'string') { SNIPPETS.sang[k].text_m = it.text; SNIPPETS.sang[k].text_k = it.text; }
+        // allow direct text_m/text_k too
+        if (typeof it.text_m === 'string') SNIPPETS.sang[k].text_m = it.text_m;
+        if (typeof it.text_k === 'string') SNIPPETS.sang[k].text_k = it.text_k;
+      });
+    } else if (pack.snippets && pack.snippets.sang) {
+      Object.keys(pack.snippets.sang).forEach(k => {
+        const it = pack.snippets.sang[k] || {};
+        if (!SNIPPETS.sang[k]) SNIPPETS.sang[k] = { title: k, text_m: '', text_k: '' };
+        if (typeof it.label === 'string') SNIPPETS.sang[k].title = it.label;
+        if (typeof it.text === 'string') { SNIPPETS.sang[k].text_m = it.text; SNIPPETS.sang[k].text_k = it.text; }
+      });
+    }
+
+    // --- Gym (varianter + roller)
+    const gym = pack.gym && (pack.gym.variants || pack.gym.roles) ? pack.gym : (pack.gym && pack.gym.gym ? pack.gym.gym : null);
+    if (gym && gym.variants) {
+      Object.keys(gym.variants).forEach(k => {
+        const it = gym.variants[k] || {};
+        if (!SNIPPETS.gym[k]) SNIPPETS.gym[k] = { title: k, text_m: '', text_k: '' };
+        if (typeof it.label === 'string' && it.label.trim()) SNIPPETS.gym[k].title = it.label.trim();
+        if (typeof it.text === 'string') { SNIPPETS.gym[k].text_m = it.text; SNIPPETS.gym[k].text_k = it.text; }
+        if (typeof it.text_m === 'string') SNIPPETS.gym[k].text_m = it.text_m;
+        if (typeof it.text_k === 'string') SNIPPETS.gym[k].text_k = it.text_k;
+      });
+    }
+    if (gym && gym.roles) {
+      Object.keys(gym.roles).forEach(k => {
+        const it = gym.roles[k] || {};
+        if (!SNIPPETS.roller[k]) SNIPPETS.roller[k] = { title: k, text_m: '', text_k: '' };
+        if (typeof it.label === 'string' && it.label.trim()) SNIPPETS.roller[k].title = it.label.trim();
+        if (typeof it.text === 'string') { SNIPPETS.roller[k].text_m = it.text; SNIPPETS.roller[k].text_k = it.text; }
+        if (typeof it.text_m === 'string') SNIPPETS.roller[k].text_m = it.text_m;
+        if (typeof it.text_k === 'string') SNIPPETS.roller[k].text_k = it.text_k;
+      });
+    }
+
+    // --- Elevråd (YES)
+    const er = pack.elevraad && (typeof pack.elevraad.text === 'string') ? pack.elevraad : (pack.elevraad && pack.elevraad.elevraad ? pack.elevraad.elevraad : null);
+    if (er && typeof er.text === 'string') {
+      if (!SNIPPETS.elevraad.YES) SNIPPETS.elevraad.YES = { title: 'Elevrådsrepræsentant', text_m: '', text_k: '' };
+      SNIPPETS.elevraad.YES.text_m = er.text;
+      SNIPPETS.elevraad.YES.text_k = er.text;
+      if (typeof er.label === 'string' && er.label.trim()) SNIPPETS.elevraad.YES.title = er.label.trim();
+    }
   }
 
-  // gym varianter
-  if (o.gym && o.gym.variants) {
-    Object.keys(o.gym.variants).forEach(k => {
-      if (!SNIPPETS.gym[k]) SNIPPETS.gym[k] = { title: k, text_m: '', text_k: '' };
-      const it = o.gym.variants[k];
-      if (typeof it.label === 'string') SNIPPETS.gym[k].title = it.label;
-      if (typeof it.text === 'string') {
-        SNIPPETS.gym[k].text_m = it.text;
-        SNIPPETS.gym[k].text_k = it.text;
-      }
-    });
-  }
+  // 1) Remote (GitHub /overrides/)
+  applyPack(remote.sang);
+  applyPack(remote.gym);
+  applyPack(remote.elevraad);
 
-  // roller
-  if (o.gym && o.gym.roles) {
-    Object.keys(o.gym.roles).forEach(k => {
-      if (!SNIPPETS.roller[k]) SNIPPETS.roller[k] = { title: k, text_m: '', text_k: '' };
-      const it = o.gym.roles[k];
-      if (typeof it.label === 'string') SNIPPETS.roller[k].title = it.label;
-      if (typeof it.text === 'string') {
-        SNIPPETS.roller[k].text_m = it.text;
-        SNIPPETS.roller[k].text_k = it.text;
-      }
-    });
-  }
+  // 2) Imported overrides (explicitly imported JSON)
+  applyPack(imported);
 
-  // elevråd (YES)
-  if (o.elevraad && typeof o.elevraad.text === 'string') {
-    if (!SNIPPETS.elevraad.YES) SNIPPETS.elevraad.YES = { title: 'Elevrådsrepræsentant', text_m: '', text_k: '' };
-    SNIPPETS.elevraad.YES.text_m = o.elevraad.text;
-    SNIPPETS.elevraad.YES.text_k = o.elevraad.text;
-    if (typeof o.elevraad.label === 'string') SNIPPETS.elevraad.YES.title = o.elevraad.label;
-  }
+  // 3) Draft overrides (local work-in-progress; MUST win on refresh)
+  applyPack(draft);
 }
 
 function downloadJson(filename, obj) {
@@ -290,7 +379,7 @@ function importOverridePackage(expectedScope, obj) {
   if (!obj.scope) throw new Error('Forkert fil: mangler scope.');
   if (obj.scope !== expectedScope && obj.scope !== 'all') throw new Error('Forkert fil: scope matcher ikke.');
 
-  const overrides = getSnippetOverrides();
+  const overrides = getSnippetImported();
   const p = obj.payload || {};
 
   if (obj.scope === 'all' || obj.scope === 'sang') {
@@ -306,18 +395,19 @@ function importOverridePackage(expectedScope, obj) {
   if (expectedScope === 'templates' || obj.scope === 'templates' || obj.scope === 'all') {
     // Templates er ikke snippets-overrides, men indstillinger/templates.
     if (p.templates) {
-      const t = getTemplates();
-      if (typeof p.templates.schoolText === 'string') t.schoolText = p.templates.schoolText;
-      if (typeof p.templates.template === 'string') t.template = p.templates.template;
-      setTemplates(t);
+      // Store imported templates separately, so a local draft is not overwritten on refresh.
+      const tImp = lsGet(KEYS.templatesImported, {});
+      if (typeof p.templates.schoolText === 'string') tImp.schoolText = p.templates.schoolText;
+      if (typeof p.templates.template === 'string') tImp.template = p.templates.template;
+      lsSet(KEYS.templatesImported, tImp);
 
-      const s = getSettings();
+const s = getSettings();
       if (typeof p.templates.forstanderNavn === 'string') s.forstanderName = p.templates.forstanderNavn;
       setSettings(s);
     }
   }
 
-  setSnippetOverrides(overrides);
+  setSnippetImported(overrides);
   applySnippetOverrides();
 }
 
@@ -463,7 +553,7 @@ function normalizePlaceholderKey(key) {
 
   function getSettings(){ return Object.assign(defaultSettings(), lsGet(KEYS.settings, {})); }
   function setSettings(s){ lsSet(KEYS.settings, s); }
-  function getTemplates(){ return Object.assign(defaultTemplates(), lsGet(KEYS.templates, {})); }
+  function getTemplates(){ return Object.assign(defaultTemplates(), (REMOTE_OVERRIDES.templates && (REMOTE_OVERRIDES.templates.templates || REMOTE_OVERRIDES.templates)) || {}, lsGet(KEYS.templatesImported, {}), lsGet(KEYS.templates, {})); }
   function setTemplates(t){ lsSet(KEYS.templates, t); }
   function getStudents(){ return lsGet(KEYS.students, []); }
   function setStudents(studs){ lsSet(KEYS.students, studs); }
@@ -831,7 +921,7 @@ function escapeHtml(s) {
 }
 
 function commitSnippetsFromUI(scope) {
-  const overrides = getSnippetOverrides();
+  const overrides = getSnippetImported();
 
   if (scope === 'sang') {
     const items = {};
@@ -868,7 +958,7 @@ function commitSnippetsFromUI(scope) {
     overrides.elevraad = { label: 'Elevråd', text: ($('elevraadText').value || '').trim() };
   }
 
-  setSnippetOverrides(overrides);
+  setSnippetImported(overrides);
   applySnippetOverrides();
   // opdater visninger
   if (state.tab === 'edit') renderEdit();
@@ -1366,9 +1456,9 @@ if (document.getElementById('btnDownloadSang')) {
     e.target.value = '';
   });
   $('btnRestoreSang').addEventListener('click', () => {
-    const o = getSnippetOverrides();
+    const o = getSnippetDraft();
     delete o.sang;
-    setSnippetOverrides(o);
+    setSnippetDraft(o);
     applySnippetOverrides();
     renderSettings();
   });
@@ -1390,9 +1480,9 @@ if (document.getElementById('btnDownloadGym')) {
     e.target.value = '';
   });
   $('btnRestoreGymSnippets').addEventListener('click', () => {
-    const o = getSnippetOverrides();
+    const o = getSnippetDraft();
     delete o.gym;
-    setSnippetOverrides(o);
+    setSnippetDraft(o);
     applySnippetOverrides();
     renderSettings();
   });
@@ -1402,11 +1492,11 @@ if (document.getElementById('btnDownloadGym')) {
     if (!keyRaw) return;
     const key = keyRaw.trim().toUpperCase().replace(/\s+/g,'_');
     if (!key) return;
-    const o = getSnippetOverrides();
+    const o = getSnippetDraft();
     if (!o.gym) o.gym = { variants: {}, roles: {} };
     if (!o.gym.roles) o.gym.roles = {};
     if (!o.gym.roles[key]) o.gym.roles[key] = { label: keyRaw.trim(), text: '' };
-    setSnippetOverrides(o);
+    setSnippetDraft(o);
     applySnippetOverrides();
     renderSettings();
   });
@@ -1418,14 +1508,14 @@ if (document.getElementById('btnDownloadGym')) {
       if (!btn) return;
       const key = btn.getAttribute('data-remove-role');
       if (!key) return;
-      const o = getSnippetOverrides();
+      const o = getSnippetDraft();
       // Hvis rollen kun findes som override, så fjern den her; ellers gem "tom" override for at kunne skjule?
       // Minimal: fjern override-rollen + fjern fra defaults via et "tombstone"
       if (!o.gym) o.gym = {};
       if (!o.gym.roles) o.gym.roles = {};
       // Tombstone for at kunne fjerne en default-rolle:
       o.gym.roles[key] = { label: '', text: '' , _deleted: true };
-      setSnippetOverrides(o);
+      setSnippetDraft(o);
       applySnippetOverrides();
       renderSettings();
     });
@@ -1448,9 +1538,9 @@ if (document.getElementById('btnDownloadElevraad')) {
     e.target.value = '';
   });
   $('btnRestoreElevraad').addEventListener('click', () => {
-    const o = getSnippetOverrides();
+    const o = getSnippetDraft();
     delete o.elevraad;
-    setSnippetOverrides(o);
+    setSnippetDraft(o);
     applySnippetOverrides();
     renderSettings();
   });
@@ -1574,8 +1664,9 @@ if (document.getElementById('btnDownloadElevraad')) {
     $('btnPrint').addEventListener('click', () => window.print());
   }
 
-  function init() {
+  async function init() {
     wireEvents();
+    await loadRemoteOverrides();
     if (!localStorage.getItem(KEYS.settings)) setSettings(defaultSettings());
     if (!localStorage.getItem(KEYS.templates)) setTemplates(defaultTemplates());
     applySnippetOverrides();
