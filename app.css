@@ -30,7 +30,7 @@ code{font-family:var(--mono)}
 .row{display:flex; align-items:center}
 
 /* Stable navigation row in Redigér */
-.editNavRow{display:flex;align-items:center;gap:.75rem;margin-top:.5rem;}
+.editNavRow{display:flex;align-items:center;gap:.75rem;margin-top:0;}
 .editNavRow .navSlot{flex:1;display:flex;align-items:center;}
 .editNavRow .navSlot.left{justify-content:flex-start;}
 .editNavRow .navSlot.center{justify-content:center;}

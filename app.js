@@ -1003,7 +1003,7 @@ function renderKList() {
       state.visibleKElevIds = [];
       return;
     }
-    if (!meNorm) {
+    if (!meNorm || meNorm.length < 2) {
       // Ingen blindgyde: lad brugeren udfylde "Jeg er" direkte her.
       kMessage.innerHTML = `
         <div class="field" style="max-width:520px">
@@ -1100,7 +1100,7 @@ function renderKList() {
           const raw = inp.value;
           const s2 = getSettings();
           s2.me = raw;
-          s2.meResolved = resolveTeacherName(raw);
+          s2.meResolved = (raw.trim().length >= 2) ? resolveTeacherName(raw) : '';
           setSettings(s2);
           renderStatus();
           renderKList();
@@ -1256,11 +1256,14 @@ function renderKList() {
   function renderEdit() {
     const studs = getStudents();
     const msg = $('editMessage');
+    const hint = $('editHint');
+    const navRow = $('editNavRow');
     const pill = $('editStudentPill');
     const bPrev = $('btnPrevStudent'); const bNext = $('btnNextStudent');
 
     if (!studs.length) {
-      msg.innerHTML = `<b>Upload elevliste først</b><br><span class="muted">Gå til Indstillinger → Elevliste (CSV).</span>`;
+      if (navRow) navRow.style.display = 'none';
+      if (hint) hint.innerHTML = `<b>Upload elevliste først</b><br><span class="muted">Gå til Indstillinger → Elevliste (CSV).</span>`;
       pill.textContent = 'Ingen elev valgt';
       setEditEnabled(false);
       $('preview').textContent = '';
@@ -1269,7 +1272,8 @@ function renderKList() {
       return;
     }
     if (!state.selectedUnilogin) {
-      msg.innerHTML = `<b>Vælg en elev</b><br><span class="muted">Gå til fanen K-elever og klik på en elev.</span>`;
+      if (navRow) navRow.style.display = 'none';
+      if (hint) hint.innerHTML = `<b>Vælg en elev</b><br><span class="muted">Gå til fanen K-elever og klik på en elev.</span>`;
       pill.textContent = 'Ingen elev valgt';
       setEditEnabled(false);
       $('preview').textContent = '';
@@ -1280,7 +1284,8 @@ function renderKList() {
 
     const st = studs.find(x => x.unilogin === state.selectedUnilogin);
     if (!st) {
-      msg.innerHTML = `<b>Kunne ikke finde eleven</b><br><span class="muted">Vælg eleven igen under K-elever.</span>`;
+      if (navRow) navRow.style.display = 'none';
+      if (hint) hint.innerHTML = `<b>Kunne ikke finde eleven</b><br><span class="muted">Vælg eleven igen under K-elever.</span>`;
       pill.textContent = 'Ingen elev valgt';
       setEditEnabled(false);
       $('preview').textContent = '';
@@ -1289,19 +1294,31 @@ function renderKList() {
       return;
     }
 
-    msg.innerHTML = '';
+    if (navRow) navRow.style.display = '';
+    if (hint) hint.innerHTML = '';
     const full = `${st.fornavn} ${st.efternavn}`.trim();
     pill.textContent = `${full} · ${st.klasse || ''}`;
 
-    // Prev/Next buttons
+    
+    const firstNameById = (id) => {
+      const s = studs.find(x => x.unilogin === id);
+      return s ? (s.fornavn || '').trim() : '';
+    };
+// Prev/Next buttons
     const ids = getVisibleKElevIds();
     const idx = ids.indexOf(st.unilogin);
     if (bPrev) {
       bPrev.style.display = '';
+      const prevId = (idx > 0) ? ids[idx-1] : null;
+      const prevName = prevId ? firstNameById(prevId) : '';
+      bPrev.textContent = prevName ? `◀ ${prevName}` : '◀ Forrige';
       bPrev.disabled = (idx <= 0);
     }
     if (bNext) {
       bNext.style.display = '';
+      const nextId = (idx !== -1 && idx < ids.length-1) ? ids[idx+1] : null;
+      const nextName = nextId ? firstNameById(nextId) : '';
+      bNext.textContent = nextName ? `${nextName} ▶` : 'Næste ▶';
       bNext.disabled = (idx === -1 || idx >= ids.length - 1);
     }
 
