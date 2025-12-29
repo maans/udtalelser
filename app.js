@@ -1934,7 +1934,6 @@ if (document.getElementById('btnDownloadElevraad')) {
       const obj = getTextFor(state.selectedUnilogin);
       obj.studentInputMeta = { filename: f.name, ts: Date.now(), mime: f.type || '' };
       setTextFor(state.selectedUnilogin, obj);
-      }
 
       renderEdit();
     });
