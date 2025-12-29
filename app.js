@@ -1136,7 +1136,7 @@ function renderKList() {
 }
 
 function setEditEnabled(enabled) {
-    ['txtElevudv','txtPraktisk','txtKgruppe','fileStudentInput','btnClearStudentInput','btnPrint']
+    ['txtElevudv','txtPraktisk','txtKgruppe','fileStudentInput','btnPickStudentPdf','btnOpenStudentInput','btnClearStudentInput','btnPrint']
       .forEach(id => { const el = $(id); if (el) el.disabled = !enabled; });
   }
   function formatClassLabel(raw) {
@@ -1315,13 +1315,16 @@ function formatTime(ts) {
     maybeOpenEditSection();
 
     if (t.studentInputMeta && t.studentInputMeta.filename) {
-      $('studentInputMeta').textContent = `Valgt fil: ${t.studentInputMeta.filename} (registreret ${formatDateTime(t.studentInputMeta.ts)})`;
+      $('studentInputMeta').textContent = `${t.studentInputMeta.filename}`;
     } else {
       $('studentInputMeta').textContent = '';
     }
 
     const hasInputUrl = !!(state.selectedUnilogin && state.studentInputUrls[state.selectedUnilogin]);
-    $('btnOpenStudentInput').textContent = hasInputUrl ? 'Åbn fil' : 'Vælg fil';
+    $('btnOpenStudentInput').textContent = 'Åbn i nyt vindue';
+    $('btnOpenStudentInput').disabled = !hasInputUrl;
+    $('btnClearStudentInput').disabled = !(t.studentInputMeta && t.studentInputMeta.filename);
+    $('btnPickStudentPdf').textContent = (t.studentInputMeta && t.studentInputMeta.filename) ? 'Skift PDF…' : 'Vælg PDF…';
 
     // PDF preview (session only)
     const pWrap = $('studentInputPreviewWrap');
@@ -1897,19 +1900,29 @@ if (document.getElementById('btnDownloadElevraad')) {
       });
     });
 
+    $('btnPickStudentPdf').addEventListener('click', () => {
+      if (!state.selectedUnilogin) return;
+      $('fileStudentInput').click();
+    });
+
     $('btnOpenStudentInput').addEventListener('click', () => {
       const url = state.selectedUnilogin ? state.studentInputUrls[state.selectedUnilogin] : null;
-      if (url) {
-        const win = window.open(url, '_blank', 'noopener,noreferrer');
-        if (!win) alert('Popup blev stadig blokeret. Tillad popups for siden og prøv igen.');
-      } else {
-        $('fileStudentInput').click();
-      }
+      if (!url) return;
+      const win = window.open(url, '_blank', 'noopener,noreferrer');
+      if (!win) alert('Popup blev blokeret af browseren. Tillad popups for siden og prøv igen.');
     });
 
     $('fileStudentInput').addEventListener('change', (e) => {
       const f = e.target.files && e.target.files[0];
       if (!f || !state.selectedUnilogin) return;
+
+      const isPdf = (f.type === 'application/pdf') || (f.name && f.name.toLowerCase().endsWith('.pdf'));
+      if (!isPdf) {
+        alert('Vælg venligst en PDF-fil.');
+        $('fileStudentInput').value = '';
+        return;
+      }
+
 
       // Revoke previous object URL for this student (session only)
       const prevUrl = state.studentInputUrls[state.selectedUnilogin];
@@ -1921,14 +1934,6 @@ if (document.getElementById('btnDownloadElevraad')) {
       const obj = getTextFor(state.selectedUnilogin);
       obj.studentInputMeta = { filename: f.name, ts: Date.now(), mime: f.type || '' };
       setTextFor(state.selectedUnilogin, obj);
-
-      // PDF: preview inline. Other files: open in new tab (optional).
-      const isPdf = (f.type === 'application/pdf') || (f.name && f.name.toLowerCase().endsWith('.pdf'));
-      if (!isPdf) {
-        const win = window.open(url, '_blank', 'noopener,noreferrer');
-        if (!win) {
-          alert('Popup blev blokeret af browseren. Tillad popups for siden, og klik derefter på “Åbn fil”.');
-        }
       }
 
       renderEdit();

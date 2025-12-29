@@ -71,20 +71,17 @@
 <textarea id="txtKgruppe" placeholder="Skriv kontaktgruppe-afsnit…" rows="7"></textarea>
 </details>
 <div class="card no-print">
-<div class="cardTitle">Elevens eget input (PDF/Word)</div>
+<div class="cardTitle">Elevens eget input (PDF)</div>
 <div class="row gap wrap">
-<input accept=".pdf,.doc,.docx,.odt,.rtf,.txt" id="fileStudentInput" type="file"/><button class="btn small" id="btnOpenStudentInput" type="button">Åbn fil</button>
-<button class="btn ghost" id="btnClearStudentInput" type="button">Fjern</button>
+  <input accept="application/pdf,.pdf" id="fileStudentInput" type="file" style="display:none" />
+  <button class="btn" id="btnPickStudentPdf" type="button">Vælg PDF…</button>
+  <button class="btn" id="btnOpenStudentInput" type="button" disabled>Åbn i nyt vindue</button>
+  <button class="btn ghost" id="btnClearStudentInput" type="button" disabled>Fjern</button>
+  <div class="muted small" id="studentInputMeta"></div>
 </div>
-<div class="muted small" id="studentInputMeta"></div>
 <div class="studentInputPreviewWrap" id="studentInputPreviewWrap" style="display:none;">
-  <div class="muted small" style="margin:8px 0 6px 0;">Preview (PDF)</div>
   <iframe id="studentInputPreview" title="Elevens eget input (PDF preview)"></iframe>
 </div>
-<div class="muted small">
-              Når du vælger en fil, åbnes den i en ny fane. Appen gemmer kun filnavn + tidspunkt (ikke selve filen).
-              <br/>Bemærk: browseren kan ikke genåbne filen automatisk efter genstart – men du kan vælge den igen.
-            </div>
 </div>
 </div>
 <div class="panel">
