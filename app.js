@@ -1836,6 +1836,22 @@ if (document.getElementById('btnDownloadElevraad')) {
       renderEdit();
     });
 
+    $('btnPrint').addEventListener('click', () => window.print());
+  }
+
+  async function init() {
+    wireEvents();
+    await loadRemoteOverrides();
+    if (!localStorage.getItem(KEYS.settings)) setSettings(defaultSettings());
+    if (!localStorage.getItem(KEYS.templates)) setTemplates(defaultTemplates());
+    applySnippetOverrides();
+
+    const s = getSettings();
+    if (s.me && !s.meResolved) {
+      s.meResolved = resolveTeacherName(s.me);
+      setSettings(s);
+    }
+
     setTab('set');
     renderAll();
   }
