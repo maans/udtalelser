@@ -58,25 +58,7 @@
   "vsi": "Viola Simonsen"
 };
 
-  /**
- * ============================
- * SNIPPETS (hardcoded tekster)
- * ============================
- *
- * Her ændrer du de indbyggede tekster (default), som bruges i preview/print:
- * - sang:   variant-tekster
- * - gym:    variant-tekster
- * - elevraad: repræsentant-tekst
- * - roller: ekstra roller (fanebærer / redskabshold / DGI-instruktør)
- *
- * Struktur:
- *  title = UI-overskrift (kolonner + tooltips)
- *  text  = teksten der indsættes i udtalelsen
- *
- * Koderne (S1/S2/S3, G1/G2/G3 osv.) er keys i objektet og bruges til eksport/import.
- * UI viser kun title-teksterne.
- */
-const SNIPPETS = {
+  const SNIPPETS = {
     sang: {
   "S1": {
     "title": "Meget aktiv deltagelse",
@@ -643,7 +625,7 @@ function normalizePlaceholderKey(key) {
       return;
     }
 
-    const mine = sortedStudents(getStudents())
+    const mine = sortedStudents(studs)
       .filter(st => normalizeName(st.kontaktlaerer1) === meNorm || normalizeName(st.kontaktlaerer2) === meNorm);
 
     if (!mine.length) {
@@ -742,226 +724,19 @@ function normalizePlaceholderKey(key) {
     $('preview').textContent = buildStatement(st, getSettings());
   }
 
-  /**
- * ----------------------------
- * Faglærer-UI (Sang / Gym / Elevråd)
- * ----------------------------
- *
- * Formål:
- * - Faglærere udfylder vurderinger for ALLE elever.
- * - Valg gemmes i localStorage og kan eksporteres som CSV.
- *
- * Vigtige steder at ændre tekster:
- * - SNIPPETS.sang / SNIPPETS.gym / SNIPPETS.elevraad / SNIPPETS.roller
- *   - .title = teksten der vises i UI (kolonne-overskrift og tooltip)
- *   - .text  = tekst der indsættes i udtalelsen (preview/print)
- *
- * UI-princip:
- * - Der vælges præcis 0 eller 1 variant pr. elev (Sang og Gym).
- * - Klik på aktivt flueben = ryd valg (så vi kan undvære ekstra “x”-kolonne).
- *
- * Implementationsprincip:
- * - Vi bruger event delegation (én click-listener på wrap),
- *   så koden er lettere at vedligeholde og mindre “skrøbelig”.
- */
-function renderMarksTable() {
-  const studs = getStudents();
-  const wrap = $('marksTableWrap');
-  const type = $('marksType').value;
-  const q = normalizeName($('marksSearch').value || '');
+  function renderMarksTable() {
+    const studs = getStudents();
+    const wrap = $('marksTableWrap');
+    const type = $('marksType').value;
+    const q = normalizeName($('marksSearch').value || '');
 
-  if (!studs.length) {
-    wrap.innerHTML = `<div class="muted small">Upload elevliste først.</div>`;
-    $('marksLegend').textContent = '';
-    return;
-  }
+    if (!studs.length) {
+      wrap.innerHTML = `<div class="muted small">Upload elevliste først.</div>`;
+      $('marksLegend').textContent = '';
+      return;
+    }
 
-  // Filter + sort
-  const list = sortedStudents(getStudents()).filter(st => {
-    if (!q) return true;
-    const full = normalizeName(`${st.fornavn} ${st.efternavn}`);
-    return full.includes(q);
-  });
-
-  if (type === 'sang') return renderMarksSang(wrap, list);
-  if (type === 'gym') return renderMarksGym(wrap, list);
-  return renderMarksElevraad(wrap, list);
-}
-
-function renderMarksSang(wrap, list) {
-  const marks = getMarks(KEYS.marksSang);
-  const cols = Object.keys(SNIPPETS.sang);
-
-  $('marksLegend').innerHTML = `<b>Sang</b>: klik for at vælge (klik igen for at fjerne).`;
-
-  wrap.innerHTML = `
-    <table data-kind="sang">
-      <thead>
-        <tr>
-          <th>Navn</th>
-          <th>Klasse</th>
-          ${cols.map(c => `
-            <th title="${escapeAttr(SNIPPETS.sang[c].title || c)}">
-              ${escapeHtml(SNIPPETS.sang[c].title || c)}
-            </th>`).join('')}
-        </tr>
-      </thead>
-      <tbody>
-        ${list.map(st => {
-          const u = st.unilogin;
-          const m = marks[u] || { sang_variant: "" };
-          const full = `${st.fornavn} ${st.efternavn}`.trim();
-          return `<tr data-u="${escapeAttr(u)}">
-            <td>${escapeHtml(full)}</td>
-            <td>${escapeHtml(st.klasse||'')}</td>
-            ${cols.map(c => {
-              const on = (m.sang_variant === c);
-              return `<td>
-                <button type="button" class="markbtn ${on ? 'on' : ''}"
-                  data-action="setVariant" data-field="sang_variant" data-code="${escapeAttr(c)}" title="${escapeAttr(SNIPPETS.sang[c].title||c)}">
-                  <span class="check">✓</span>
-                </button>
-              </td>`;
-            }).join('')}
-          </tr>`;
-        }).join('')}
-      </tbody>
-    </table>
-  `;
-
-  // Event delegation: toggle = click again clears
-  wrap.onclick = (ev) => {
-    const btn = ev.target.closest('button[data-action="setVariant"]');
-    if (!btn) return;
-    const tr = btn.closest('tr[data-u]');
-    const u = tr.getAttribute('data-u');
-    const code = btn.getAttribute('data-code') || '';
-    marks[u] = marks[u] || {};
-    marks[u].sang_variant = (marks[u].sang_variant === code) ? "" : code;
-    setMarks(KEYS.marksSang, marks);
-    renderMarksTable();
-  };
-}
-
-function renderMarksGym(wrap, list) {
-  const marks = getMarks(KEYS.marksGym);
-  const variants = Object.keys(SNIPPETS.gym);
-  const roles = Object.keys(SNIPPETS.roller);
-
-  $('marksLegend').innerHTML = `<b>Gym/roller</b>: vælg gym-variant + evt. ekstra roller. (Klik igen for at fjerne variant.)`;
-
-  wrap.innerHTML = `
-    <table data-kind="gym">
-      <thead>
-        <tr>
-          <th>Navn</th><th>Klasse</th>
-          ${variants.map(v => `
-            <th title="${escapeAttr(SNIPPETS.gym[v].title || v)}">
-              ${escapeHtml(SNIPPETS.gym[v].title || v)}
-            </th>`).join('')}
-          ${roles.map(r => `
-            <th title="${escapeAttr(SNIPPETS.roller[r].title || r)}">
-              ${escapeHtml(SNIPPETS.roller[r].title || r)}
-            </th>`).join('')}
-        </tr>
-      </thead>
-      <tbody>
-        ${list.map(st => {
-          const u = st.unilogin;
-          const m = marks[u] || { gym_variant: "" };
-          const full = `${st.fornavn} ${st.efternavn}`.trim();
-          return `<tr data-u="${escapeAttr(u)}">
-            <td>${escapeHtml(full)}</td>
-            <td>${escapeHtml(st.klasse||'')}</td>
-            ${variants.map(v => {
-              const on = (m.gym_variant === v);
-              return `<td>
-                <button type="button" class="markbtn ${on ? 'on' : ''}"
-                  data-action="setVariant" data-field="gym_variant" data-code="${escapeAttr(v)}" title="${escapeAttr(SNIPPETS.gym[v].title||v)}">
-                  <span class="check">✓</span>
-                </button>
-              </td>`;
-            }).join('')}
-            ${roles.map(r => {
-              const on = !!m[r];
-              return `<td>
-                <input type="checkbox" data-action="toggleRole" data-role="${escapeAttr(r)}" ${on ? 'checked' : ''}/>
-              </td>`;
-            }).join('')}
-          </tr>`;
-        }).join('')}
-      </tbody>
-    </table>
-  `;
-
-  wrap.onclick = (ev) => {
-    const btn = ev.target.closest('button[data-action="setVariant"]');
-    if (!btn) return;
-    const tr = btn.closest('tr[data-u]');
-    const u = tr.getAttribute('data-u');
-    const code = btn.getAttribute('data-code') || '';
-    marks[u] = marks[u] || {};
-    marks[u].gym_variant = (marks[u].gym_variant === code) ? "" : code;
-    setMarks(KEYS.marksGym, marks);
-    renderMarksTable();
-  };
-
-  wrap.onchange = (ev) => {
-    const cb = ev.target.closest('input[type="checkbox"][data-action="toggleRole"]');
-    if (!cb) return;
-    const tr = cb.closest('tr[data-u]');
-    const u = tr.getAttribute('data-u');
-    const role = cb.getAttribute('data-role');
-    marks[u] = marks[u] || {};
-    marks[u][role] = cb.checked;
-    setMarks(KEYS.marksGym, marks);
-    // no full rerender needed, but keeps UI consistent if you later add derived things
-  };
-}
-
-function renderMarksElevraad(wrap, list) {
-  const marks = getMarks(KEYS.marksElevraad);
-  $('marksLegend').innerHTML = `<b>Elevråd</b>: markér elever der er repræsentanter.`;
-
-  wrap.innerHTML = `
-    <table data-kind="elevraad">
-      <thead>
-        <tr>
-          <th>Navn</th>
-          <th>Klasse</th>
-          <th>${escapeHtml(SNIPPETS.elevraad.repr?.title || 'Elevrådsrepræsentant')}</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${list.map(st => {
-          const u = st.unilogin;
-          const m = marks[u] || {};
-          const full = `${st.fornavn} ${st.efternavn}`.trim();
-          const on = !!m.repr;
-          return `<tr data-u="${escapeAttr(u)}">
-            <td>${escapeHtml(full)}</td>
-            <td>${escapeHtml(st.klasse||'')}</td>
-            <td><input type="checkbox" data-action="toggleElevraad" ${on ? 'checked' : ''}/></td>
-          </tr>`;
-        }).join('')}
-      </tbody>
-    </table>
-  `;
-
-  wrap.onchange = (ev) => {
-    const cb = ev.target.closest('input[type="checkbox"][data-action="toggleElevraad"]');
-    if (!cb) return;
-    const tr = cb.closest('tr[data-u]');
-    const u = tr.getAttribute('data-u');
-    marks[u] = marks[u] || {};
-    marks[u].repr = cb.checked;
-    setMarks(KEYS.marksElevraad, marks);
-  };
-}
-
-  // --- disabled duplicate block (Plan B hotfix) ---
-  if (false) {
-    const list = sortedStudents(getStudents()).filter(st => {
+    const list = sortedStudents(studs).filter(st => {
       if (!q) return true;
       const full = normalizeName(`${st.fornavn} ${st.efternavn}`);
       return full.includes(q);
@@ -998,17 +773,304 @@ function renderMarksElevraad(wrap, list) {
           </tbody>
         </table>`;
 
-      
+      wrap.querySelectorAll('tr[data-u]').forEach(tr => {
+        const u = tr.getAttribute('data-u');
+        tr.querySelectorAll('[data-set]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const code = btn.getAttribute('data-set');
+            marks[u] = marks[u] || {};
+            marks[u].sang_variant = code;
+            setMarks(KEYS.marksSang, marks);
+            renderMarksTable();
+          });
+        });
+        tr.querySelector('[data-clear]').addEventListener('click', () => {
+          marks[u] = marks[u] || {};
+          marks[u].sang_variant = "";
+          setMarks(KEYS.marksSang, marks);
+          renderMarksTable();
+        });
+      });
+      return;
+    }
 
-  } // end disabled duplicate block
-$('marksType').addEventListener('change', () => renderMarksTable());
+    if (type === 'gym') {
+      const marks = getMarks(KEYS.marksGym);
+      const variants = Object.keys(SNIPPETS.gym);
+      const roles = Object.keys(SNIPPETS.roller);
+
+      $('marksLegend').innerHTML = `<b>Gym/roller</b>: vælg gym-variant + evt. ekstra roller.`;
+
+      wrap.innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>Navn</th><th>Klasse</th>
+              ${variants.map(v => `<th title="${escapeAttr(SNIPPETS.gym[v].title||v)}">${escapeHtml(v)}<br><span class="small muted">${escapeHtml(SNIPPETS.gym[v].title||'')}</span></th>`).join('')}
+              ${roles.map(r => `<th title="${escapeAttr(SNIPPETS.roller[r].title||r)}">${escapeHtml(SNIPPETS.roller[r].title||r)}</th>`).join('')}
+              <th>–</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${list.map(st => {
+              const m = marks[st.unilogin] || {};
+              const full = `${st.fornavn} ${st.efternavn}`.trim();
+              return `<tr data-u="${escapeAttr(st.unilogin)}">
+                <td>${escapeHtml(full)}</td>
+                <td>${escapeHtml(st.klasse||'')}</td>
+                ${variants.map(v => {
+                  const active = (m.gym_variant === v);
+                  return `<td><button type="button" class="markbtn ${active?'on':''}" data-gym="${v}" title="${escapeAttr(SNIPPETS.gym[v].title||v)}"><span class="check">✓</span></button></td>`;
+                }).join('')}
+                ${roles.map(r => {
+                  const checked = !!m[r];
+                  return `<td><input type="checkbox" data-role="${r}" ${checked?'checked':''} /></td>`;
+                }).join('')}
+                <td><button type="button" class="markbtn clear" data-clear="1" title="Ryd valg"><span class="check">×</span></button></td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>`;
+
+      wrap.querySelectorAll('tr[data-u]').forEach(tr => {
+        const u = tr.getAttribute('data-u');
+        tr.querySelectorAll('[data-gym]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const code = btn.getAttribute('data-gym');
+            marks[u] = marks[u] || {};
+            marks[u].gym_variant = code;
+            setMarks(KEYS.marksGym, marks);
+            renderMarksTable();
+          });
+        });
+        tr.querySelectorAll('input[data-role]').forEach(ch => {
+          ch.addEventListener('change', () => {
+            const r = ch.getAttribute('data-role');
+            marks[u] = marks[u] || {};
+            marks[u][r] = ch.checked;
+            setMarks(KEYS.marksGym, marks);
+          });
+        });
+        tr.querySelector('[data-clear]').addEventListener('click', () => {
+          marks[u] = {};
+          setMarks(KEYS.marksGym, marks);
+          renderMarksTable();
+        });
+      });
+      return;
+    }
+
+    if (type === 'elevraad') {
+      const marks = getMarks(KEYS.marksElev);
+      $('marksLegend').innerHTML = `<b>Elevråd</b>: markér elever der er repræsentanter.`;
+
+      wrap.innerHTML = `
+        <table>
+          <thead>
+            <tr><th>Navn</th><th>Klasse</th><th>Elevrådsrepræsentant</th><th>–</th></tr>
+          </thead>
+          <tbody>
+            ${list.map(st => {
+              const m = marks[st.unilogin] || {};
+              const full = `${st.fornavn} ${st.efternavn}`.trim();
+              const checked = !!m.elevraad;
+              return `<tr data-u="${escapeAttr(st.unilogin)}">
+                <td>${escapeHtml(full)}</td>
+                <td>${escapeHtml(st.klasse||'')}</td>
+                <td><input type="checkbox" data-er="1" ${checked?'checked':''} /></td>
+                <td><button type="button" class="markbtn clear" data-clear="1" title="Ryd valg"><span class="check">×</span></button></td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>`;
+
+      wrap.querySelectorAll('tr[data-u]').forEach(tr => {
+        const u = tr.getAttribute('data-u');
+        tr.querySelector('input[data-er]').addEventListener('change', (e) => {
+          marks[u] = marks[u] || {};
+          marks[u].elevraad = e.target.checked;
+          setMarks(KEYS.marksElev, marks);
+        });
+        tr.querySelector('[data-clear]').addEventListener('click', () => {
+          marks[u] = {};
+          setMarks(KEYS.marksElev, marks);
+          renderMarksTable();
+        });
+      });
+      return;
+    }
+  }
+
+  async function importMarksFile(e, kind) {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    const text = await readFileText(f);
+    const parsed = parseCsv(text);
+
+    const colUnilogin = parsed.headers.find(h => ['unilogin','unicbrugernavn','unicusername','unic'].includes(normalizeHeader(h)));
+    if (!colUnilogin) { alert('CSV mangler kolonne: Unilogin'); return; }
+
+    let imported = 0;
+    if (kind === 'sang') {
+      const colVar = parsed.headers.find(h => ['sangvariant','sang_variant','sang'].includes(normalizeHeader(h)));
+      const map = getMarks(KEYS.marksSang);
+      parsed.rows.forEach(r => {
+        const u = (r[colUnilogin] || '').trim(); if (!u) return;
+        map[u] = map[u] || {};
+        map[u].sang_variant = (r[colVar] || '').trim();
+        imported++;
+      });
+      setMarks(KEYS.marksSang, map);
+    }
+    if (kind === 'gym') {
+      const colVar = parsed.headers.find(h => ['gymvariant','gym_variant','gym'].includes(normalizeHeader(h)));
+      const roleCodes = Object.keys(SNIPPETS.roller);
+      const map = getMarks(KEYS.marksGym);
+      parsed.rows.forEach(r => {
+        const u = (r[colUnilogin] || '').trim(); if (!u) return;
+        map[u] = map[u] || {};
+        map[u].gym_variant = (r[colVar] || '').trim();
+        roleCodes.forEach(rc => {
+          const col = parsed.headers.find(h => normalizeHeader(h) === normalizeHeader(rc));
+          if (col) {
+            const val = String(r[col]||'').trim();
+            map[u][rc] = (val === '1' || normalizeName(val)==='true' || normalizeName(val)==='ja');
+          }
+        });
+        imported++;
+      });
+      setMarks(KEYS.marksGym, map);
+    }
+    if (kind === 'elevraad') {
+      const colER = parsed.headers.find(h => ['elevraad','elevråd'].includes(normalizeHeader(h)));
+      const map = getMarks(KEYS.marksElev);
+      parsed.rows.forEach(r => {
+        const u = (r[colUnilogin] || '').trim(); if (!u) return;
+        map[u] = map[u] || {};
+        const val = String(r[colER]||'').trim();
+        map[u].elevraad = (val === '1' || normalizeName(val)==='true' || normalizeName(val)==='ja');
+        imported++;
+      });
+      setMarks(KEYS.marksElev, map);
+    }
+
+    $('importStatus').textContent = `✅ Importeret ${imported} rækker fra ${f.name}`;
+    if (state.tab === 'set') renderMarksTable();
+    if (state.tab === 'edit') renderEdit();
+  }
+
+  // ---------- events ----------
+  function wireEvents() {
+    $('tab-k').addEventListener('click', () => setTab('k'));
+    $('tab-edit').addEventListener('click', () => setTab('edit'));
+    $('tab-set').addEventListener('click', () => setTab('set'));
+
+    $('btnReload').addEventListener('click', () => location.reload());
+
+    $('btnReset').addEventListener('click', () => {
+      if (!confirm('Ryd alle lokale data i denne browser?')) return;
+      lsDelPrefix(LS_PREFIX);
+      location.reload();
+    });
+
+    $('btnToggleForstander').addEventListener('click', () => {
+      const s = getSettings();
+      s.forstanderLocked = !s.forstanderLocked;
+      setSettings(s);
+      renderSettings();
+    });
+    $('forstanderName').addEventListener('input', () => {
+      const s = getSettings();
+      s.forstanderName = $('forstanderName').value;
+      setSettings(s);
+      renderStatus();
+      if (state.tab === 'edit') renderEdit();
+    });
+
+    $('meInput').addEventListener('input', () => {
+      const raw = $('meInput').value;
+      const s = getSettings();
+      s.me = raw;
+      s.meResolved = resolveTeacherName(raw);
+      setSettings(s);
+      renderStatus();
+      if (state.tab === 'k') renderKList();
+      renderSettings();
+    });
+    $('schoolYearEnd').addEventListener('input', () => {
+      const s = getSettings();
+      s.schoolYearEnd = Number($('schoolYearEnd').value || s.schoolYearEnd);
+      setSettings(s);
+      renderSettings();
+      if (state.tab === 'edit') renderEdit();
+    });
+
+    $('btnToggleSchoolText').addEventListener('click', () => {
+      const t = getTemplates();
+      t.schoolTextLocked = !t.schoolTextLocked;
+      setTemplates(t);
+      renderSettings();
+    });
+    $('btnRestoreSchoolText').addEventListener('click', () => {
+      const t = getTemplates();
+      t.schoolText = DEFAULT_SCHOOL_TEXT;
+      setTemplates(t);
+      renderSettings();
+      if (state.tab === 'edit') renderEdit();
+    });
+    $('schoolText').addEventListener('input', () => {
+      const t = getTemplates();
+      t.schoolText = $('schoolText').value;
+      setTemplates(t);
+      if (state.tab === 'edit') renderEdit();
+    });
+
+    $('btnToggleTemplate').addEventListener('click', () => {
+      const t = getTemplates();
+      t.templateLocked = !t.templateLocked;
+      setTemplates(t);
+      renderSettings();
+    });
+    $('btnRestoreTemplate').addEventListener('click', () => {
+      const t = getTemplates();
+      t.template = DEFAULT_TEMPLATE;
+      setTemplates(t);
+      renderSettings();
+      if (state.tab === 'edit') renderEdit();
+    });
+    $('templateText').addEventListener('input', () => {
+      const t = getTemplates();
+      t.template = $('templateText').value;
+      setTemplates(t);
+      if (state.tab === 'edit') renderEdit();
+    });
+
+    $('studentsFile').addEventListener('change', async (e) => {
+      const f = e.target.files && e.target.files[0];
+      if (!f) return;
+      const text = await readFileText(f);
+      const parsed = parseCsv(text);
+      const map = mapStudentHeaders(parsed.headers);
+      const required = ['fornavn','efternavn','klasse'];
+      const ok = required.every(r => map[r]);
+      if (!ok) { alert('Kunne ikke finde de nødvendige kolonner (fornavn, efternavn, klasse).'); return; }
+
+      const students = parsed.rows.map(r => normalizeStudentRow(r, map));
+      setStudents(students);
+
+      renderSettings(); renderStatus();
+      if (state.tab === 'k') renderKList();
+      setTab('set');
+    });
+
+    $('marksType').addEventListener('change', () => renderMarksTable());
     $('marksSearch').addEventListener('input', () => renderMarksTable());
 
     $('btnExportMarks').addEventListener('click', () => {
       const type = $('marksType').value;
       const studs = getStudents();
       if (!studs.length) return;
-      const sorted = sortedStudents(getStudents());
+      const sorted = sortedStudents(studs);
 
       if (type === 'sang') {
         const marks = getMarks(KEYS.marksSang);
@@ -1033,82 +1095,17 @@ $('marksType').addEventListener('change', () => renderMarksTable());
         downloadText('gym_marks.csv', toCsv(rows, headers));
       }
       if (type === 'elevraad') {
-          const marks = getMarks(KEYS.marksElevraad);
-          const rows = sorted.map(st => {
-            const full = `${st.fornavn} ${st.efternavn}`.trim();
-            const m = marks[st.unilogin] || {};
-            return { Unilogin: st.unilogin, Navn: full, Elevrådsrepræsentant: m.repr ? 1 : 0 };
-          });
-          downloadText('elevraad_marks.csv', toCsv(rows, ['Unilogin','Navn','Elevrådsrepræsentant']));
-        }
-      });
-
-// ---- CSV import (faglærer-CSV’er) ---------------------------------
-function truthy(v) {
-  const s = String(v ?? '').trim().toLowerCase();
-  return s === '1' || s === 'true' || s === 'ja' || s === 'yes' || s === 'x' || s === '✓';
-}
-
-function importMarksFile(e, kind) {
-  const f = e.target.files && e.target.files[0];
-  if (!f) return;
-
-  readFileText(f).then(text => {
-    const parsed = parseCSV(text);
-    const uniCol = parsed.headers.find(h => ['unilogin','unicbrugernavn','unicusername','unic'].includes(normalizeName(h))) || parsed.headers[0];
-
-    if (kind === 'sang') {
-      const marks = getMarks(KEYS.marksSang);
-      for (const row of parsed.rows) {
-        const u = String(row[uniCol]||'').trim();
-        if (!u) continue;
-        const val = String(row['Sang_variant'] ?? row['sang_variant'] ?? row['Sang'] ?? row['sang'] ?? '').trim();
-        if (!marks[u]) marks[u] = {};
-        marks[u].sang_variant = val || "";
+        const marks = getMarks(KEYS.marksElev);
+        const rows = sorted.map(st => {
+          const full = `${st.fornavn} ${st.efternavn}`.trim();
+          const m = marks[st.unilogin] || {};
+          return { Unilogin: st.unilogin, Navn: full, Elevraad: m.elevraad ? 1 : 0 };
+        });
+        downloadText('elevraad_marks.csv', toCsv(rows, ['Unilogin','Navn','Elevraad']));
       }
-      setMarks(KEYS.marksSang, marks);
-    }
+    });
 
-    if (kind === 'gym') {
-      const marks = getMarks(KEYS.marksGym);
-      for (const row of parsed.rows) {
-        const u = String(row[uniCol]||'').trim();
-        if (!u) continue;
-        if (!marks[u]) marks[u] = {};
-        const val = String(row['Gym_variant'] ?? row['gym_variant'] ?? row['Gym'] ?? row['gym'] ?? '').trim();
-        marks[u].gym_variant = val || "";
-
-        // roles (robust header spellings)
-        const fan = row['fanebaerer'] ?? row['Fanebærer'] ?? row['Fanebaerer'];
-        const red = row['redskabshold'] ?? row['Redskabshold'];
-        const dgi = row['dgi_instruktor'] ?? row['DGI-instruktør'] ?? row['DGI-instruktor'];
-        marks[u].fanebaerer = truthy(fan);
-        marks[u].redskabshold = truthy(red);
-        marks[u].dgi_instruktor = truthy(dgi);
-      }
-      setMarks(KEYS.marksGym, marks);
-    }
-
-    if (kind === 'elevraad') {
-      const marks = getMarks(KEYS.marksElevraad);
-      for (const row of parsed.rows) {
-        const u = String(row[uniCol]||'').trim();
-        if (!u) continue;
-        if (!marks[u]) marks[u] = {};
-        const val = row['Elevrådsrepræsentant'] ?? row['Elevraadsrepraesentant'] ?? row['repr'] ?? row['Elevraad'] ?? row['elevraad'];
-        marks[u].repr = truthy(val);
-      }
-      setMarks(KEYS.marksElevraad, marks);
-    }
-
-    renderMarksTable();
-  }).catch(err => {
-    console.error(err);
-    alert('Kunne ikke importere CSV. Tjek filformat/kolonnenavne.');
-  });
-}
-
-$('importSang').addEventListener('change', (e) => importMarksFile(e, 'sang'));
+    $('importSang').addEventListener('change', (e) => importMarksFile(e, 'sang'));
     $('importGym').addEventListener('change', (e) => importMarksFile(e, 'gym'));
     $('importElevraad').addEventListener('change', (e) => importMarksFile(e, 'elevraad'));
 
@@ -1166,12 +1163,7 @@ $('importSang').addEventListener('change', (e) => importMarksFile(e, 'sang'));
     $('btnPrint').addEventListener('click', () => window.print());
   }
 
-  function wireEvents() {
-  // NOTE: Denne Plan-B build binder events direkte i modul-scope længere oppe.
-  // wireEvents() eksisterer kun for at undgå runtime-fejl, fordi init() kalder den.
-}
-
-function init() {
+  function init() {
     wireEvents();
     if (!localStorage.getItem(KEYS.settings)) setSettings(defaultSettings());
     if (!localStorage.getItem(KEYS.templates)) setTemplates(defaultTemplates());
