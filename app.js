@@ -1840,34 +1840,6 @@ if (document.getElementById('btnDownloadElevraad')) {
       renderEdit();
     });
 
-    function navigateStudent(delta) {
-      if (!state.selectedUnilogin) return;
-      const ids = getVisibleKElevIds();
-      const idx = ids.indexOf(state.selectedUnilogin);
-      const nextIdx = idx + delta;
-      if (idx === -1 || nextIdx < 0 || nextIdx >= ids.length) return;
-      state.selectedUnilogin = ids[nextIdx];
-      state.openEditSection = null;
-      renderAll();
-    }
-    const bPrev = $('btnPrevStudent');
-    const bNext = $('btnNextStudent');
-    if (bPrev) bPrev.addEventListener('click', () => navigateStudent(-1));
-    if (bNext) bNext.addEventListener('click', () => navigateStudent(1));
-
-    $('btnPrint').addEventListener('click', () => window.print());
-  }
-
-  async function init() {
-    wireEvents();
-    await loadRemoteOverrides();
-    if (!localStorage.getItem(KEYS.settings)) setSettings(defaultSettings());
-    if (!localStorage.getItem(KEYS.templates)) setTemplates(defaultTemplates());
-    applySnippetOverrides();
-
-    const s = getSettings();
-    if (s.me && !s.meResolved) { s.meResolved = resolveTeacherName(s.me); setSettings(s); }
-
     setTab('set');
     renderAll();
   }
