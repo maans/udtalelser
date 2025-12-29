@@ -823,6 +823,10 @@ function defaultSettings() {
     });
 
     renderAll();
+    if (tab === 'set') {
+      wireSnippetAccordion();
+      collapseSnippetFolds();
+    }
   }
 
   function updateTabVisibility() {
@@ -831,6 +835,31 @@ function defaultSettings() {
     // Skjul Redigér, hvis ingen elev er valgt.
     editBtn.style.display = state.selectedUnilogin ? '' : 'none';
   }
+
+
+  // Snippet-accordion i Indstillinger: ingen sektioner åbne ved indgang, og max én åben ad gangen.
+  let _snippetAccordionWired = false;
+  function wireSnippetAccordion() {
+    if (_snippetAccordionWired) return;
+    _snippetAccordionWired = true;
+
+    document.addEventListener('toggle', (ev) => {
+      const d = ev.target;
+      if (!(d instanceof HTMLDetailsElement)) return;
+      if (!d.classList.contains('snippetFold')) return;
+      if (!d.open) return;
+
+      // Luk alle andre snippet-folds
+      document.querySelectorAll('details.snippetFold[open]').forEach(other => {
+        if (other !== d) other.open = false;
+      });
+    }, true);
+  }
+
+  function collapseSnippetFolds() {
+    document.querySelectorAll('details.snippetFold').forEach(d => { d.open = false; });
+  }
+
 
   function renderAll() {
     updateTabVisibility();

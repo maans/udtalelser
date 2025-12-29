@@ -125,31 +125,7 @@
 <label>gym_marks.csv</label>
 <input accept=".csv,.txt" id="importGym" type="file"/>
 </div>
-<div class="field">
-<label>elevraad_marks.csv</label>
-<input accept=".csv,.txt" id="importElevraad" type="file"/>
-</div>
-</div>
-<div class="muted small" id="importStatus"></div>
-</div>
-<!-- Højre: Identitet + skabeloner -->
-<div class="card">
-<div class="cardTitle">Navne og periode</div>
-<div class="field">
-<label>Forstandernavn</label>
-<div class="row gap">
-<input id="forstanderName" type="text"/>
-<button class="btn ghost" id="btnToggleForstander" title="Lås op / lås" type="button">✏️</button>
-</div>
-</div>
-<details class="fold" id="schoolTextFold">
-<summary>Skolens standardtekst</summary>
-<div class="row gap wrap" style="margin:.5rem 0">
-<button class="btn ghost" id="btnToggleSchoolText" type="button">✏️ Redigér</button>
-<button class="btn ghost" id="btnRestoreSchoolText" type="button">↩️ Gendan standard</button>
-</div>
-<textarea id="schoolText" rows="10"></textarea>
-</details>
+
 <div class="field">
 <label>Jeg er (initialer eller navn)</label>
 <input id="meInput" placeholder="fx MM, RD, MTP eller fuldt navn" type="text"/>
@@ -171,15 +147,7 @@
 <label>Kontaktgruppe antal (auto)</label>
 <input id="contactCount" readonly="" type="text"/>
 </div>
-<details class="fold" id="templateFold">
-<summary>Udtalelses-skabelon (med placeholders)</summary>
-<div class="row gap wrap" style="margin:.5rem 0">
-<button class="btn ghost" id="btnToggleTemplate" type="button">✏️ Redigér</button>
-<button class="btn ghost" id="btnRestoreTemplate" type="button">↩️ Gendan standard</button>
-</div>
-<textarea id="templateText" rows="14"></textarea>
-<div class="muted small">Brug placeholders som <code>{{ELEV_FORNAVN}}</code>, <code>{{SANG_AFSNIT}}</code>, <code>{{PRAKTISK_AFSNIT}}</code> osv.</div>
-</details>
+
 
 <details class="fold" id="templatesShareFold">
 <summary>Del / importér skabeloner (leder)</summary>
@@ -194,13 +162,59 @@
 </details>
 </div>
 </div>
+</div>
+</section>
+</main>
+<footer class="footer no-print">
+<span class="muted small">Statisk app til GitHub Pages · localStorage-prefix: <code>udt_</code></span>
+</footer>
+<script src="app.js"></script>
+</body>
+</html
 <div class="card no-print" style="margin-top:1rem">
-  <div class="cardTitle">Faglærer-tekster (snippets)</div>
+  <div class="cardTitle">Tekster (snippets)</div>
   <div class="muted small" style="margin-bottom:.5rem">
     Redigér tekster direkte her. Når du klikker “Download ændringer”, får du en fil du kan sende til Måns.
   </div>
 
-  <details open>
+  <!-- Skolens tekster -->
+  <div class="field">
+<label>elevraad_marks.csv</label>
+<input accept=".csv,.txt" id="importElevraad" type="file"/>
+</div>
+</div>
+<div class="muted small" id="importStatus"></div>
+</div>
+<!-- Højre: Identitet + skabeloner -->
+<div class="card">
+<div class="cardTitle">Navne og periode</div>
+<div class="field">
+<label>Forstandernavn</label>
+<div class="row gap">
+<input id="forstanderName" type="text"/>
+<button class="btn ghost" id="btnToggleForstander" title="Lås op / lås" type="button">✏️</button>
+</div>
+</div>
+<details class="fold snippetFold" id="schoolTextFold">
+<summary>Skolens standardtekst</summary>
+<div class="row gap wrap" style="margin:.5rem 0">
+<button class="btn ghost" id="btnToggleSchoolText" type="button">✏️ Redigér</button>
+<button class="btn ghost" id="btnRestoreSchoolText" type="button">↩️ Gendan standard</button>
+</div>
+<textarea id="schoolText" rows="10"></textarea>
+</details>
+  <details class="fold snippetFold" id="templateFold">
+<summary>Udtalelses-skabelon (med placeholders)</summary>
+<div class="row gap wrap" style="margin:.5rem 0">
+<button class="btn ghost" id="btnToggleTemplate" type="button">✏️ Redigér</button>
+<button class="btn ghost" id="btnRestoreTemplate" type="button">↩️ Gendan standard</button>
+</div>
+<textarea id="templateText" rows="14"></textarea>
+<div class="muted small">Brug placeholders som <code>{{ELEV_FORNAVN}}</code>, <code>{{SANG_AFSNIT}}</code>, <code>{{PRAKTISK_AFSNIT}}</code> osv.</div>
+</details>
+
+
+  <details class="fold snippetFold">
     <summary><b>Sang</b> (3 niveauer)</summary>
     <div class="row gap wrap" style="margin:.5rem 0">
       <button class="btn" id="btnDownloadSang" type="button">⬇️ Download ændringer</button>
@@ -311,12 +325,5 @@
 </div>
 <div class="muted small" id="marksLegend" style="margin-top:.6rem"></div>
 <div class="tableWrap" id="marksTableWrap"></div>
-</div>
-</section>
-</main>
-<footer class="footer no-print">
-<span class="muted small">Statisk app til GitHub Pages · localStorage-prefix: <code>udt_</code></span>
-</footer>
-<script src="app.js"></script>
-</body>
-</html>
+
+>
