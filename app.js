@@ -1716,8 +1716,9 @@ $('preview').textContent = buildStatement(st, getSettings());
         const pkg = buildOverridePackage('templates');
         downloadJson('templates_override.json', pkg);
       });
-      $('btnImportTemplates').addEventListener('click', () => $('fileImportTemplates').click());
-      $('fileImportTemplates').addEventListener('change', async (e) => {
+      if (document.getElementById('btnImportTemplates') && document.getElementById('fileImportTemplates')) {
+        $('btnImportTemplates').addEventListener('click', () => $('fileImportTemplates').click());
+        $('fileImportTemplates').addEventListener('change', async (e) => {
         const f = e.target.files && e.target.files[0];
         if (!f) return;
         const txt = await f.text();
@@ -1726,7 +1727,8 @@ $('preview').textContent = buildStatement(st, getSettings());
         renderSettings();
         if (state.tab === 'edit') renderEdit();
         e.target.value = '';
-      });
+        });
+      }
     }
 
 // --- Faglærer-tekster (snippets) ---
@@ -1751,8 +1753,9 @@ if (document.getElementById('btnDownloadSang')) {
     const pkg = buildOverridePackage('sang');
     downloadJson('snippets_sang_override.json', pkg);
   });
-  $('btnImportSang').addEventListener('click', () => $('fileImportSang').click());
-  $('fileImportSang').addEventListener('change', async (e) => {
+  if (document.getElementById('btnImportSang') && document.getElementById('fileImportSang')) {
+    $('btnImportSang').addEventListener('click', () => $('fileImportSang').click());
+    $('fileImportSang').addEventListener('change', async (e) => {
     const f = e.target.files && e.target.files[0];
     if (!f) return;
     const txt = await f.text();
@@ -1760,7 +1763,8 @@ if (document.getElementById('btnDownloadSang')) {
     importOverridePackage('sang', obj);
     renderSettings();
     e.target.value = '';
-  });
+    });
+  }
   $('btnRestoreSang').addEventListener('click', () => {
     const o = getSnippetDraft();
     delete o.sang;
@@ -1775,8 +1779,9 @@ if (document.getElementById('btnDownloadGym')) {
     const pkg = buildOverridePackage('gym');
     downloadJson('snippets_gym_override.json', pkg);
   });
-  $('btnImportGymSnippets').addEventListener('click', () => $('fileImportGymSnippets').click());
-  $('fileImportGymSnippets').addEventListener('change', async (e) => {
+  if (document.getElementById('btnImportGymSnippets') && document.getElementById('fileImportGymSnippets')) {
+    $('btnImportGymSnippets').addEventListener('click', () => $('fileImportGymSnippets').click());
+    $('fileImportGymSnippets').addEventListener('change', async (e) => {
     const f = e.target.files && e.target.files[0];
     if (!f) return;
     const txt = await f.text();
@@ -1784,7 +1789,8 @@ if (document.getElementById('btnDownloadGym')) {
     importOverridePackage('gym', obj);
     renderSettings();
     e.target.value = '';
-  });
+    });
+  }
   $('btnRestoreGymSnippets').addEventListener('click', () => {
     const o = getSnippetDraft();
     delete o.gym;
@@ -1833,8 +1839,9 @@ if (document.getElementById('btnDownloadElevraad')) {
     const pkg = buildOverridePackage('elevraad');
     downloadJson('snippets_elevraad_override.json', pkg);
   });
-  $('btnImportElevraadSnippets').addEventListener('click', () => $('fileImportElevraadSnippets').click());
-  $('fileImportElevraadSnippets').addEventListener('change', async (e) => {
+  if (document.getElementById('btnImportElevraadSnippets') && document.getElementById('fileImportElevraadSnippets')) {
+    $('btnImportElevraadSnippets').addEventListener('click', () => $('fileImportElevraadSnippets').click());
+    $('fileImportElevraadSnippets').addEventListener('change', async (e) => {
     const f = e.target.files && e.target.files[0];
     if (!f) return;
     const txt = await f.text();
@@ -1842,7 +1849,8 @@ if (document.getElementById('btnDownloadElevraad')) {
     importOverridePackage('elevraad', obj);
     renderSettings();
     e.target.value = '';
-  });
+    });
+  }
   $('btnRestoreElevraad').addEventListener('click', () => {
     const o = getSnippetDraft();
     delete o.elevraad;
