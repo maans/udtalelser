@@ -37,19 +37,27 @@
 <div class="viewHeader no-print">
 <h1>Redigér</h1>
 <div class="row gap wrap">
-<div class="pill" id="editStudentPill">Ingen elev valgt</div>
-<div class="pill muted" id="autosavePill"></div>
-<button class="btn small no-print" id="btnPrevStudent" type="button" title="Forrige elev">◀ Forrige</button>
-<button class="btn small no-print" id="btnNextStudent" type="button" title="Næste elev">Næste ▶</button>
-<button class="btn no-print" id="btnPrint">🖨️ Print / Gem som PDF</button>
+  <div class="pill" id="editStudentPill">Ingen elev valgt</div>
+  <div class="pill muted" id="autosavePill"></div>
+</div>
+<div class="editNavRow">
+  <div class="navSlot left">
+    <button class="btn small no-print" id="btnPrevStudent" type="button" title="Forrige elev">◀ Forrige</button>
+  </div>
+  <div class="navSlot center">
+    <button class="btn no-print" id="btnPrint">🖨️ Print / Gem som PDF</button>
+  </div>
+  <div class="navSlot right">
+    <button class="btn small no-print" id="btnNextStudent" type="button" title="Næste elev">Næste ▶</button>
+  </div>
 </div>
 </div>
 <div class="callout no-print" id="editMessage"></div>
 <div class="split">
 <div class="panel no-print">
 <details class="fold" open="" id="secElevudv">
-<summary>Elevudvikling <span class="secRatio" id="ratioElevudv"></span></summary>
-<textarea id="txtElevudv" placeholder="Skriv elevudvikling…" rows="8"></textarea>
+<summary>Udvikling <span class="secRatio" id="ratioElevudv"></span></summary>
+<textarea id="txtElevudv" placeholder="Skriv udvikling…" rows="8"></textarea>
 </details>
 <details class="fold" id="secPraktisk">
 <summary>Praktisk afsnit <span class="secRatio" id="ratioPraktisk"></span></summary>

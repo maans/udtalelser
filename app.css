@@ -28,6 +28,13 @@ code{font-family:var(--mono)}
 .wrap{flex-wrap:wrap}
 .gap{gap:.6rem}
 .row{display:flex; align-items:center}
+
+/* Stable navigation row in Redigér */
+.editNavRow{display:flex;align-items:center;gap:.75rem;margin-top:.5rem;}
+.editNavRow .navSlot{flex:1;display:flex;align-items:center;}
+.editNavRow .navSlot.left{justify-content:flex-start;}
+.editNavRow .navSlot.center{justify-content:center;}
+.editNavRow .navSlot.right{justify-content:flex-end;}
 .pill{
   display:inline-flex; align-items:center;
   padding:.35rem .7rem;

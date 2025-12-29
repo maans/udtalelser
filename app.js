@@ -1010,23 +1010,104 @@ function renderKList() {
           <label><b>Hvem er du?</b></label>
           <input id="kMeInline" type="text" placeholder="fx MM, RD, MTP eller fuldt navn" value="${escapeAttr(s.me || '')}">
           <div class="muted small" style="margin-top:.25rem">Kan altid ændres senere i Indstillinger.</div>
+          <div class="muted small" id="kMeInlineHint" style="margin-top:.25rem"></div>
         </div>
       `;
-      kList.innerHTML = '';
-      state.visibleKElevIds = [];
+
+      const rawMe = (s.me || '').trim();
+      const rawNorm = normalizeName(rawMe);
+
+      // Substring fallback (1+ chars): helps first-time users who type just "M" / "MM" etc.
+      const mine = rawNorm
+        ? sortedStudents(studs).filter(st => {
+            const k1 = normalizeName(st.kontaktlaerer1);
+            const k2 = normalizeName(st.kontaktlaerer2);
+            return (k1 && k1.includes(rawNorm)) || (k2 && k2.includes(rawNorm));
+          })
+        : [];
+
+      state.visibleKElevIds = mine.map(st => st.unilogin);
+
+      const hint = $('kMeInlineHint');
+      if (hint) {
+        hint.textContent = rawNorm
+          ? (mine.length ? `${mine.length} elev(e) matcher – klik for at redigere.` : 'Ingen match endnu – skriv lidt mere.')
+          : 'Skriv initialer eller navn for at se dine K-elever.';
+      }
+
+      if (!mine.length) {
+        kList.innerHTML = '';
+      } else {
+        // Reuse the normal list renderer by falling through into the list builder below.
+        // (We simply set a temporary resolved label for display.)
+        const prog = mine.reduce((acc, st) => {
+          const f=getTextFor(st.unilogin);
+          acc.u += (f.elevudvikling||'').trim()?1:0;
+          acc.p += (f.praktisk||'').trim()?1:0;
+          acc.k += (f.kgruppe||'').trim()?1:0;
+          return acc;
+        }, {u:0,p:0,k:0});
+
+        // Keep the input visible; show progress under it.
+        if (hint) {
+          hint.textContent = `${mine.length} elev(e) matcher · U ${prog.u}/${mine.length} · P ${prog.p}/${mine.length} · K ${prog.k}/${mine.length}`;
+        }
+
+        kList.innerHTML = mine.map(st => {
+          const full = `${st.fornavn || ''} ${st.efternavn || ''}`.trim();
+          const free = getTextFor(st.unilogin);
+          const hasU = !!(free.elevudvikling || '').trim();
+          const hasP = !!(free.praktisk || '').trim();
+          const hasK = !!(free.kgruppe || '').trim();
+          const badge = (label, ok, sec) => {
+            const cls = ok ? 'ok' : 'miss';
+            return `<span class="badge ${cls}" data-open="${sec}">${label}</span>`;
+          };
+          return `
+            <div class="item" data-id="${escapeAttr(st.unilogin)}">
+              <div class="title">${escapeHtml(full)} <span class="muted">· ${escapeHtml(st.klasse || '')}</span></div>
+              <div class="badges">
+                ${badge('U', hasU, 'elevudv')}
+                ${badge('P', hasP, 'praktisk')}
+                ${badge('K', hasK, 'kgruppe')}
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        // Click handlers (same as below)
+        kList.querySelectorAll('.item').forEach(el => {
+          el.addEventListener('click', (ev) => {
+            const id = el.getAttribute('data-id');
+            if (!id) return;
+            state.selectedUnilogin = id;
+            const badgeEl = ev.target && ev.target.closest ? ev.target.closest('.badge') : null;
+            state.openEditSection = badgeEl ? badgeEl.getAttribute('data-open') : null;
+            updateTabVisibility();
+            setTab('edit');
+          });
+        });
+      }
+
       const inp = $('kMeInline');
       if (inp) {
         // Autofocus on first render
         setTimeout(() => { try { inp.focus(); } catch {} }, 0);
         inp.addEventListener('input', () => {
+          // Preserve caret across re-render
+          const ss = inp.selectionStart;
+          const se = inp.selectionEnd;
           const raw = inp.value;
           const s2 = getSettings();
           s2.me = raw;
           s2.meResolved = resolveTeacherName(raw);
           setSettings(s2);
           renderStatus();
-          // Live update the list as soon as it matches
           renderKList();
+          const inp2 = $('kMeInline');
+          if (inp2) {
+            try { inp2.focus(); inp2.setSelectionRange(ss, se); } catch {}
+          }
         });
       }
       return;
@@ -1048,20 +1129,26 @@ function renderKList() {
       return;
     }
 
-    const prog = mine.reduce((acc, st) => { const f=getTextFor(st.unilogin); acc.e += (f.elevudvikling||'').trim()?1:0; acc.p += (f.praktisk||'').trim()?1:0; acc.k += (f.kgruppe||'').trim()?1:0; return acc; }, {e:0,p:0,k:0});
-    kMessage.innerHTML = `<b>${mine.length}</b> elever matcher <b>${escapeHtml(s.meResolved)}</b>. Klik for at redigere.<br><span class="muted small">Udfyldt: E ${prog.e}/${mine.length} · P ${prog.p}/${mine.length} · K ${prog.k}/${mine.length}</span>`;
+    const prog = mine.reduce((acc, st) => {
+      const f=getTextFor(st.unilogin);
+      acc.u += (f.elevudvikling||'').trim()?1:0;
+      acc.p += (f.praktisk||'').trim()?1:0;
+      acc.k += (f.kgruppe||'').trim()?1:0;
+      return acc;
+    }, {u:0,p:0,k:0});
+    kMessage.innerHTML = `<b>${mine.length}</b> elever matcher <b>${escapeHtml(s.meResolved)}</b>. Klik for at redigere.<br><span class="muted small">Udfyldt: U ${prog.u}/${mine.length} · P ${prog.p}/${mine.length} · K ${prog.k}/${mine.length}</span>`;
 
     kList.innerHTML = mine.map(st => {
       const full = `${st.fornavn || ''} ${st.efternavn || ''}`.trim();
       const free = getTextFor(st.unilogin);
-      const hasE = !!(free.elevudvikling || '').trim();
+      const hasU = !!(free.elevudvikling || '').trim();
       const hasP = !!(free.praktisk || '').trim();
       const hasK = !!(free.kgruppe || '').trim();
       const badge = (label, ok, sec) => {
         if (!ok) return '';
         return `<span class="miniBadgeBtn" role="button" tabindex="0" data-sec="${escapeAttr(sec)}" title="Åbn ${escapeAttr(label)}">${escapeHtml(label)}</span>`;
       };
-      const badges = `<span class="miniBadges">${badge('E', hasE, 'elevudv')}${badge('P', hasP, 'praktisk')}${badge('K', hasK, 'kgruppe')}</span>`;
+      const badges = `<span class="miniBadges">${badge('U', hasU, 'elevudv')}${badge('P', hasP, 'praktisk')}${badge('K', hasK, 'kgruppe')}</span>`;
       return `<div class="item" role="button" tabindex="0" data-unilogin="${escapeAttr(st.unilogin)}">
         <div class="itemTitle">${escapeHtml(full)} ${badges}</div>
         <div class="itemMeta">${escapeHtml(st.klasse || '')}</div>
@@ -1483,15 +1570,11 @@ function renderKList() {
     $('tab-set').addEventListener('click', () => setTab('set'));
 
     const navEdit = (delta) => {
-      const ids = getVisibleKElevIds();
-      const idx = ids.indexOf(state.selectedUnilogin);
-      const nextIdx = idx + delta;
-      if (idx === -1 || nextIdx < 0 || nextIdx >= ids.length) return;
-      state.selectedUnilogin = ids[nextIdx];
-      state.openEditSection = null;
-      // Stay in Redigér
-      state.tab = 'edit';
-      renderAll();
+      // Guard: if buttons are disabled, ignore.
+      const btn = delta < 0 ? $('btnPrevStudent') : $('btnNextStudent');
+      if (btn && btn.disabled) return;
+      const dir = delta < 0 ? 'prev' : 'next';
+      gotoAdjacentStudent(dir);
     };
     const bPrev = $('btnPrevStudent');
     const bNext = $('btnNextStudent');
