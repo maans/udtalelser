@@ -464,6 +464,8 @@ function normalizePlaceholderKey(key) {
   function escapeAttr(s) { return (s ?? '').toString().replace(/"/g,'&quot;'); }
   function $(id){ return document.getElementById(id); }
 
+
+const on = (id, ev, fn, opts) => { const el = document.getElementById(id); if (el) el.addEventListener(ev, fn, opts); };
   // ---------- CSV ----------
   function detectDelimiter(firstLine) {
     const candidates = [';', ',', '\t'];
@@ -1603,10 +1605,10 @@ $('preview').textContent = buildStatement(st, getSettings());
 
   // ---------- events ----------
   function wireEvents() {
-    $('tab-k').addEventListener('click', () => setTab('k'));
+    on('tab-k','click', () => setTab('k'));
     // Redigér-tab er skjult når ingen elev er valgt, men vær robust hvis nogen alligevel klikker.
-    $('tab-edit').addEventListener('click', () => setTab('edit'));
-    $('tab-set').addEventListener('click', () => setTab('set'));
+    on('tab-edit','click', () => setTab('edit'));
+    on('tab-set','click', () => setTab('set'));
 
     // Indstillinger: subtabs
     const st = document.getElementById('settingsSubtabs');
@@ -1630,21 +1632,21 @@ $('preview').textContent = buildStatement(st, getSettings());
     if (bPrev) bPrev.addEventListener('click', () => navEdit(-1));
     if (bNext) bNext.addEventListener('click', () => navEdit(+1));
 
-    $('btnReload').addEventListener('click', () => location.reload());
+    on('btnReload','click', () => location.reload());
 
-    $('btnReset').addEventListener('click', () => {
+    on('btnReset','click', () => {
       if (!confirm('Ryd alle lokale data i denne browser?')) return;
       lsDelPrefix(LS_PREFIX);
       location.reload();
     });
 
-    $('btnToggleForstander').addEventListener('click', () => {
+    on('btnToggleForstander','click', () => {
       const s = getSettings();
       s.forstanderLocked = !s.forstanderLocked;
       setSettings(s);
       renderSettings();
     });
-    $('forstanderName').addEventListener('input', () => {
+    on('forstanderName','input', () => {
       const s = getSettings();
       s.forstanderName = $('forstanderName').value;
       setSettings(s);
@@ -1652,7 +1654,7 @@ $('preview').textContent = buildStatement(st, getSettings());
       if (state.tab === 'edit') renderEdit();
     });
 
-    $('meInput').addEventListener('input', () => {
+    on('meInput','input', () => {
       const raw = $('meInput').value;
       const s = getSettings();
       s.me = raw;
@@ -1662,7 +1664,7 @@ $('preview').textContent = buildStatement(st, getSettings());
       if (state.tab === 'k') renderKList();
       renderSettings();
     });
-    $('schoolYearEnd').addEventListener('input', () => {
+    on('schoolYearEnd','input', () => {
       const s = getSettings();
       s.schoolYearEnd = Number($('schoolYearEnd').value || s.schoolYearEnd);
       setSettings(s);
@@ -1670,40 +1672,40 @@ $('preview').textContent = buildStatement(st, getSettings());
       if (state.tab === 'edit') renderEdit();
     });
 
-    $('btnToggleSchoolText').addEventListener('click', () => {
+    on('btnToggleSchoolText','click', () => {
       const t = getTemplates();
       t.schoolTextLocked = !t.schoolTextLocked;
       setTemplates(t);
       renderSettings();
     });
-    $('btnRestoreSchoolText').addEventListener('click', () => {
+    on('btnRestoreSchoolText','click', () => {
       const t = getTemplates();
       t.schoolText = DEFAULT_SCHOOL_TEXT;
       setTemplates(t);
       renderSettings();
       if (state.tab === 'edit') renderEdit();
     });
-    $('schoolText').addEventListener('input', () => {
+    on('schoolText','input', () => {
       const t = getTemplates();
       t.schoolText = $('schoolText').value;
       setTemplates(t);
       if (state.tab === 'edit') renderEdit();
     });
 
-    $('btnToggleTemplate').addEventListener('click', () => {
+    on('btnToggleTemplate','click', () => {
       const t = getTemplates();
       t.templateLocked = !t.templateLocked;
       setTemplates(t);
       renderSettings();
     });
-    $('btnRestoreTemplate').addEventListener('click', () => {
+    on('btnRestoreTemplate','click', () => {
       const t = getTemplates();
       t.template = DEFAULT_TEMPLATE;
       setTemplates(t);
       renderSettings();
       if (state.tab === 'edit') renderEdit();
     });
-    $('templateText').addEventListener('input', () => {
+    on('templateText','input', () => {
       const t = getTemplates();
       t.template = $('templateText').value;
       setTemplates(t);
@@ -1712,13 +1714,13 @@ $('preview').textContent = buildStatement(st, getSettings());
 
     // Del / importér skabeloner (leder)
     if (document.getElementById('btnDownloadTemplates')) {
-      $('btnDownloadTemplates').addEventListener('click', () => {
+      on('btnDownloadTemplates','click', () => {
         const pkg = buildOverridePackage('templates');
         downloadJson('templates_override.json', pkg);
       });
       if (document.getElementById('btnImportTemplates') && document.getElementById('fileImportTemplates')) {
-        $('btnImportTemplates').addEventListener('click', () => $('fileImportTemplates').click());
-        $('fileImportTemplates').addEventListener('change', async (e) => {
+        on('btnImportTemplates','click', () => $('fileImportTemplates').click());
+        on('fileImportTemplates','change', async (e) => {
         const f = e.target.files && e.target.files[0];
         if (!f) return;
         const txt = await f.text();
@@ -1745,17 +1747,17 @@ gymInputs.forEach(id => {
 });
 
 if (document.getElementById('elevraadText')) {
-  $('elevraadText').addEventListener('input', () => commitSnippetsFromUI('elevraad'));
+  on('elevraadText','input', () => commitSnippetsFromUI('elevraad'));
 }
 
 if (document.getElementById('btnDownloadSang')) {
-  $('btnDownloadSang').addEventListener('click', () => {
+  on('btnDownloadSang','click', () => {
     const pkg = buildOverridePackage('sang');
     downloadJson('snippets_sang_override.json', pkg);
   });
   if (document.getElementById('btnImportSang') && document.getElementById('fileImportSang')) {
-    $('btnImportSang').addEventListener('click', () => $('fileImportSang').click());
-    $('fileImportSang').addEventListener('change', async (e) => {
+    on('btnImportSang','click', () => $('fileImportSang').click());
+    on('fileImportSang','change', async (e) => {
     const f = e.target.files && e.target.files[0];
     if (!f) return;
     const txt = await f.text();
@@ -1765,7 +1767,7 @@ if (document.getElementById('btnDownloadSang')) {
     e.target.value = '';
     });
   }
-  $('btnRestoreSang').addEventListener('click', () => {
+  on('btnRestoreSang','click', () => {
     const o = getSnippetDraft();
     delete o.sang;
     setSnippetDraft(o);
@@ -1775,13 +1777,13 @@ if (document.getElementById('btnDownloadSang')) {
 }
 
 if (document.getElementById('btnDownloadGym')) {
-  $('btnDownloadGym').addEventListener('click', () => {
+  on('btnDownloadGym','click', () => {
     const pkg = buildOverridePackage('gym');
     downloadJson('snippets_gym_override.json', pkg);
   });
   if (document.getElementById('btnImportGymSnippets') && document.getElementById('fileImportGymSnippets')) {
-    $('btnImportGymSnippets').addEventListener('click', () => $('fileImportGymSnippets').click());
-    $('fileImportGymSnippets').addEventListener('change', async (e) => {
+    on('btnImportGymSnippets','click', () => $('fileImportGymSnippets').click());
+    on('fileImportGymSnippets','change', async (e) => {
     const f = e.target.files && e.target.files[0];
     if (!f) return;
     const txt = await f.text();
@@ -1791,7 +1793,7 @@ if (document.getElementById('btnDownloadGym')) {
     e.target.value = '';
     });
   }
-  $('btnRestoreGymSnippets').addEventListener('click', () => {
+  on('btnRestoreGymSnippets','click', () => {
     const o = getSnippetDraft();
     delete o.gym;
     setSnippetDraft(o);
@@ -1799,7 +1801,7 @@ if (document.getElementById('btnDownloadGym')) {
     renderSettings();
   });
 
-  $('btnAddRole').addEventListener('click', () => {
+  on('btnAddRole','click', () => {
     const keyRaw = prompt('Kort nøgle til rollen (fx FANEBÆRER, REDSKAB, DGI):');
     if (!keyRaw) return;
     const key = keyRaw.trim().toUpperCase().replace(/\s+/g,'_');
@@ -1835,13 +1837,13 @@ if (document.getElementById('btnDownloadGym')) {
 }
 
 if (document.getElementById('btnDownloadElevraad')) {
-  $('btnDownloadElevraad').addEventListener('click', () => {
+  on('btnDownloadElevraad','click', () => {
     const pkg = buildOverridePackage('elevraad');
     downloadJson('snippets_elevraad_override.json', pkg);
   });
   if (document.getElementById('btnImportElevraadSnippets') && document.getElementById('fileImportElevraadSnippets')) {
-    $('btnImportElevraadSnippets').addEventListener('click', () => $('fileImportElevraadSnippets').click());
-    $('fileImportElevraadSnippets').addEventListener('change', async (e) => {
+    on('btnImportElevraadSnippets','click', () => $('fileImportElevraadSnippets').click());
+    on('fileImportElevraadSnippets','change', async (e) => {
     const f = e.target.files && e.target.files[0];
     if (!f) return;
     const txt = await f.text();
@@ -1851,7 +1853,7 @@ if (document.getElementById('btnDownloadElevraad')) {
     e.target.value = '';
     });
   }
-  $('btnRestoreElevraad').addEventListener('click', () => {
+  on('btnRestoreElevraad','click', () => {
     const o = getSnippetDraft();
     delete o.elevraad;
     setSnippetDraft(o);
@@ -1860,7 +1862,7 @@ if (document.getElementById('btnDownloadElevraad')) {
   });
 }
 
-    $('studentsFile').addEventListener('change', async (e) => {
+    on('studentsFile','change', async (e) => {
       const f = e.target.files && e.target.files[0];
       if (!f) return;
       const text = await readFileText(f);
@@ -1878,10 +1880,10 @@ if (document.getElementById('btnDownloadElevraad')) {
       setTab('set');
     });
 
-    $('marksType').addEventListener('change', () => renderMarksTable());
-    $('marksSearch').addEventListener('input', () => renderMarksTable());
+    on('marksType','change', () => renderMarksTable());
+    on('marksSearch','input', () => renderMarksTable());
 
-    $('btnExportMarks').addEventListener('click', () => {
+    on('btnExportMarks','click', () => {
       const type = $('marksType').value;
       const studs = getStudents();
       if (!studs.length) return;
@@ -1920,9 +1922,9 @@ if (document.getElementById('btnDownloadElevraad')) {
       }
     });
 
-    $('importSang').addEventListener('change', (e) => importMarksFile(e, 'sang'));
-    $('importGym').addEventListener('change', (e) => importMarksFile(e, 'gym'));
-    $('importElevraad').addEventListener('change', (e) => importMarksFile(e, 'elevraad'));
+    on('importSang','change', (e) => importMarksFile(e, 'sang'));
+    on('importGym','change', (e) => importMarksFile(e, 'gym'));
+    on('importElevraad','change', (e) => importMarksFile(e, 'elevraad'));
 
     ['txtElevudv','txtPraktisk','txtKgruppe'].forEach(id => {
       $(id).addEventListener('input', () => {
@@ -1941,19 +1943,19 @@ if (document.getElementById('btnDownloadElevraad')) {
       });
     });
 
-    $('btnPickStudentPdf').addEventListener('click', () => {
+    on('btnPickStudentPdf','click', () => {
       if (!state.selectedUnilogin) return;
       $('fileStudentInput').click();
     });
 
-    $('btnOpenStudentInput').addEventListener('click', () => {
+    on('btnOpenStudentInput','click', () => {
       const url = state.selectedUnilogin ? state.studentInputUrls[state.selectedUnilogin] : null;
       if (!url) return;
       const win = window.open(url, '_blank', 'noopener,noreferrer');
       if (!win) alert('Popup blev blokeret af browseren. Tillad popups for siden og prøv igen.');
     });
 
-    $('fileStudentInput').addEventListener('change', (e) => {
+    on('fileStudentInput','change', (e) => {
       const f = e.target.files && e.target.files[0];
       if (!f || !state.selectedUnilogin) return;
 
@@ -1978,7 +1980,7 @@ if (document.getElementById('btnDownloadElevraad')) {
 
       renderEdit();
     });
-    $('btnClearStudentInput').addEventListener('click', () => {
+    on('btnClearStudentInput','click', () => {
       if (!state.selectedUnilogin) return;
       const obj = getTextFor(state.selectedUnilogin);
       obj.studentInputMeta = null;
@@ -1999,7 +2001,7 @@ if (document.getElementById('btnDownloadElevraad')) {
       renderEdit();
     });
 
-    $('btnPrint').addEventListener('click', () => window.print());
+    on('btnPrint','click', () => window.print());
   }
 
   async function init() {
