@@ -1128,10 +1128,9 @@ function renderKList() {
       kList.querySelectorAll('[data-unilogin]').forEach(el => {
         el.addEventListener('click', () => {
           state.selectedUnilogin = el.getAttribute('data-unilogin');
-          state.tab = 'edit';
-          renderTabs();
-          renderEdit();
-        });
+          setTab('edit');
+          renderAll();
+          });
       });
     }
 }
