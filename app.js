@@ -1326,7 +1326,17 @@ function formatTime(ts) {
     $('txtElevudv').value = t.elevudvikling || '';
     $('txtPraktisk').value = t.praktisk || '';
     $('txtKgruppe').value = t.kgruppe || '';
-    $('autosavePill').textContent = t.lastSavedTs ? `Sidst gemt: ${formatTime(t.lastSavedTs)}` : '';
+    // Keep layout stable: the pill is always present, but hidden when empty.
+    const as = $('autosavePill');
+    if (as) {
+      if (t.lastSavedTs) {
+        as.textContent = `Sidst gemt: ${formatTime(t.lastSavedTs)}`;
+        as.style.visibility = 'visible';
+      } else {
+        as.textContent = 'Sidst gemt:';
+        as.style.visibility = 'hidden';
+      }
+    }
 
     updateEditRatios();
     maybeOpenEditSection();
@@ -1371,12 +1381,17 @@ $('preview').textContent = buildStatement(st, getSettings());
   function renderMarksTable() {
     const studs = getStudents();
     const wrap = $('marksTableWrap');
-    const type = $('marksType').value;
-    const q = normalizeName($('marksSearch').value || '');
+    const typeEl = $('marksType');
+    const searchEl = $('marksSearch');
+    const legendEl = $('marksLegend');
+    // This view is optional (depends on current Settings sub-tab). Don't crash if it's not rendered.
+    if (!wrap || !typeEl || !searchEl || !legendEl) return;
+    const type = typeEl.value;
+    const q = normalizeName(searchEl.value || '');
 
     if (!studs.length) {
       wrap.innerHTML = `<div class="muted small">Upload elevliste først.</div>`;
-      $('marksLegend').textContent = '';
+      legendEl.textContent = '';
       return;
     }
 
@@ -1927,7 +1942,9 @@ if (document.getElementById('btnDownloadElevraad')) {
     on('importElevraad','change', (e) => importMarksFile(e, 'elevraad'));
 
     ['txtElevudv','txtPraktisk','txtKgruppe'].forEach(id => {
-      $(id).addEventListener('input', () => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener('input', () => {
         if (!state.selectedUnilogin) return;
         const obj = getTextFor(state.selectedUnilogin);
         obj.elevudvikling = $('txtElevudv').value;
@@ -1936,7 +1953,11 @@ if (document.getElementById('btnDownloadElevraad')) {
         obj.lastSavedTs = Date.now();
         setTextFor(state.selectedUnilogin, obj);
 
-        $('autosavePill').textContent = `Sidst gemt: ${formatTime(obj.lastSavedTs)}`;
+        const as = $('autosavePill');
+        if (as) {
+          as.textContent = `Sidst gemt: ${formatTime(obj.lastSavedTs)}`;
+          as.style.visibility = 'visible';
+        }
         const st = getStudents().find(x => x.unilogin === state.selectedUnilogin);
         if (st) $('preview').textContent = buildStatement(st, getSettings());
         updateEditRatios();
