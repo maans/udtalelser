@@ -272,3 +272,27 @@ tr:hover td{background: rgba(255,255,255,.02)}
 .miniBadge{ font-size:12px; line-height:1; padding:3px 6px; border-radius:999px; border:1px solid rgba(255,255,255,.25); opacity:.9; }
 .miniBadge.ok{ background:rgba(46, 204, 113, .18); }
 .miniBadge.no{ background:rgba(231, 76, 60, .15); opacity:.6; }
+
+
+/* Section ratio (shown when folded) */
+.secRatio{margin-left:8px;font-size:12px;opacity:.7;}
+#view-edit details[open] summary .secRatio{display:none;}
+#view-edit details:not([open]) summary .secRatio{display:inline;}
+
+/* Mini badge buttons (only shown when filled) */
+.miniBadgeBtn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:22px;
+  height:18px;
+  border-radius:999px;
+  font-size:12px;
+  margin-left:6px;
+  border:1px solid rgba(0,0,0,.25);
+  background:rgba(0,0,0,.04);
+  cursor:pointer;
+  user-select:none;
+}
+.miniBadgeBtn:hover{background:rgba(0,0,0,.08);}
+.miniBadges{margin-left:8px;}

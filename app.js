@@ -1012,8 +1012,11 @@ function renderKList() {
       const hasE = !!(free.elevudvikling || '').trim();
       const hasP = !!(free.praktisk || '').trim();
       const hasK = !!(free.kgruppe || '').trim();
-      const badge = (label, ok) => `<span class="miniBadge ${ok ? 'ok' : 'no'}" title="${escapeAttr(label)}">${escapeHtml(label)}</span>`;
-      const badges = `<span class="miniBadges">${badge('E', hasE)}${badge('P', hasP)}${badge('K', hasK)}</span>`;
+      const badge = (label, ok, sec) => {
+        if (!ok) return '';
+        return `<span class="miniBadgeBtn" role="button" tabindex="0" data-sec="${escapeAttr(sec)}" title="Åbn ${escapeAttr(label)}">${escapeHtml(label)}</span>`;
+      };
+      const badges = `<span class="miniBadges">${badge('E', hasE, 'elevudv')}${badge('P', hasP, 'praktisk')}${badge('K', hasK, 'kgruppe')}</span>`;
       return `<div class="item" role="button" tabindex="0" data-unilogin="${escapeAttr(st.unilogin)}">
         <div class="itemTitle">${escapeHtml(full)} ${badges}</div>
         <div class="itemMeta">${escapeHtml(st.klasse || '')}</div>
@@ -1021,7 +1024,15 @@ function renderKList() {
     }).join('');
 
     [...kList.querySelectorAll('.item')].forEach(el => {
-      el.addEventListener('click', () => {
+      el.addEventListener('click', (ev) => {
+        const b = ev.target && ev.target.closest ? ev.target.closest('.miniBadgeBtn') : null;
+        if (b) {
+          ev.stopPropagation();
+          state.selectedUnilogin = el.getAttribute('data-unilogin');
+          state.openEditSection = b.getAttribute('data-sec') || null;
+          setTab('edit');
+          return;
+        }
         state.selectedUnilogin = el.getAttribute('data-unilogin');
         setTab('edit');
       });
@@ -1042,6 +1053,47 @@ function renderKList() {
   function formatDateTime(ts) {
     const d = new Date(ts);
     return d.toLocaleString('da-DK', {year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'});
+  }
+
+
+
+  // Completion ratios shown in folded section headers (e.g. 6/10)
+  // Targets are char-count goals; tweak here if you want different expectations.
+  const SECTION_TARGETS = { elevudv: 600, praktisk: 350, kgruppe: 350 };
+
+  function ratio10(text, target) {
+    const n = (text || '').trim().length;
+    if (!target || target <= 0) return { score: 0, n };
+    const score = Math.max(0, Math.min(10, Math.round((n / target) * 10)));
+    return { score, n };
+  }
+
+  function updateEditRatios() {
+    const rE = ratio10($('txtElevudv')?.value, SECTION_TARGETS.elevudv);
+    const rP = ratio10($('txtPraktisk')?.value, SECTION_TARGETS.praktisk);
+    const rK = ratio10($('txtKgruppe')?.value, SECTION_TARGETS.kgruppe);
+
+    const elE = $('ratioElevudv'); if (elE) elE.textContent = rE.score ? `${rE.score}/10` : '';
+    const elP = $('ratioPraktisk'); if (elP) elP.textContent = rP.score ? `${rP.score}/10` : '';
+    const elK = $('ratioKgruppe'); if (elK) elK.textContent = rK.score ? `${rK.score}/10` : '';
+  }
+
+  function maybeOpenEditSection() {
+    const sec = state.openEditSection;
+    if (!sec) return;
+    const map = {
+      elevudv: { details: 'secElevudv', textarea: 'txtElevudv' },
+      praktisk: { details: 'secPraktisk', textarea: 'txtPraktisk' },
+      kgruppe: { details: 'secKgruppe', textarea: 'txtKgruppe' }
+    };
+    const m = map[sec];
+    if (m) {
+      const d = $(m.details);
+      if (d) d.open = true;
+      const ta = $(m.textarea);
+      if (ta) ta.focus();
+    }
+    state.openEditSection = null;
   }
 
   function renderEdit() {
@@ -1084,6 +1136,9 @@ function renderKList() {
     $('txtPraktisk').value = t.praktisk || '';
     $('txtKgruppe').value = t.kgruppe || '';
     $('autosavePill').textContent = t.lastSavedTs ? `Sidst gemt: ${formatTime(t.lastSavedTs)}` : '';
+
+    updateEditRatios();
+    maybeOpenEditSection();
 
     if (t.studentInputMeta && t.studentInputMeta.filename) {
       $('studentInputMeta').textContent = `Valgt fil: ${t.studentInputMeta.filename} (registreret ${formatDateTime(t.studentInputMeta.ts)})`;
@@ -1636,6 +1691,7 @@ if (document.getElementById('btnDownloadElevraad')) {
         $('autosavePill').textContent = `Sidst gemt: ${formatTime(obj.lastSavedTs)}`;
         const st = getStudents().find(x => x.unilogin === state.selectedUnilogin);
         if (st) $('preview').textContent = buildStatement(st, getSettings());
+        updateEditRatios();
       });
     });
 
