@@ -1314,23 +1314,31 @@ function formatTime(ts) {
     updateEditRatios();
     maybeOpenEditSection();
 
-    if (t.studentInputMeta && t.studentInputMeta.filename) {
-      $('studentInputMeta').textContent = `${t.studentInputMeta.filename}`;
+    const hasInputUrl = !!(state.selectedUnilogin && state.studentInputUrls[state.selectedUnilogin]);
+    const meta = t.studentInputMeta || null;
+    const hasMeta = !!(meta && meta.filename);
+    const metaIsPdf = !!(hasMeta && meta.filename.toLowerCase().endsWith('.pdf'));
+
+    // Meta line: show filename, and if preview can't be restored after reload, explain briefly.
+    if (hasMeta) {
+      if (!hasInputUrl && metaIsPdf) {
+        $('studentInputMeta').textContent = `PDF valgt tidligere: ${meta.filename} — vælg PDF igen for at vise den her.`;
+      } else {
+        $('studentInputMeta').textContent = `${meta.filename}`;
+      }
     } else {
       $('studentInputMeta').textContent = '';
     }
 
-    const hasInputUrl = !!(state.selectedUnilogin && state.studentInputUrls[state.selectedUnilogin]);
     $('btnOpenStudentInput').textContent = 'Åbn i nyt vindue';
     $('btnOpenStudentInput').disabled = !hasInputUrl;
-    $('btnClearStudentInput').disabled = !(t.studentInputMeta && t.studentInputMeta.filename);
-    $('btnPickStudentPdf').textContent = (t.studentInputMeta && t.studentInputMeta.filename) ? 'Skift PDF…' : 'Vælg PDF…';
+    $('btnClearStudentInput').disabled = !hasMeta;
+    $('btnPickStudentPdf').textContent = hasMeta ? (hasInputUrl ? 'Skift PDF…' : 'Vælg PDF igen…') : 'Vælg PDF…';
 
     // PDF preview (session only)
     const pWrap = $('studentInputPreviewWrap');
     const pFrame = $('studentInputPreview');
-    const meta = t.studentInputMeta || null;
-    const isPdf = !!(hasInputUrl && meta && meta.filename && meta.filename.toLowerCase().endsWith('.pdf'));
+    const isPdf = !!(hasInputUrl && metaIsPdf);
     if (pWrap && pFrame) {
       if (isPdf) {
         pWrap.style.display = '';
