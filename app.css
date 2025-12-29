@@ -265,3 +265,10 @@ tr:hover td{background: rgba(255,255,255,.02)}
   background: rgba(10, 12, 16, 0.92);
   backdrop-filter: blur(6px);
 }
+
+
+/* --- Completion badges in K-elev list --- */
+.miniBadges{ display:inline-flex; gap:6px; margin-left:10px; vertical-align:middle; }
+.miniBadge{ font-size:12px; line-height:1; padding:3px 6px; border-radius:999px; border:1px solid rgba(255,255,255,.25); opacity:.9; }
+.miniBadge.ok{ background:rgba(46, 204, 113, .18); }
+.miniBadge.no{ background:rgba(231, 76, 60, .15); opacity:.6; }

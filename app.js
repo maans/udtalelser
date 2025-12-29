@@ -535,6 +535,7 @@ function normalizePlaceholderKey(key) {
 
   function defaultSettings() {
     return {
+      contactGroupCount: "",
       forstanderName: "Stinne Poulsen",
       forstanderLocked: true,
       me: "",
@@ -555,8 +556,8 @@ function normalizePlaceholderKey(key) {
   function setSettings(s){ lsSet(KEYS.settings, s); }
   function getTemplates(){ return Object.assign(defaultTemplates(), (REMOTE_OVERRIDES.templates && (REMOTE_OVERRIDES.templates.templates || REMOTE_OVERRIDES.templates)) || {}, lsGet(KEYS.templatesImported, {}), lsGet(KEYS.templates, {})); }
   function setTemplates(t){ lsSet(KEYS.templates, t); }
-  function getStudents(){ return lsGet(KEYS.students, []); }
-  function setStudents(studs){ lsSet(KEYS.students, studs); }
+  function getStudents(){ const s = lsGet(KEYS.students, []); window.__ALL_STUDENTS__ = s || []; return s; }
+  function setStudents(studs){ lsSet(KEYS.students, studs); window.__ALL_STUDENTS__ = studs || []; }
   function getMarks(kindKey){ return lsGet(kindKey, {}); }
   function setMarks(kindKey, m){ lsSet(kindKey, m); }
   function getTextFor(unilogin){
@@ -716,7 +717,7 @@ function normalizePlaceholderKey(key) {
 "ELEV_UDVIKLING_FRI": (free.elevudvikling || ''),
 "PRAKTISK_FRI": (free.praktisk || ''),
 "KGRUPPE_FRI": (free.kgruppe || ''),
-"KONTAKTGRUPPE_ANTAL": String(settings.contactGroupCount || ''),
+"KONTAKTGRUPPE_ANTAL": String(settings.contactGroupCount || (window.__ALL_STUDENTS__ ? window.__ALL_STUDENTS__.length : "") || ''),
 "KONTAKTGRUPPE_BESKRIVELSE": (free.kgruppe || SNIPPETS.kontaktgruppeDefault || ''),
 "KONTAKTLAERER_1_NAVN": (student.kontaktlaerer1 || '').trim(),
 "KONTAKTLAERER_2_NAVN": (student.kontaktlaerer2 || '').trim(),
@@ -858,8 +859,13 @@ function normalizePlaceholderKey(key) {
     if (studs.length && meNorm) {
       const count = studs.filter(st => normalizeName(st.kontaktlaerer1) === meNorm || normalizeName(st.kontaktlaerer2) === meNorm).length;
       $('contactCount').value = String(count);
+      // persist contact group count for placeholders
+      const s0 = getSettings();
+      if (String(s0.contactGroupCount||'') !== String(count)) { s0.contactGroupCount = String(count); setSettings(s0); }
     } else {
       $('contactCount').value = '';
+      const s0 = getSettings();
+      if (s0.contactGroupCount) { s0.contactGroupCount = ''; setSettings(s0); }
     }
 
     renderSnippetsEditor();
@@ -997,12 +1003,19 @@ function renderKList() {
       return;
     }
 
-    kMessage.innerHTML = `<b>${mine.length}</b> elever matcher <b>${escapeHtml(s.meResolved)}</b>. Klik for at redigere.`;
+    const prog = mine.reduce((acc, st) => { const f=getTextFor(st.unilogin); acc.e += (f.elevudvikling||'').trim()?1:0; acc.p += (f.praktisk||'').trim()?1:0; acc.k += (f.kgruppe||'').trim()?1:0; return acc; }, {e:0,p:0,k:0});
+    kMessage.innerHTML = `<b>${mine.length}</b> elever matcher <b>${escapeHtml(s.meResolved)}</b>. Klik for at redigere.<br><span class="muted small">Udfyldt: E ${prog.e}/${mine.length} · P ${prog.p}/${mine.length} · K ${prog.k}/${mine.length}</span>`;
 
     kList.innerHTML = mine.map(st => {
       const full = `${st.fornavn || ''} ${st.efternavn || ''}`.trim();
+      const free = getTextFor(st.unilogin);
+      const hasE = !!(free.elevudvikling || '').trim();
+      const hasP = !!(free.praktisk || '').trim();
+      const hasK = !!(free.kgruppe || '').trim();
+      const badge = (label, ok) => `<span class="miniBadge ${ok ? 'ok' : 'no'}" title="${escapeAttr(label)}">${escapeHtml(label)}</span>`;
+      const badges = `<span class="miniBadges">${badge('E', hasE)}${badge('P', hasP)}${badge('K', hasK)}</span>`;
       return `<div class="item" role="button" tabindex="0" data-unilogin="${escapeAttr(st.unilogin)}">
-        <div class="itemTitle">${escapeHtml(full)}</div>
+        <div class="itemTitle">${escapeHtml(full)} ${badges}</div>
         <div class="itemMeta">${escapeHtml(st.klasse || '')}</div>
       </div>`;
     }).join('');
