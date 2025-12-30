@@ -2181,7 +2181,128 @@ if (document.getElementById('btnDownloadElevraad')) {
     });
 
     on('btnPrint','click', () => window.print());
-  }
+  
+    // --- Faglærer-markeringer (Data & eksport) ---
+    // Tabs (Sang/Gymnastik/Elevråd)
+    const marksTabs = document.getElementById('marksTypeTabs');
+    if (marksTabs && !marksTabs.__wired) {
+      marksTabs.__wired = true;
+      marksTabs.addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-type]');
+        if (!btn) return;
+        state.marksType = btn.dataset.type || 'sang';
+        saveLS(KEYS.marksType, state.marksType);
+        syncMarksTypeTabs();
+        renderMarksTable();
+      });
+    }
+
+    // Søg elev i marks-tabellen
+    const marksFind = document.getElementById('marksFind');
+    if (marksFind && !marksFind.__wired) {
+      marksFind.__wired = true;
+      marksFind.addEventListener('input', () => {
+        state.marksQuery = (marksFind.value || '').trim();
+        saveLS(KEYS.marksQuery, state.marksQuery);
+        renderMarksTable();
+      });
+    }
+
+    // Checkbox ændringer i marks-tabellen
+    const marksWrap = document.getElementById('marksTableWrap');
+    if (marksWrap && !marksWrap.__wired) {
+      marksWrap.__wired = true;
+      marksWrap.addEventListener('change', (e) => {
+        const el = e.target;
+        if (!el || el.type !== 'checkbox') return;
+        const u = el.getAttribute('data-u');
+        const k = el.getAttribute('data-k');
+        if (!u || !k) return;
+        const type = (state.marksType || 'sang');
+        const marks = getMarks(type);
+        marks[u] = marks[u] || {};
+
+        if (k.startsWith('role:')) {
+          // Gym-roller (multi)
+          const roleKey = k.slice(5);
+          const arr = Array.isArray(marks[u].gym_roles) ? marks[u].gym_roles : [];
+          const has = arr.includes(roleKey);
+          if (el.checked && !has) arr.push(roleKey);
+          if (!el.checked && has) arr.splice(arr.indexOf(roleKey), 1);
+          marks[u].gym_roles = arr;
+        } else {
+          // Variant (single)
+          const field = (type === 'gym') ? 'gym_variant' : (type === 'elevraad' ? 'elevraad_variant' : 'sang_variant');
+          if (el.checked) marks[u][field] = k;
+          else if (marks[u][field] === k) marks[u][field] = '';
+        }
+
+        setMarks(type, marks);
+        renderMarksTable();
+      });
+    }
+
+    // Eksportér CSV
+    const btnExport = document.getElementById('btnExportMarksCSV');
+    if (btnExport && !btnExport.__wired) {
+      btnExport.__wired = true;
+      btnExport.addEventListener('click', () => {
+        const type = (state.marksType || 'sang');
+        const studs = getStudents() || [];
+        if (!studs.length) { alert('Upload elevliste først.'); return; }
+        const marks = getMarks(type) || {};
+
+        const baseCols = ['UniLogin','Navn','Klasse'];
+        let extraCols = [];
+        if (type === 'sang') extraCols = Object.keys(SNIPPETS.sang || {});
+        else if (type === 'elevraad') extraCols = Object.keys(SNIPPETS.elevraad || {});
+        else if (type === 'gym') extraCols = [...Object.keys(SNIPPETS.gym || {}), ...Object.keys(SNIPPETS.roller || {}).map(r => `role:${r}`)];
+
+        const header = [...baseCols, ...extraCols];
+
+        const rows = studs.map(s => {
+          const u = s.unilogin || '';
+          const m = marks[u] || {};
+          const out = {};
+          out['UniLogin'] = u;
+          out['Navn'] = s.navn || s.fulde_navn || '';
+          out['Klasse'] = s.klasse || '';
+
+          if (type === 'sang') {
+            const v = m.sang_variant || '';
+            for (const c of Object.keys(SNIPPETS.sang || {})) out[c] = (v === c) ? '1' : '';
+          } else if (type === 'elevraad') {
+            const v = m.elevraad_variant || '';
+            for (const c of Object.keys(SNIPPETS.elevraad || {})) out[c] = (v === c) ? '1' : '';
+          } else if (type === 'gym') {
+            const v = m.gym_variant || '';
+            for (const c of Object.keys(SNIPPETS.gym || {})) out[c] = (v === c) ? '1' : '';
+            const roles = Array.isArray(m.gym_roles) ? m.gym_roles : [];
+            for (const r of Object.keys(SNIPPETS.roller || {})) out[`role:${r}`] = roles.includes(r) ? '1' : '';
+          }
+
+          return header.map(h => out[h] ?? '');
+        });
+
+        const esc = (x) => {
+          const s = String(x ?? '');
+          return /[",\n;]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s;
+        };
+        const csv = [header.join(';'), ...rows.map(r => r.map(esc).join(';'))].join('\n');
+
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+        const a = document.createElement('a');
+        const date = new Date();
+        const stamp = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+        a.download = `${type}_marks_${stamp}.csv`;
+        a.href = URL.createObjectURL(blob);
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 0);
+      });
+    }
+
+}
 
   async function init() {
     wireEvents();
