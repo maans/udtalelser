@@ -360,6 +360,36 @@ function getMyKStudents() {
     .filter(st => normalizeName(st.kontaktlaerer1) === meNorm || normalizeName(st.kontaktlaerer2) === meNorm);
 }
 
+// --- Print: force single-student print to always fit on ONE A4 page by scaling down.
+// Strategy: compute available content height (A4 minus margins = 261mm) in px,
+// compare to rendered preview height at scale=1, and set CSS var --printScale.
+function applyOnePagePrintScale() {
+  const preview = document.getElementById('preview');
+  if (!preview) return;
+  // Reset
+  document.documentElement.style.setProperty('--printScale', '1');
+  // Only relevant when preview has content
+  const txt = (preview.textContent || '').trim();
+  if (!txt) return;
+
+  // Create a mm-to-px probe (hidden)
+  const probe = document.createElement('div');
+  probe.style.cssText = 'position:fixed; left:-9999px; top:-9999px; width:1mm; height:261mm; visibility:hidden; pointer-events:none;';
+  document.body.appendChild(probe);
+  const availPx = probe.getBoundingClientRect().height;
+  probe.remove();
+
+  // Measure needed height at scale=1
+  // Use scrollHeight so we capture full content.
+  const neededPx = preview.scrollHeight;
+  if (!availPx || !neededPx) return;
+
+  if (neededPx > availPx) {
+    const s = Math.max(0.10, Math.min(1, availPx / neededPx));
+    document.documentElement.style.setProperty('--printScale', String(s));
+  }
+}
+
 function printAllKStudents() {
   const list = getMyKStudents();
   if (!list.length) {
@@ -368,26 +398,29 @@ function printAllKStudents() {
   }
   // Build a dedicated print window with page breaks between students
   const title = 'Elevudtalelser – print alle';
+  // One-page-per-student, always fit by scaling down if needed.
+  // Printable area: A4 minus @page margins = 178mm x 261mm.
   const styles = `
     <style>
       @page { size: A4; margin: 18mm 16mm; }
       body{ font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; color:#000; background:#fff; }
-      h1{ font-size: 14pt; margin: 0 0 8mm 0; }
       .entry{ page-break-after: always; }
-      .name{ font-weight: 800; margin-bottom: 3mm; }
-      pre{ white-space: pre-wrap; font: 11pt/1.45 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; margin:0; }
-      .meta{ color:#555; font-size: 10pt; margin-bottom: 4mm; }
+      .page{ width: 178mm; height: 261mm; overflow:hidden; position:relative; }
+      pre.content{
+        white-space: pre-wrap;
+        font: 11pt/1.45 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        margin:0;
+        transform: scale(var(--s, 1));
+        transform-origin: top left;
+        width: calc(100% / var(--s, 1));
+      }
     </style>
   `;
   const body = list.map(st => {
-    const full = `${st.fornavn || ''} ${st.efternavn || ''}`.trim();
-    const cls = (st.klasse ? formatClassLabel(st.klasse) : '').trim();
     const txt = buildStatement(st, getSettings());
     return `
       <section class="entry">
-        <div class="name">${escapeHtml(full)}</div>
-        ${cls ? `<div class="meta">${escapeHtml(cls)}</div>` : ``}
-        <pre>${escapeHtml(txt)}</pre>
+        <div class="page"><pre class="content">${escapeHtml(txt)}</pre></div>
       </section>
     `;
   }).join('');
@@ -398,7 +431,29 @@ function printAllKStudents() {
     return;
   }
   w.document.open();
-  w.document.write(`<!doctype html><html lang="da"><head><meta charset="utf-8"><title>${title}</title>${styles}</head><body>${body}</body></html>`);
+  w.document.write(`<!doctype html><html lang="da"><head><meta charset="utf-8"><title>${title}</title>${styles}</head><body>${body}
+    <script>
+      (function(){
+        function fitAll(){
+          const pages = Array.from(document.querySelectorAll('.page'));
+          pages.forEach(p=>{
+            const c = p.querySelector('.content');
+            if(!c) return;
+            // Reset
+            p.style.setProperty('--s','1');
+            // Measure at scale=1
+            const avail = p.clientHeight;
+            const needed = c.scrollHeight;
+            let s = 1;
+            if (needed > avail && avail > 0) s = Math.max(0.10, Math.min(1, avail / needed));
+            p.style.setProperty('--s', String(s));
+          });
+        }
+        window.addEventListener('load', fitAll);
+        window.addEventListener('beforeprint', fitAll);
+      })();
+    </script>
+  </body></html>`);
   w.document.close();
   // Let the browser lay out the document before printing
   setTimeout(()=>{ try{ w.focus(); w.print(); }catch(e){} }, 250);
@@ -2415,7 +2470,12 @@ if (document.getElementById('btnDownloadElevraad')) {
       renderEdit();
     });
 
-    on('btnPrint','click', () => window.print());
+    on('btnPrint','click', () => {
+      // Ensure the statement always fits on ONE A4 page (scale down if needed)
+      try { applyOnePagePrintScale(); } catch(_) {}
+      // Give the browser a tick to apply CSS variable before print dialog
+      setTimeout(()=>{ try{ window.print(); } catch(_) {} }, 0);
+    });
   
     // --- Faglærer-markeringer (Data & eksport) ---
     // Tabs (Sang/Gymnastik/Elevråd)
@@ -2541,6 +2601,16 @@ if (document.getElementById('btnDownloadElevraad')) {
 
   async function init() {
     wireEvents();
+
+    // Print scaling (single-student print)
+    if (!window.__printScaleWired) {
+      window.__printScaleWired = true;
+      window.addEventListener('beforeprint', () => { try { applyOnePagePrintScale(); } catch(_) {} });
+      window.addEventListener('afterprint', () => {
+        try { document.documentElement.style.setProperty('--printScale', '1'); } catch(_) {}
+      });
+    }
+
     await loadRemoteOverrides();
     if (!localStorage.getItem(KEYS.settings)) setSettings(defaultSettings());
     if (!localStorage.getItem(KEYS.templates)) setTemplates(defaultTemplates());

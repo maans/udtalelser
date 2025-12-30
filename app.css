@@ -272,6 +272,9 @@ tr:hover td{background: rgba(255,255,255,.02)}
     padding:0;
     white-space: pre-wrap;
     min-height:auto;
+    transform: scale(var(--printScale, 1));
+    transform-origin: top left;
+    width: calc(100% / var(--printScale, 1));
   }
   @page{size:A4; margin: 18mm 16mm}
 }
