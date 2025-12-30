@@ -909,6 +909,11 @@ function setSettingsSubtab(sub) {
     btns.forEach(b => b.classList.toggle('active', b.dataset.subtab === state.settingsSubtab));
     const panes = document.querySelectorAll('#view-set .settingsSubtab');
     panes.forEach(p => p.classList.toggle('active', p.dataset.subtab === state.settingsSubtab));
+
+    // Persistér valg af underfane og sørg for at UI'et re-rendres
+    // (ellers bliver fx faglærer-tabellen ikke bygget).
+    saveState();
+    renderAll();
 }
 
 
@@ -1190,7 +1195,8 @@ const prog = mineList.reduce((acc, st) => {
     const statusEl = $("kStatusLine");
     if(statusEl){
       const who = escapeHtml(meResolvedConfirmed || meRaw || '');
-      statusEl.innerHTML = ` · <b>${mineList.length}</b> match: <b>${who}</b> · U ${prog.u}/${mineList.length} · P ${prog.p}/${mineList.length} · K ${prog.k}/${mineList.length}`;
+      // Informativ linje lige under titel: hvem + match + status (uden at skubbe layoutet rundt)
+      statusEl.innerHTML = `<b>${mineList.length}</b> match: <span class="pill">${who}</span> · U ${prog.u}/${mineList.length} · P ${prog.p}/${mineList.length} · K ${prog.k}/${mineList.length}`;
     }
 
     if (kList) {
