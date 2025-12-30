@@ -122,6 +122,10 @@
     afslutningDefault: "Vi ønsker eleven alt det bedste fremover."
   };
 
+  // Backwards compatibility: some code paths still reference DEFAULT_ALIAS_MAP.
+  // Keep it as an alias of TEACHER_ALIAS_MAP.
+  const DEFAULT_ALIAS_MAP = TEACHER_ALIAS_MAP;
+
     const SNIPPETS_DEFAULT = JSON.parse(JSON.stringify(SNIPPETS));
 
 const DEFAULT_SCHOOL_TEXT =
