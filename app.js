@@ -1086,12 +1086,12 @@ function renderKList() {
     const studs = getStudents();
     // Resolve teacher input via alias-map (MM -> Måns ...) for both filtering and UI.
     const meRaw = ((s.me || '') + '').trim();
-    const meResolved = resolveTeacherName(meRaw) || meRaw;
-    const mine = meResolved
+    const meResolvedRaw = resolveTeacherName(meRaw) || meRaw;
+    const minePreview = meResolvedRaw
       ? studs.filter(st => {
           const k1 = resolveTeacherName((st.Kontaktlaerer1 || '') + '');
           const k2 = resolveTeacherName((st.Kontaktlaerer2 || '') + '');
-          return (k1 && k1 === meResolved) || (k2 && k2 === meResolved);
+          return (k1 && k1 === meResolvedRaw) || (k2 && k2 === meResolvedRaw);
         })
       : [];
     const kMsg = $('kMessage');
@@ -1109,7 +1109,7 @@ function renderKList() {
       if (kMsg) {
         kMsg.innerHTML = `<div class="row between alignCenter" style="gap:1rem; flex-wrap:wrap;">
         <div class="row alignCenter" style="gap:.7rem; flex-wrap:wrap;">
-          <div><b>${mine.length} match:</b> <span class="pill">${escapeHtml(meResolved || s.me || '')}</span></div>
+          <div><b>${minePreview.length} match:</b> <span class="pill">${escapeHtml(meResolvedRaw || s.me || '')}</span></div>
           <div class="muted small">
             Kontaktlærer1/2 matcher “Jeg er”.
             <span id="kStatusLine" class="muted"></span>
@@ -1167,14 +1167,14 @@ function renderKList() {
     }
 
     // Confirmed teacher name present -> show list.
-    const meResolved = ((s.meResolved || '') + '').trim();
-    const meNorm = normalizeName(meResolved);
+    const meResolvedConfirmed = ((s.meResolvedConfirmed || '') + '').trim();
+    const meNorm = normalizeName(meResolvedConfirmed || meResolvedRaw);
 
     // Build list (and allow quick filtering by elevnavn)
-    let mine = sortedStudents(studs)
+    const mineList = sortedStudents(studs)
       .filter(st => normalizeName(st.kontaktlaerer1) === meNorm || normalizeName(st.kontaktlaerer2) === meNorm);
 
-const prog = mine.reduce((acc, st) => {
+const prog = mineList.reduce((acc, st) => {
       const f = getTextFor(st.unilogin);
       acc.u += (f.elevudvikling||'').trim()?1:0;
       acc.p += (f.praktisk||'').trim()?1:0;
@@ -1184,17 +1184,17 @@ const prog = mine.reduce((acc, st) => {
 
     const progEl = $("kProgLine");
     if (progEl) {
-      progEl.textContent = `U ${prog.u}/${mine.length} · P ${prog.p}/${mine.length} · K ${prog.k}/${mine.length}`;
+      progEl.textContent = `U ${prog.u}/${mineList.length} · P ${prog.p}/${mineList.length} · K ${prog.k}/${mineList.length}`;
     }
 
     const statusEl = $("kStatusLine");
     if(statusEl){
-      const who = escapeHtml(meResolved || meRaw || '');
-      statusEl.innerHTML = ` · <b>${mine.length}</b> match: <b>${who}</b> · U ${prog.u}/${mine.length} · P ${prog.p}/${mine.length} · K ${prog.k}/${mine.length}`;
+      const who = escapeHtml(meResolvedConfirmed || meRaw || '');
+      statusEl.innerHTML = ` · <b>${mineList.length}</b> match: <b>${who}</b> · U ${prog.u}/${mineList.length} · P ${prog.p}/${mineList.length} · K ${prog.k}/${mineList.length}`;
     }
 
     if (kList) {
-      kList.innerHTML = mine.map(st => {
+      kList.innerHTML = mineList.map(st => {
         const full = `${st.fornavn || ''} ${st.efternavn || ''}`.trim();
         const free = getTextFor(st.unilogin);
         const hasU = !!(free.elevudvikling || '').trim();
