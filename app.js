@@ -1004,6 +1004,12 @@ function setSettingsSubtab(sub) {
     $('studentsStatus').textContent = studs.length ? `✅ Elevliste indlæst: ${studs.length} elever` : `Upload elevliste først.`;
     $('studentsStatus').style.color = studs.length ? 'var(--accent)' : 'var(--muted)';
 
+    // Hvis vi er på Data & eksport, så render/refresh også flueben-tabellen her,
+    // så den ikke "hænger" på en gammel status efter import af students.csv.
+    if (state.settingsSubtab === 'export') {
+      try { renderMarksTable(); } catch (e) { /* no-op */ }
+    }
+
     const meNorm = normalizeName(s.meResolved);
     if (studs.length && meNorm) {
       const count = studs.filter(st => normalizeName(st.kontaktlaerer1) === meNorm || normalizeName(st.kontaktlaerer2) === meNorm).length;
@@ -1213,12 +1219,11 @@ function renderKList() {
     // may still be empty because it's normally populated in the "not confirmed" branch.
     // Ensure the status/progress lines exist so we don't show an empty placeholder.
     if (kMsg && (!$("kStatusLine") || !$("kProgLine"))) {
-      const who = escapeHtml(meResolvedConfirmed || meRaw || '');
+	      const who = escapeHtml(meResolvedConfirmed || meRaw || '');
       kMsg.innerHTML = `
-        <div class="k-row" style="align-items:center; gap:10px;">
-          <div id="kStatusLine" class="muted small"></div>
-          <div style="margin-left:auto;" class="muted small">Kontaktlærer1/2 matcher "<b>Jeg er</b>".</div>
-        </div>
+	        <div class="k-row" style="align-items:center; gap:10px;">
+	          <div id="kStatusLine" class="muted small">Kontaktlærer1/2 matcher <b>${who}</b>.</div>
+	        </div>
         <div id="kProgLine" class="muted small" style="margin-top:6px;"></div>
       `;
     }
