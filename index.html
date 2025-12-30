@@ -26,10 +26,8 @@
 <!-- K-elever -->
 <section class="view" id="view-k">
 <div class="viewHeader">
-<div class="viewTitleRow">
-  <h1>K-elever</h1>
-  <div id="kHeaderMeta" class="muted small">Kontaktlærer1/2 matcher “Jeg er”.</div>
-</div>
+<h1>K-elever</h1>
+<p class="muted">Viser kun elever hvor Kontaktlærer1 eller Kontaktlærer2 matcher <b>“Jeg er”</b>.</p>
 </div>
 <div class="callout" id="kMessage"></div>
 <div class="list" id="kList"></div>
@@ -112,7 +110,7 @@
         <div class="cardTitle">Identitet</div>
         <div class="field">
           <label>Jeg er (initialer eller navn)</label>
-          <input id="meInput" placeholder="fx MM, RD, MTP eller fuldt navn" type="text"/>
+          <input id="meInput" placeholder="fx MM, RD, MTP eller fuldt navn" type="text" list="teacherSuggest"/>
           <div class="muted small">Fortolkes via alias-map og bruges til filter af K-elever.</div>
         </div>
       </div>
@@ -180,6 +178,30 @@
           <input accept=".csv,.txt" id="importElevraad" type="file"/>
         </div>
       </div>
+
+      <div class="divider"></div>
+
+      <div class="cardSubTitle">Faglærer-arbejde (producer CSV til deling)</div>
+      <div class="row gap wrap no-print">
+        <div class="field" style="min-width: 240px">
+          <label>Type</label>
+          <select id="marksType">
+            <option value="sang">Sang</option>
+            <option value="gym">Gymnastik</option>
+            <option value="elevraad">Elevråd</option>
+          </select>
+        </div>
+        <div class="field" style="flex:1; min-width: 260px">
+          <label>Find elev</label>
+          <input id="marksSearch" type="text" placeholder="Søg i navn eller Uni-login"/>
+        </div>
+        <div class="field" style="min-width: 200px">
+          <label>&nbsp;</label>
+          <button class="btn" id="btnExportMarks" type="button">⬇️ Eksportér CSV</button>
+        </div>
+      </div>
+      <div class="muted small" id="marksLegend" style="margin:.35rem 0 .6rem 0"></div>
+      <div id="marksTableWrap" class="no-print"></div>
     </div>
   </div>
 
@@ -344,6 +366,10 @@
 <footer class="footer no-print">
 <span class="muted small">Statisk app til GitHub Pages · localStorage-prefix: <code>udt_</code></span>
 </footer>
+
+<!-- Autocomplete til "Jeg er" / kontaktlærer (aliases + fulde navne) -->
+<datalist id="teacherSuggest"></datalist>
+
 <script src="app.js"></script>
 </body>
 </html>

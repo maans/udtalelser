@@ -59,53 +59,6 @@
   "vsi": "Viola Simonsen"
 };
 
-  function teacherSuggestionsFromQuery(qRaw) {
-    const q = (qRaw || '').trim();
-    if (!q) return [];
-    const qNorm = normalizeName(q);
-    const qUpper = q.toUpperCase();
-
-    const out = [];
-
-    // 1) Initials-style matching (prefix match on alias keys)
-    for (const k in TEACHER_ALIAS_MAP) {
-      if (!Object.prototype.hasOwnProperty.call(TEACHER_ALIAS_MAP, k)) continue;
-      if (k.toUpperCase().startsWith(qUpper.replace(/\s+/g,''))) {
-        out.push({ value: k.toUpperCase(), label: `${k.toUpperCase()} → ${TEACHER_ALIAS_MAP[k]}` });
-      }
-    }
-
-    // 2) Name matching on alias values (contains match)
-    if (q.length >= 2) {
-      const seen = new Set(out.map(x => x.label));
-      for (const k in TEACHER_ALIAS_MAP) {
-        if (!Object.prototype.hasOwnProperty.call(TEACHER_ALIAS_MAP, k)) continue;
-        const name = TEACHER_ALIAS_MAP[k] || '';
-        if (normalizeName(name).includes(qNorm)) {
-          const lab = `${name} (${k.toUpperCase()})`;
-          if (!seen.has(lab)) {
-            out.push({ value: name, label: lab });
-            seen.add(lab);
-          }
-        }
-      }
-    }
-
-    // De-dupe by value+label
-    const dedup = [];
-    const seenKey = new Set();
-    for (const it of out) {
-      const key = `${it.value}||${it.label}`;
-      if (seenKey.has(key)) continue;
-      seenKey.add(key);
-      dedup.push(it);
-    }
-
-    return dedup.slice(0, 12);
-  }
-
-
-
   let SNIPPETS = {
     sang: {
       "S1": {
@@ -476,6 +429,68 @@ const s = getSettings();
     .trim();
 }
 
+function uniqStrings(arr) {
+  const out = [];
+  const seen = new Set();
+  for (const v of arr || []) {
+    const raw = (v || "").toString().trim();
+    if (!raw) continue;
+    const k = normalizeName(raw);
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(raw);
+  }
+  return out;
+}
+
+function getAllTeacherNamesFromStudents() {
+  const studs = (window.__STATE__ && window.__STATE__.students) ? window.__STATE__.students : [];
+  const names = [];
+  for (const st of studs) {
+    if (st && st.kontaktlaerer1) names.push(st.kontaktlaerer1);
+    if (st && st.kontaktlaerer2) names.push(st.kontaktlaerer2);
+  }
+  return uniqStrings(names).sort((a,b) => normalizeName(a).localeCompare(normalizeName(b)));
+}
+
+function resolveTeacherMatch(raw) {
+  const s = getSettings();
+  const input = (raw ?? "").toString().trim();
+  if (!input) return { raw: "", resolved: "" };
+
+  const aliasMap = (s && s.aliasMap) ? s.aliasMap : DEFAULT_ALIAS_MAP;
+  const key = normalizeName(input).replace(/\s+/g, "");
+  if (aliasMap && aliasMap[key]) {
+    return { raw: input, resolved: aliasMap[key] };
+  }
+
+  const all = getAllTeacherNamesFromStudents();
+  const nIn = normalizeName(input);
+  const exact = all.find(n => normalizeName(n) === nIn);
+  if (exact) return { raw: input, resolved: exact };
+
+  // Partial match: allow "Måns" -> "Måns Patrik Mårtensson" etc.
+  const partial = all.filter(n => normalizeName(n).includes(nIn));
+  if (partial.length === 1) return { raw: input, resolved: partial[0] };
+
+  return { raw: input, resolved: input };
+}
+
+function resolveTeacherName(raw) {
+  return resolveTeacherMatch(raw).resolved;
+}
+
+function updateTeacherDatalist() {
+  const dl = document.getElementById('teacherSuggest');
+  if (!dl) return;
+  const s = getSettings();
+  const aliasMap = (s && s.aliasMap) ? s.aliasMap : DEFAULT_ALIAS_MAP;
+  const aliasKeys = Object.keys(aliasMap || {}).map(k => (k || "").toString().toUpperCase());
+  const fullNames = getAllTeacherNamesFromStudents();
+  const options = uniqStrings([...aliasKeys, ...fullNames]);
+  dl.innerHTML = options.map(v => `<option value="${escapeHtml(v)}"></option>`).join('');
+}
+
 function normalizePlaceholderKey(key) {
   if (!key) return "";
   return key
@@ -500,12 +515,6 @@ function normalizePlaceholderKey(key) {
     return parts.length ? parts[0] : s;
   }
   function normalizeHeader(input) { return normalizeName(input).replace(/[^a-z0-9]+/g, ""); }
-  function resolveTeacherName(inputRaw) {
-    const norm = normalizeName(inputRaw);
-    if (!norm) return "";
-    if (TEACHER_ALIAS_MAP[norm]) return TEACHER_ALIAS_MAP[norm];
-    return (inputRaw || '').toString().trim();
-  }
 
   // ---------- util ----------
   function escapeAttr(s) { return (s ?? '').toString().replace(/"/g,'&quot;'); }
@@ -894,6 +903,7 @@ function setSettingsSubtab(sub) {
   }
 
   function renderAll() {
+    updateTeacherDatalist();
     updateTabVisibility();
     renderStatus();
     if (state.tab === 'set') renderSettings();
@@ -1060,8 +1070,6 @@ function renderKList() {
     const kMsg = $('kMessage');
     if (kMsg) kMsg.classList.remove('compact');
     const kList = $('kList');
-    const kMeta = $('kHeaderMeta');
-    if (kMeta) kMeta.textContent = 'Kontaktlærer1/2 matcher “Jeg er”.';
 
     // If "Jeg er" is not confirmed yet, show an inline input that commits on ENTER.
     // User may type initials OR full name; we only update settings when ENTER is pressed.
@@ -1076,8 +1084,7 @@ function renderKList() {
           <div class="field" style="max-width:520px">
             <label><b>Hvem er du?</b> <span class="muted small">(initialer eller navn)</span></label>
             <input id="kMeInline" type="text" inputmode="text" autocapitalize="words" autocomplete="off" spellcheck="false"
-                   placeholder="Skriv initialer eller navn og tryk Enter" value="${escapeAttr(draft)}" list="kTeacherSuggest">
-            <datalist id="kTeacherSuggest"></datalist>
+                   placeholder="Skriv initialer eller navn og tryk Enter" value="${escapeAttr(draft)}" list="teacherSuggest">
             <div class="muted small" style="margin-top:.25rem">Tip: Initialer findes i alias-map. Du kan også skrive et helt navn og trykke Enter.</div>
             <div class="muted small" id="kMeInlineHint" style="margin-top:.25rem"></div>
           </div>
@@ -1086,23 +1093,6 @@ function renderKList() {
 
       const inp = $('kMeInline');
       const hint = $('kMeInlineHint');
-
-      const dl = $('kTeacherSuggest');
-
-      // Live suggestions while typing (like a search dropdown).
-      const updateSuggest = () => {
-        const v = (inp.value || '').trim();
-        if (!dl) return;
-        const items = teacherSuggestionsFromQuery(v);
-        dl.innerHTML = items.map(it => `<option value="${escapeAttr(it.value)}">${escapeHtml(it.label)}</option>`).join('');
-        if (hint) {
-          if (!v) hint.textContent = 'Tryk Enter for at vise dine K-elever.';
-          else if (!items.length) hint.textContent = 'Ingen match endnu — prøv initialer (fx “MM”) eller et efternavn.';
-          else hint.textContent = 'Vælg evt. et forslag (dropdown) og tryk Enter.';
-        }
-      };
-
-      updateSuggest();
 
       if (hint) hint.textContent = 'Tryk Enter for at vise dine K-elever.';
 
@@ -1113,8 +1103,7 @@ function renderKList() {
           state.kMeDraft = (e.target.value || '');
         }, { passive: true });
 
-                inp.addEventListener('input', () => { state.kMeDraft = inp.value; updateSuggest(); });
-inp.addEventListener('keydown', (e) => {
+        inp.addEventListener('keydown', (e) => {
           if (e.key !== 'Enter') return;
           e.preventDefault();
 
@@ -1124,16 +1113,8 @@ inp.addEventListener('keydown', (e) => {
             return;
           }
 
-          // Resolve via alias-map if input looks like initials (2-3 letters). Otherwise accept as full name.
-          const cleaned = raw.toUpperCase().replace(/\s+/g,'').replace(/[^A-ZÆØÅ]/g,'').slice(0,3);
-          let resolved = '';
-          if (cleaned.length >= 2 && cleaned.length <= 3) {
-            const key = normalizeName(cleaned);
-            resolved = TEACHER_ALIAS_MAP[key] || '';
-          }
-          if (!resolved) {
-            resolved = raw; // accept full name (may include spaces and diacritics)
-          }
+          const match = resolveTeacherMatch(raw);
+          const resolved = match.resolved || raw;
 
           const s2 = getSettings();
           s2.me = raw;
@@ -1161,15 +1142,63 @@ inp.addEventListener('keydown', (e) => {
     const meResolved = ((s.meResolved || '') + '').trim();
     const meNorm = normalizeName(meResolved);
 
-    if (kMsg) kMsg.innerHTML = '';
-    const mine = sortedStudents(studs)
+    // Build list (and allow quick filtering by elevnavn)
+    let mine = sortedStudents(studs)
       .filter(st => normalizeName(st.kontaktlaerer1) === meNorm || normalizeName(st.kontaktlaerer2) === meNorm);
+
+    const kSearch = ((s.kStudentSearch || '') + '').trim();
+    const kSearchNorm = normalizeName(kSearch);
+    if (kSearchNorm) {
+      mine = mine.filter(st => {
+        const full = normalizeName(st.fuldeNavn || '');
+        return full.includes(kSearchNorm);
+      });
+    }
+
+    if (kMsg) {
+      kMsg.innerHTML = `
+        <div class="row between alignCenter" style="gap:12px; margin-bottom:10px">
+          <h2 style="margin:0">K-elever</h2>
+          <div class="muted small">Kontaktlærer1/2 matcher “Jeg er”.</div>
+        </div>
+        <div class="row between alignCenter wrap" style="gap:12px">
+          <div>
+            <div class="muted">${escapeHtml(mine.length)} match: <b>${escapeHtml(meResolved)}</b></div>
+            <div id="kProgLine" class="muted small"></div>
+          </div>
+          <div class="row gap alignCenter" style="min-width:280px">
+            <input id="kStudentSearch" class="input" type="text" placeholder="Søg elev…" value="${escapeHtml(kSearch)}" style="width:280px"/>
+            <button id="kChangeMe" class="btn btnGhost">Skift…</button>
+          </div>
+        </div>
+      `;
+
+      const searchEl = $("kStudentSearch");
+      if (searchEl) {
+        searchEl.addEventListener('input', () => {
+          const s2 = getSettings();
+          s2.kStudentSearch = searchEl.value || '';
+          setSettings(s2);
+          renderKList();
+        });
+      }
+      const changeBtn = $("kChangeMe");
+      if (changeBtn) {
+        changeBtn.addEventListener('click', () => {
+          const s2 = getSettings();
+          s2.kMeConfirmed = false;
+          setSettings(s2);
+          renderKList();
+        });
+      }
+    }
 
     state.visibleKElevIds = mine.map(st => st.unilogin);
 
     if (!mine.length) {
-      if (kMsg) kMsg.innerHTML = '';
-      if (kMeta) kMeta.innerHTML = `0 match: <b>${escapeHtml(meResolved)}</b>`;
+      if (kMsg) {
+        kMsg.innerHTML = `<div class="muted">${escapeHtml(0)} elever matcher <b>${escapeHtml(meResolved)}</b>.</div>`;
+      }
       if (kList) kList.innerHTML = '';
       return;
     }
@@ -1182,9 +1211,9 @@ inp.addEventListener('keydown', (e) => {
       return acc;
     }, {u:0,p:0,k:0});
 
-    if (kMsg) { kMsg.innerHTML = ''; } 
-    if (kMeta) {
-      kMeta.innerHTML = `<b>${mine.length}</b> match: <b>${escapeHtml(meResolved)}</b> · U ${prog.u}/${mine.length} · P ${prog.p}/${mine.length} · K ${prog.k}/${mine.length}`;
+    const progEl = $("kProgLine");
+    if (progEl) {
+      progEl.textContent = `U ${prog.u}/${mine.length} · P ${prog.p}/${mine.length} · K ${prog.k}/${mine.length}`;
     }
 
     if (kList) {
