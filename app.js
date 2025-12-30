@@ -1509,26 +1509,28 @@ $('preview').textContent = buildStatement(st, getSettings());
     const searchEl = $('marksSearch');
     const legendEl = $('marksLegend');
     // This view is optional (depends on current Settings sub-tab). Don't crash if it's not rendered.
-    if (!wrap || !typeEl || !searchEl || !legendEl) return;
-  // Tabs for marks type (Sang/Gymnastik/Elevråd) – avoid menu diving
-  const tabs = $('marksTypeTabs');
-  if (tabs){
-    tabs.querySelectorAll('button.tab').forEach(btn=>{
-      btn.onclick = ()=>{
-        const t = btn.dataset.type;
-        if (t && typeEl.value !== t){
-          typeEl.value = t;
-          renderMarksTable();
-        } else {
-          syncMarksTypeTabs();
-        }
-      };
-    });
-    syncMarksTypeTabs();
-  }
+    if (!wrap || !legendEl) return;
 
-    const type = typeEl.value;
-    const q = normalizeName(searchEl.value || '');
+    // Tabs for marks type (Sang/Gymnastik/Elevråd)
+    const tabs = $('marksTypeTabs');
+    if (tabs && typeEl){
+      tabs.querySelectorAll('button.tab').forEach(btn=>{
+        btn.onclick = ()=>{
+          const t = btn.dataset.type;
+          if (t && typeEl.value !== t){
+            typeEl.value = t;
+            // Reuse existing onchange handler (persists to localStorage + rerenders)
+            try { typeEl.dispatchEvent(new Event('change')); } catch(e) { renderMarksTable(); }
+          } else {
+            syncMarksTypeTabs();
+          }
+        };
+      });
+      syncMarksTypeTabs();
+    }
+
+    const type = typeEl ? (typeEl.value || (state.marksType || 'sang')) : (state.marksType || 'sang');
+    const q = normalizeName(searchEl ? (searchEl.value || '') : '');
 
     if (!studs.length) {
       wrap.innerHTML = `<div class="muted small">Upload elevliste først.</div>`;
