@@ -935,7 +935,9 @@ function setSettingsSubtab(sub) {
     // Persistér valg af underfane og sørg for at UI'et re-rendres
     // (ellers bliver fx faglærer-tabellen ikke bygget).
     saveState();
-    renderAll();
+  // Undgå recursion: opdater kun UI lokalt
+  updateTeacherDatalist();
+  renderMarksTable(); // hvis export-pane er synligt
 }
 
 
