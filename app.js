@@ -325,8 +325,115 @@ function downloadJson(filename, obj) {
   document.body.appendChild(a);
   a.click();
   a.remove();
-  URL.revokeObjectURL(url);
+  // Some browsers need a short delay before revoking
+  setTimeout(()=>{ try{ URL.revokeObjectURL(url); }catch(e){} }, 250);
 }
+
+function exportLocalBackup() {
+  const data = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (!k || !k.startsWith(LS_PREFIX)) continue;
+    data[k] = localStorage.getItem(k);
+  }
+  if (!Object.keys(data).length) {
+    alert('Der var ingen lokale data at tage backup af endnu.');
+    return;
+  }
+  const stamp = new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
+  downloadJson(`elevudtalelser_backup_${stamp}.json`, {
+    schema: 'elevudtalelser_backup_v1',
+    prefix: LS_PREFIX,
+    createdAt: new Date().toISOString(),
+    data
+  });
+}
+
+function getMyKStudents() {
+  const s = getSettings();
+  const studs = getStudents();
+  const meResolvedConfirmed = ((s.meResolvedConfirmed || '') + '').trim();
+  const meResolvedRaw = resolveTeacherName(((s.me || '') + '').trim()) || (((s.me || '') + '').trim());
+  const meNorm = normalizeName(meResolvedConfirmed || meResolvedRaw);
+  if (!studs.length || !meNorm) return [];
+  return sortedStudents(studs)
+    .filter(st => normalizeName(st.kontaktlaerer1) === meNorm || normalizeName(st.kontaktlaerer2) === meNorm);
+}
+
+function printAllKStudents() {
+  const list = getMyKStudents();
+  if (!list.length) {
+    alert('Der er ingen K-elever at printe (tjek elevliste og initialer).');
+    return;
+  }
+  // Build a dedicated print window with page breaks between students
+  const title = 'Elevudtalelser – print alle';
+  const styles = `
+    <style>
+      @page { size: A4; margin: 18mm 16mm; }
+      body{ font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; color:#000; background:#fff; }
+      h1{ font-size: 14pt; margin: 0 0 8mm 0; }
+      .entry{ page-break-after: always; }
+      .name{ font-weight: 800; margin-bottom: 3mm; }
+      pre{ white-space: pre-wrap; font: 11pt/1.45 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; margin:0; }
+      .meta{ color:#555; font-size: 10pt; margin-bottom: 4mm; }
+    </style>
+  `;
+  const body = list.map(st => {
+    const full = `${st.fornavn || ''} ${st.efternavn || ''}`.trim();
+    const cls = (st.klasse ? formatClassLabel(st.klasse) : '').trim();
+    const txt = buildStatement(st, getSettings());
+    return `
+      <section class="entry">
+        <div class="name">${escapeHtml(full)}</div>
+        ${cls ? `<div class="meta">${escapeHtml(cls)}</div>` : ``}
+        <pre>${escapeHtml(txt)}</pre>
+      </section>
+    `;
+  }).join('');
+
+  const w = window.open('', '_blank');
+  if (!w) {
+    alert('Pop-up blev blokeret. Tillad pop-ups for at printe alle.');
+    return;
+  }
+  w.document.open();
+  w.document.write(`<!doctype html><html lang="da"><head><meta charset="utf-8"><title>${title}</title>${styles}</head><body>${body}</body></html>`);
+  w.document.close();
+  // Let the browser lay out the document before printing
+  setTimeout(()=>{ try{ w.focus(); w.print(); }catch(e){} }, 250);
+}
+
+function importLocalBackup(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const obj = JSON.parse(String(reader.result || '{}'));
+      if (!obj || typeof obj !== 'object' || !obj.data) throw new Error('Ugyldig backupfil.');
+      const prefix = obj.prefix || LS_PREFIX;
+
+      // Slet nuværende app-keys (samme prefix) for at undgå gamle rester
+      const toRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith(prefix)) toRemove.push(k);
+      }
+      toRemove.forEach(k => localStorage.removeItem(k));
+
+      // Gendan keys
+      Object.entries(obj.data).forEach(([k,v]) => {
+        if (typeof k === 'string' && k.startsWith(prefix)) localStorage.setItem(k, String(v ?? ''));
+      });
+
+      location.reload();
+    } catch (err) {
+      alert(err?.message || 'Kunne ikke indlæse backup.');
+    }
+  };
+  reader.readAsText(file);
+}
+
 
 function buildOverridePackage(scope) {
   const today = new Date().toISOString().slice(0,10);
@@ -494,14 +601,135 @@ function resolveTeacherName(raw) {
 }
 
 function updateTeacherDatalist() {
-  const dl = document.getElementById('teacherSuggest');
-  if (!dl) return;
+  // Replaces the old <datalist> UX with a custom, searchable dropdown.
+  const input = document.getElementById('meInput');
+  const menu  = document.getElementById('teacherPickerMenu');
+  const btn   = document.getElementById('teacherPickerBtn');
+  const wrap  = document.getElementById('teacherPicker');
+  if (!input || !menu || !btn || !wrap) return;
+
   const s = getSettings();
   const aliasMap = (s && s.aliasMap) ? s.aliasMap : DEFAULT_ALIAS_MAP;
-  const aliasKeys = Object.keys(aliasMap || {}).map(k => (k || "").toString().toUpperCase());
   const fullNames = getAllTeacherNamesFromStudents();
-  const options = uniqStrings([...aliasKeys, ...fullNames]);
-  dl.innerHTML = options.map(v => `<option value="${escapeHtml(v)}"></option>`).join('');
+
+  const aliasItems = Object.keys(aliasMap || {}).map(k => {
+    const code = (k || '').toString().toUpperCase();
+    const name = (aliasMap[k] || '').toString().trim();
+    return { kind: 'alias', code, name };
+  }).filter(x => x.code);
+
+  // Full-name items (avoid duplicates)
+  const aliasNames = new Set(aliasItems.map(x => normalizeName(x.name)));
+  const nameItems = fullNames
+    .filter(n => n && !aliasNames.has(normalizeName(n)))
+    .map(n => ({ kind: 'name', code: '', name: n }));
+
+  // Sorted: aliases first, then names
+  aliasItems.sort((a,b) => a.code.localeCompare(b.code));
+  nameItems.sort((a,b) => normalizeName(a.name).localeCompare(normalizeName(b.name)));
+  const allItems = [...aliasItems, ...nameItems];
+
+  function itemMatches(it, q){
+    // Autocomplete behavior: match from the *start* of alias codes or name-words.
+    // This feels closer to native autocomplete than a broad "contains" search.
+    if (!q) return true;
+    const nq = normalizeName(q).replace(/\s+/g,'');
+    if (!nq) return true;
+
+    const code = normalizeName(it.code || '').replace(/\s+/g,'');
+    const name = normalizeName(it.name || '');
+
+    // 1) Alias code prefix (e.g. "M" -> "MM")
+    if (code && code.startsWith(nq)) return true;
+
+    // 2) Word-start in name (e.g. "m" -> "Måns ...")
+    const words = name.split(/\s+/).filter(Boolean);
+    if (words.some(w => w.startsWith(nq))) return true;
+
+    // 3) Initialism prefix (e.g. "mm" -> "Måns Mårtensson")
+    const initials = words.map(w => (w[0] || '')).join('');
+    if (initials && initials.startsWith(nq)) return true;
+
+    return false;
+  }
+
+  function renderMenu(){
+    const q = (input.value || '').trim();
+    const items = allItems.filter(it => itemMatches(it, q)).slice(0, 120);
+    menu.innerHTML = '';
+    if (!items.length){
+      const empty = document.createElement('div');
+      empty.className = 'tpItem';
+      empty.style.opacity = '.75';
+      empty.style.cursor = 'default';
+      empty.textContent = 'Ingen match – skriv fx initialer eller et navn…';
+      menu.appendChild(empty);
+      return;
+    }
+    for (const it of items){
+      const row = document.createElement('div');
+      row.className = 'tpItem';
+      row.setAttribute('role','option');
+      const left = document.createElement('div');
+      left.className = 'tpLeft';
+      const right = document.createElement('div');
+      right.className = 'tpRight';
+
+      if (it.kind === 'alias'){
+        left.textContent = it.code;
+        right.textContent = it.name ? `(${it.name})` : '';
+        row.dataset.value = it.code;
+      } else {
+        left.textContent = it.name;
+        right.textContent = '';
+        row.dataset.value = it.name;
+      }
+
+      row.appendChild(left);
+      row.appendChild(right);
+
+      row.addEventListener('mousedown', (e) => {
+        // mousedown so selection happens before blur
+        e.preventDefault();
+        input.value = row.dataset.value || '';
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        closeMenu();
+      });
+
+      menu.appendChild(row);
+    }
+  }
+
+  function openMenu(){
+    if (!menu.hidden) return;
+    renderMenu();
+    menu.hidden = false;
+  }
+  function closeMenu(){
+    if (menu.hidden) return;
+    menu.hidden = true;
+  }
+  function toggleMenu(){
+    if (menu.hidden) openMenu(); else closeMenu();
+  }
+
+  // Init listeners once
+  if (!window.__TEACHER_PICKER_INIT__){
+    window.__TEACHER_PICKER_INIT__ = true;
+    btn.addEventListener('click', (e) => { e.preventDefault(); toggleMenu(); input.focus(); });
+    input.addEventListener('focus', () => openMenu());
+    input.addEventListener('input', () => { if (!menu.hidden) renderMenu(); });
+    document.addEventListener('click', (e) => {
+      if (!wrap.contains(e.target)) closeMenu();
+    });
+    // ESC closes
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeMenu();
+    });
+  }
+
+  // If settings/students changed, refresh suggestions when open
+  if (!menu.hidden) renderMenu();
 }
 
 function normalizePlaceholderKey(key) {
@@ -972,7 +1200,7 @@ function setSettingsSubtab(sub) {
   function renderStatus() {
     const s = getSettings();
     const studs = getStudents();
-    const me = s.meResolved ? `· Jeg er: ${s.meResolved}` : '';
+    const me = s.meResolved ? `· K-lærer: ${s.meResolved}` : '';
     $('statusText').textContent = studs.length ? `Elever: ${studs.length} ${me}` : `Ingen elevliste indlæst`;
   }
 
@@ -1145,7 +1373,7 @@ function renderKList() {
     if (kMsg) kMsg.classList.remove('compact');
     const kList = $('kList');
 
-    // If "Jeg er" is not confirmed yet, show an inline input that commits on ENTER.
+    // If "Initialer" is not confirmed yet, show an inline input that commits on ENTER.
     // User may type initials OR full name; we only update settings when ENTER is pressed.
     if (!((s.meResolved || '') + '').trim()) {
       state.visibleKElevIds = [];
@@ -1158,7 +1386,7 @@ function renderKList() {
         <div class="row alignCenter" style="gap:.7rem; flex-wrap:wrap;">
           <div><b>${minePreview.length} match:</b> <span class="pill">${escapeHtml(meResolvedRaw || s.me || '')}</span></div>
           <div class="muted small">
-            Kontaktlærer1/2 matcher “Jeg er”.
+            Kontaktlærer1/2 matcher initialer.
             <span id="kStatusLine" class="muted"></span>
           </div>
         </div>
@@ -1215,16 +1443,16 @@ function renderKList() {
 
     // Confirmed teacher name present -> show list.
     const meResolvedConfirmed = ((s.meResolvedConfirmed || '') + '').trim();
+    const kHeaderInfo = $("kHeaderInfo");
     const meNorm = normalizeName(meResolvedConfirmed || meResolvedRaw);
 
     // If we landed here directly (e.g. reload with confirmed name), the dashed box
     // may still be empty because it's normally populated in the "not confirmed" branch.
     // Ensure the status/progress lines exist so we don't show an empty placeholder.
     if (kMsg && (!$("kStatusLine") || !$("kProgLine"))) {
-	      const who = escapeHtml(meResolvedConfirmed || meRaw || '');
       kMsg.innerHTML = `
 	        <div class="k-row" style="align-items:center; gap:10px;">
-	          <div id="kStatusLine" class="muted small">Kontaktlærer1/2 matcher <b>${who}</b>.</div>
+	          <div id="kStatusLine" class="muted small"></div>
 	        </div>
         <div id="kProgLine" class="muted small" style="margin-top:6px;"></div>
       `;
@@ -1244,14 +1472,14 @@ const prog = mineList.reduce((acc, st) => {
 
     const progEl = $("kProgLine");
     if (progEl) {
-      progEl.textContent = `U ${prog.u}/${mineList.length} · P ${prog.p}/${mineList.length} · K ${prog.k}/${mineList.length}`;
+      progEl.textContent = `Udfyldt indtil nu: Udvikling: ${prog.u} af ${mineList.length} · Praktisk: ${prog.p} af ${mineList.length} · K-gruppe: ${prog.k} af ${mineList.length}`;
     }
 
     const statusEl = $("kStatusLine");
-    if(statusEl){
-      const who = escapeHtml(meResolvedConfirmed || meRaw || '');
-      // Informativ linje lige under titel: hvem + match + status (uden at skubbe layoutet rundt)
-      statusEl.innerHTML = `<b>${mineList.length}</b> match: <span class="pill">${who}</span> · U ${prog.u}/${mineList.length} · P ${prog.p}/${mineList.length} · K ${prog.k}/${mineList.length}`;
+    if (statusEl) statusEl.textContent = "";
+    if (kHeaderInfo) {
+      const who = (meResolvedConfirmed || meRaw || "").trim();
+      kHeaderInfo.textContent = who ? `Viser kun ${who}'s ${mineList.length} k-elever.` : `Viser kun ${mineList.length} k-elever.`;
     }
 
     if (kList) {
@@ -2323,10 +2551,66 @@ if (document.getElementById('btnDownloadElevraad')) {
       s.meResolved = resolveTeacherName(s.me);
       setSettings(s);
     }
+    // Top: Hjælp-knap
+    const topHelpBtn = $("tab-help-top");
+    if (topHelpBtn) topHelpBtn.addEventListener("click", () => {
+      setTab("set");
+      setSettingsSubtab("help");
+      renderAll();
+    });
 
-    setTab('set');
+    // Logo/brand: hvis setup ikke er gjort endnu, hop til Data & import
+    const brandHome = $("brandHome");
+    if (brandHome) brandHome.addEventListener("click", () => {
+      // Always go to Data & import (tooltip must match behavior)
+      setTab("set");
+      setSettingsSubtab("data");
+      renderAll();
+    });
+
+    // K-elever: Print alle
+    const btnPrintAllK = $("btnPrintAllK");
+    if (btnPrintAllK) btnPrintAllK.addEventListener("click", printAllKStudents);
+
+    // Hjælp-links (hop til relevante faner)
+    document.body.addEventListener("click", (ev) => {
+      const a = ev.target.closest && ev.target.closest(".helpLink");
+      if (!a) return;
+      ev.preventDefault();
+      const goto = String(a.getAttribute("data-goto") || "");
+      if (!goto) return;
+      if (goto === "k") { setTab("k"); renderAll(); return; }
+      if (goto === "edit") { setTab("edit"); renderAll(); return; }
+      if (goto.startsWith("set:")) {
+        const sub = goto.split(":")[1] || "general";
+        setTab("set");
+        setSettingsSubtab(sub);
+        renderAll();
+        return;
+      }
+    });
+
+    // Backup
+    const btnBackupDownload = $("btnBackupDownload");
+    if (btnBackupDownload) btnBackupDownload.addEventListener("click", exportLocalBackup);
+    const backupFileInput = $("backupFileInput");
+    if (backupFileInput) backupFileInput.addEventListener("change", (e) => {
+      const f = e.target.files && e.target.files[0];
+      importLocalBackup(f);
+      e.target.value = "";
+    });
+
+    // Start: hvis elever eller initialer mangler, start i Data & import
+    const hasStudents = getStudents().length > 0;
+    const hasMe = String(getSettings().me || "").trim().length > 0;
+    if (!hasStudents || !hasMe) {
+      setTab("set");
+      setSettingsSubtab("data");
+    } else {
+      setTab("k");
+    }
     renderAll();
-  }
+}
 
   init();
 })();

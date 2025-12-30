@@ -22,11 +22,32 @@ body{
   background: radial-gradient(1200px 600px at 15% 10%, #1a2231 0%, var(--bg) 55%) fixed;
 }
 
+/* Links: readable on dark background */
+a{
+  color: inherit;
+  text-decoration: underline dashed;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+a:hover{opacity:.9}
+
+/* Help links: tiny arrow cue instead of bright blue */
+.helpLink{
+  font-weight: 700;
+}
+.helpLink::after{
+  content:"↗";
+  font-size: .78em;
+  margin-left: .25em;
+  opacity: .65;
+}
+
 code{font-family:var(--mono)}
 .muted{color:var(--muted)}
 .small{font-size:.88rem}
-.helpList{margin:.75rem 0 0 1.25rem}
-.helpList li{margin:.35rem 0}
+.helpList{margin: .8rem 0 0 1.1rem; padding:0}
+.helpList li{margin:.65rem 0; line-height:1.55}
+.helpList code{padding:.08rem .35rem; border:1px solid var(--border); border-radius:10px; background: rgba(255,255,255,.04)}
 .wrap{flex-wrap:wrap}
 .gap{gap:.6rem}
 .row{display:flex; align-items:center}
@@ -84,7 +105,7 @@ code{font-family:var(--mono)}
 
 #autosavePill{min-width:150px; text-align:center}
 h1{margin:.2rem 0 .2rem 0; font-size:1.4rem}
-p{margin:.2rem 0 .2rem 0; line-height:1.35}
+p{margin:.25rem 0 .25rem 0; line-height:1.55}
 
 .grid2{display:grid; grid-template-columns: 1fr 1fr; gap:1rem}
 .grid3{display:grid; grid-template-columns: 1fr 1fr 1fr; gap:1rem}
@@ -120,7 +141,17 @@ input[type="text"], input[type="number"], select, textarea{
   outline:none;
 }
 textarea{resize:vertical; min-height: 90px}
-input[readonly]{opacity:.9}
+input[readonly]{
+  opacity: 1;
+  background: rgba(255,255,255,.035);
+  border-style: dashed;
+  color: rgba(230,232,238,.85);
+  cursor: default;
+}
+input[readonly]:focus{
+  box-shadow: none;
+  outline: none;
+}
 
 /* dropdown readability on dark */
 select{
@@ -149,9 +180,11 @@ select option{
   font-weight:700;
 }
 .btn.danger{
-  border:1px solid rgba(255,123,123,.5);
-  background: rgba(255,123,123,.12);
+  border:1px solid rgba(255,90,90,.65);
+  background: rgba(255,70,70,.18);
+  color: var(--text);
 }
+.btn.danger:hover{filter: brightness(1.08)}
 
 .callout{
   border:1px dashed rgba(139,211,255,.35);
@@ -219,7 +252,8 @@ tr:hover td{background: rgba(255,255,255,.02)}
 }
 .pillbtn.active{border-color: rgba(139,211,255,.5); box-shadow: 0 0 0 3px rgba(139,211,255,.10)}
 
-.footer{padding: 1rem; text-align:center; border-top:1px solid var(--border); color: var(--muted)}
+.footer{padding:.9rem 1rem; text-align:center; border-top:1px solid rgba(255,255,255,.06); color: var(--muted);}
+
 
 /* PRINT: kun preview */
 @media print{
@@ -367,3 +401,68 @@ tr:hover td{background: rgba(255,255,255,.02)}
 
 
 .tabs.small .tab{padding:.35rem .65rem; font-size:.92rem;}
+
+
+/* Help readability */
+#settingsSubtab-help .card{max-width: 980px; margin: 0 auto;}
+#settingsSubtab-help h2{font-size:1.35rem; margin:.2rem 0 .6rem 0}
+.helpTip{margin-top:1rem; padding:.9rem 1rem; border-radius: var(--radius); border:1px dashed rgba(255,255,255,.18); background: rgba(255,255,255,.03)}
+
+/* Help pane readability */
+#settingsSubtab-help .card{max-width: 980px; margin: 0 auto; padding: 1.2rem 1.25rem;}
+#settingsSubtab-help h2{font-size:1.35rem; margin-bottom:.35rem;}
+#settingsSubtab-help .muted{line-height:1.55}
+
+/* -------- Teacher picker (K-lærer) -------- */
+.teacherPicker{
+  position: relative;
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+.teacherPicker .tpBtn{
+  min-width: 44px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.06);
+  color: inherit;
+  cursor: pointer;
+}
+.teacherPicker .tpBtn:hover{ background: rgba(255,255,255,.10); }
+.teacherPicker .tpMenu{
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 50;
+  max-height: 280px;
+  overflow: auto;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(15,18,24,.96);
+  box-shadow: 0 14px 40px rgba(0,0,0,.55);
+  padding: 6px;
+}
+.tpItem{
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 10px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+.tpItem:hover, .tpItem.active{
+  background: rgba(255,255,255,.08);
+}
+.tpItem .tpLeft{
+  font-weight: 650;
+}
+.tpItem .tpRight{
+  opacity: .82;
+  font-size: 12px;
+  white-space: nowrap;
+}
+@media (max-width: 520px){
+  .tpItem{ flex-direction: column; align-items: flex-start; }
+  .tpItem .tpRight{ white-space: normal; }
+}
