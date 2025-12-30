@@ -99,8 +99,9 @@
   <div class="subtabs no-print" id="settingsSubtabs" role="tablist" aria-label="Indstillinger">
     <button class="subtab active" type="button" data-subtab="general" id="settingsTab-general">Generelt</button>
     <button class="subtab" type="button" data-subtab="data" id="settingsTab-data">Data &amp; import</button>
+    <button class="subtab" type="button" data-subtab="export" id="settingsTab-export">Data &amp; eksport</button>
     <button class="subtab" type="button" data-subtab="texts" id="settingsTab-texts">Tekster / skabeloner</button>
-    <button class="subtab" type="button" data-subtab="advanced" id="settingsTab-advanced">Avanceret</button>
+    <button class="subtab" type="button" data-subtab="help" id="settingsTab-help">Hjælp</button>
   </div>
 
   <!-- GENERELT -->
@@ -180,11 +181,19 @@
       </div>
 
       <div class="divider"></div>
+    </div>
+  </div>
 
-      <div class="cardSubTitle">Faglærer-arbejde (producer CSV til deling)</div>
-      <div class="row gap wrap no-print">
-        <div class="field" style="min-width: 240px">
-          <label>Type</label>
+  <!-- DATA & EKSPORT (FAGLÆRERE) -->
+  <div class="settingsSubtab" data-subtab="export" id="settingsSubtab-export">
+    <div class="card no-print">
+      <div class="cardTitle">Data &amp; eksport (faglærere)</div>
+      <div class="muted small" style="margin:.35rem 0 .9rem 0">
+        Her kan sang-/gymnastik-/elevrådsfaglærere sætte flueben og eksportere en CSV, som kontaktlærerne kan importere.
+      </div>
+
+      <div class="row gap wrap">
+        <div class="field" style="min-width: 260px">
           <div class="tabs small" id="marksTypeTabs">
             <button type="button" class="tab" data-type="Sang">Sang</button>
             <button type="button" class="tab" data-type="Gymnastik">Gymnastik</button>
@@ -205,12 +214,49 @@
           <button class="btn" id="btnExportMarks" type="button">⬇️ Eksportér CSV</button>
         </div>
       </div>
+
       <div class="muted small" id="marksLegend" style="margin:.35rem 0 .6rem 0"></div>
-      <div id="marksTableWrap" class="no-print"></div>
+      <div id="marksTableWrap"></div>
     </div>
   </div>
 
   <!-- TEKSTER -->
+  <div class="settingsSubtab" data-subtab="export" id="settingsSubtab-export">
+    <div class="card">
+      <div class="cardTitle">Data &amp; eksport (faglærere)</div>
+      <div class="muted">Her kan faglærere krydse af og eksportere en CSV til deling. Kontaktlærere kan importere CSV'erne under "Data &amp; import".</div>
+
+      <div class="divider"></div>
+
+      <div class="cardSubTitle">Faglærer-arbejde</div>
+      <div class="row gap wrap no-print" style="align-items:flex-end;">
+        <div class="field">
+          <label>Vælg område</label>
+          <div class="tabs" id="marksTypeTabs" style="padding:0;">
+            <button class="tab" type="button" data-type="sang">Sang</button>
+            <button class="tab" type="button" data-type="gym">Gymnastik</button>
+            <button class="tab" type="button" data-type="elevraad">Elevråd</button>
+          </div>
+          <select id="marksType" style="display:none;">
+            <option value="sang">Sang</option>
+            <option value="gym">Gymnastik</option>
+            <option value="elevraad">Elevråd</option>
+          </select>
+        </div>
+        <div class="field" style="min-width:280px; flex:1;">
+          <label>Find elev</label>
+          <input id="marksStudentSearch" type="text" placeholder="Søg i navn eller Uni-login" autocomplete="off" />
+        </div>
+        <div class="field" style="min-width:160px;">
+          <label>&nbsp;</label>
+          <button class="primary" id="exportMarksBtn" type="button">⬇ Eksportér CSV</button>
+        </div>
+      </div>
+
+      <div id="marksTableWrap" class="mt" style="margin-top:12px;"></div>
+    </div>
+  </div>
+
   <div class="settingsSubtab" data-subtab="texts" id="settingsSubtab-texts">
     <div class="grid2">
       <div class="card">
@@ -358,12 +404,19 @@
     </div>
   </div>
 
-  <!-- AVANCERET -->
-  <div class="settingsSubtab" data-subtab="advanced" id="settingsSubtab-advanced">
+  <!-- HJÆLP -->
+  <div class="settingsSubtab" data-subtab="help" id="settingsSubtab-help">
     <div class="card">
-      <div class="cardTitle">Avanceret</div>
-      <div class="muted">Her kan der senere komme alias-map forklaring og systeminfo.</div>
-      <div class="muted small" style="margin-top:.5rem">localStorage-prefix: <code>udt_</code></div>
+      <div class="cardTitle">Hjælp (hvem gør hvad?)</div>
+      <div class="muted">Kort version – sådan bruger I appen sammen:</div>
+      <ol class="helpList">
+        <li><strong>Kontaktlærer:</strong> Gå til <em>Indstillinger → Data &amp; import</em> og upload <code>students.csv</code> (elevlisten).</li>
+        <li><strong>Kontaktlærer:</strong> Under <em>Generelt</em> skriv <em>Jeg er</em> (initialer/alias eller fuldt navn) og brug <em>K-elever</em> til at redigere dine elever.</li>
+        <li><strong>Faglærer (Sang/Gymnastik/Elevråd):</strong> Gå til <em>Indstillinger → Data &amp; eksport</em>, vælg fanen og sæt krydser. Eksportér CSV og send den til kontaktlæreren.</li>
+        <li><strong>Kontaktlærer:</strong> Importér faglærer-CSV’er under <em>Data &amp; import</em>. (De bruges i udtalelses-skabelonen og kan ses i redigér.)</li>
+        <li><strong>Til sidst:</strong> Gå til <em>Redigér</em> og brug <em>Print / Gem som PDF</em>.</li>
+      </ol>
+      <div class="muted small" style="margin-top:.75rem">Tip: Alt gemmes lokalt i denne browser (localStorage). Når du rydder lokale data, forsvinder alt lokalt gemt – så eksportér/backup først.</div>
     </div>
   </div>
 </section>

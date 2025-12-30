@@ -25,6 +25,8 @@ body{
 code{font-family:var(--mono)}
 .muted{color:var(--muted)}
 .small{font-size:.88rem}
+.helpList{margin:.75rem 0 0 1.25rem}
+.helpList li{margin:.35rem 0}
 .wrap{flex-wrap:wrap}
 .gap{gap:.6rem}
 .row{display:flex; align-items:center}
