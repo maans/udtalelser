@@ -1084,15 +1084,13 @@ function renderKList() {
       const draft = (state.kMeDraft || '').trim();
 
       if (kMsg) {
-        kMsg.innerHTML = `
-          <div class="field" style="max-width:520px">
-            <label><b>Hvem er du?</b> <span class="muted small">(initialer eller navn)</span></label>
-            <input id="kMeInline" type="text" inputmode="text" autocapitalize="words" autocomplete="off" spellcheck="false"
-                   placeholder="Skriv initialer eller navn og tryk Enter" value="${escapeAttr(draft)}" list="teacherSuggest">
-            <div class="muted small" style="margin-top:.25rem">Tip: Initialer findes i alias-map. Du kan også skrive et helt navn og trykke Enter.</div>
-            <div class="muted small" id="kMeInlineHint" style="margin-top:.25rem"></div>
-          </div>
-        `;
+        kMsg.innerHTML = `<div class="row between alignCenter" style="gap:1rem; flex-wrap:wrap;">
+        <div class="row alignCenter" style="gap:.7rem; flex-wrap:wrap;">
+          <div><b>${mine.length} match:</b> <span class="pill">${escapeHtml(meResolved || s.me || '')}</span></div>
+          <div class="muted small">Kontaktlærer1/2 matcher “Jeg er”. Klik på en elev for at redigere.</div>
+        </div>
+        <div class="muted small" id="kProgLine"></div>
+      </div>`;
       }
 
       const inp = $('kMeInline');
@@ -1150,64 +1148,7 @@ function renderKList() {
     let mine = sortedStudents(studs)
       .filter(st => normalizeName(st.kontaktlaerer1) === meNorm || normalizeName(st.kontaktlaerer2) === meNorm);
 
-    const kSearch = ((s.kStudentSearch || '') + '').trim();
-    const kSearchNorm = normalizeName(kSearch);
-    if (kSearchNorm) {
-      mine = mine.filter(st => {
-        const full = normalizeName(st.fuldeNavn || '');
-        return full.includes(kSearchNorm);
-      });
-    }
-
-    if (kMsg) {
-      kMsg.innerHTML = `
-        <div class="row between alignCenter" style="gap:12px; margin-bottom:10px">
-          <h2 style="margin:0">K-elever</h2>
-          <div class="muted small">Kontaktlærer1/2 matcher “Jeg er”.</div>
-        </div>
-        <div class="row between alignCenter wrap" style="gap:12px">
-          <div>
-            <div class="muted">${escapeHtml(mine.length)} match: <b>${escapeHtml(meResolved)}</b></div>
-            <div id="kProgLine" class="muted small"></div>
-          </div>
-          <div class="row gap alignCenter" style="min-width:280px">
-            <input id="kStudentSearch" class="input" type="text" placeholder="Søg elev…" value="${escapeHtml(kSearch)}" style="width:280px"/>
-            <button id="kChangeMe" class="btn btnGhost">Skift…</button>
-          </div>
-        </div>
-      `;
-
-      const searchEl = $("kStudentSearch");
-      if (searchEl) {
-        searchEl.addEventListener('input', () => {
-          const s2 = getSettings();
-          s2.kStudentSearch = searchEl.value || '';
-          setSettings(s2);
-          renderKList();
-        });
-      }
-      const changeBtn = $("kChangeMe");
-      if (changeBtn) {
-        changeBtn.addEventListener('click', () => {
-          const s2 = getSettings();
-          s2.kMeConfirmed = false;
-          setSettings(s2);
-          renderKList();
-        });
-      }
-    }
-
-    state.visibleKElevIds = mine.map(st => st.unilogin);
-
-    if (!mine.length) {
-      if (kMsg) {
-        kMsg.innerHTML = `<div class="muted">${escapeHtml(0)} elever matcher <b>${escapeHtml(meResolved)}</b>.</div>`;
-      }
-      if (kList) kList.innerHTML = '';
-      return;
-    }
-
-    const prog = mine.reduce((acc, st) => {
+const prog = mine.reduce((acc, st) => {
       const f = getTextFor(st.unilogin);
       acc.u += (f.elevudvikling||'').trim()?1:0;
       acc.p += (f.praktisk||'').trim()?1:0;
@@ -1483,6 +1424,23 @@ $('preview').textContent = buildStatement(st, getSettings());
     const legendEl = $('marksLegend');
     // This view is optional (depends on current Settings sub-tab). Don't crash if it's not rendered.
     if (!wrap || !typeEl || !searchEl || !legendEl) return;
+  // Tabs for marks type (Sang/Gymnastik/Elevråd) – avoid menu diving
+  const tabs = $('marksTypeTabs');
+  if (tabs){
+    tabs.querySelectorAll('button.tab').forEach(btn=>{
+      btn.onclick = ()=>{
+        const t = btn.dataset.type;
+        if (t && typeEl.value !== t){
+          typeEl.value = t;
+          renderMarksTable();
+        } else {
+          syncMarksTypeTabs();
+        }
+      };
+    });
+    syncMarksTypeTabs();
+  }
+
     const type = typeEl.value;
     const q = normalizeName(searchEl.value || '');
 
@@ -1860,6 +1818,20 @@ gymInputs.forEach(id => {
 
 if (document.getElementById('elevraadText')) {
   on('elevraadText','input', () => commitSnippetsFromUI('elevraad'));
+  syncMarksTypeTabs();
+
+}
+
+
+function syncMarksTypeTabs(){
+  const sel = $('marksType');
+  const tabs = $('marksTypeTabs');
+  if(!sel || !tabs) return;
+  const val = sel.value || 'Sang';
+  tabs.querySelectorAll('button.tab').forEach(btn=>{
+    const t = btn.dataset.type;
+    btn.classList.toggle('active', t===val);
+  });
 }
 
 if (document.getElementById('btnDownloadSang')) {

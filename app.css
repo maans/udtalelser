@@ -362,3 +362,6 @@ tr:hover td{background: rgba(255,255,255,.02)}
 }
 .settingsSubtab{ display:none; }
 .settingsSubtab.active{ display:block; }
+
+
+.tabs.small .tab{padding:.35rem .65rem; font-size:.92rem;}

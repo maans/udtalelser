@@ -185,10 +185,15 @@
       <div class="row gap wrap no-print">
         <div class="field" style="min-width: 240px">
           <label>Type</label>
-          <select id="marksType">
-            <option value="sang">Sang</option>
-            <option value="gym">Gymnastik</option>
-            <option value="elevraad">Elevråd</option>
+          <div class="tabs small" id="marksTypeTabs">
+            <button type="button" class="tab" data-type="Sang">Sang</button>
+            <button type="button" class="tab" data-type="Gymnastik">Gymnastik</button>
+            <button type="button" class="tab" data-type="Elevraad">Elevråd</button>
+          </div>
+          <select id="marksType" style="display:none">
+            <option value="Sang">Sang</option>
+            <option value="Gymnastik">Gymnastik</option>
+            <option value="Elevraad">Elevråd</option>
           </select>
         </div>
         <div class="field" style="flex:1; min-width: 260px">
