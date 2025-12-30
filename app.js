@@ -524,6 +524,19 @@ function normalizePlaceholderKey(key) {
   function escapeAttr(s) { return (s ?? '').toString().replace(/"/g,'&quot;'); }
   function $(id){ return document.getElementById(id); }
 
+  // Hold "Faglærer-arbejde" type tabs in sync with the underlying select.
+  // This must live in the same scope as renderMarksTable().
+  function syncMarksTypeTabs(){
+    const wrap = $("marksTypeTabs");
+    const sel  = $("marksType");
+    if(!wrap || !sel) return;
+    const val = (sel.value || "Sang").toLowerCase();
+    wrap.querySelectorAll("button[data-type]").forEach(btn => {
+      const t = (btn.getAttribute("data-type") || "").toLowerCase();
+      btn.classList.toggle("active", t === val);
+      btn.setAttribute("aria-pressed", t === val ? "true" : "false");
+    });
+  }
 
 const on = (id, ev, fn, opts) => { const el = document.getElementById(id); if (el) el.addEventListener(ev, fn, opts); };
   // ---------- CSV ----------
@@ -1071,6 +1084,16 @@ function commitSnippetsFromUI(scope) {
 function renderKList() {
     const s = getSettings();
     const studs = getStudents();
+    // Resolve teacher input via alias-map (MM -> Måns ...) for both filtering and UI.
+    const meRaw = ((s.me || '') + '').trim();
+    const meResolved = resolveTeacherName(meRaw) || meRaw;
+    const mine = meResolved
+      ? studs.filter(st => {
+          const k1 = resolveTeacherName((st.Kontaktlaerer1 || '') + '');
+          const k2 = resolveTeacherName((st.Kontaktlaerer2 || '') + '');
+          return (k1 && k1 === meResolved) || (k2 && k2 === meResolved);
+        })
+      : [];
     const kMsg = $('kMessage');
     if (kMsg) kMsg.classList.remove('compact');
     const kList = $('kList');
@@ -1087,7 +1110,10 @@ function renderKList() {
         kMsg.innerHTML = `<div class="row between alignCenter" style="gap:1rem; flex-wrap:wrap;">
         <div class="row alignCenter" style="gap:.7rem; flex-wrap:wrap;">
           <div><b>${mine.length} match:</b> <span class="pill">${escapeHtml(meResolved || s.me || '')}</span></div>
-          <div class="muted small">Kontaktlærer1/2 matcher “Jeg er”. Klik på en elev for at redigere.</div>
+          <div class="muted small">
+            Kontaktlærer1/2 matcher “Jeg er”.
+            <span id="kStatusLine" class="muted"></span>
+          </div>
         </div>
         <div class="muted small" id="kProgLine"></div>
       </div>`;
@@ -1159,6 +1185,12 @@ const prog = mine.reduce((acc, st) => {
     const progEl = $("kProgLine");
     if (progEl) {
       progEl.textContent = `U ${prog.u}/${mine.length} · P ${prog.p}/${mine.length} · K ${prog.k}/${mine.length}`;
+    }
+
+    const statusEl = $("kStatusLine");
+    if(statusEl){
+      const who = escapeHtml(meResolved || meRaw || '');
+      statusEl.innerHTML = ` · <b>${mine.length}</b> match: <b>${who}</b> · U ${prog.u}/${mine.length} · P ${prog.p}/${mine.length} · K ${prog.k}/${mine.length}`;
     }
 
     if (kList) {
@@ -1822,18 +1854,6 @@ if (document.getElementById('elevraadText')) {
 
 }
 
-
-function syncMarksTypeTabs(){
-  const sel = $('marksType');
-  const tabs = $('marksTypeTabs');
-  if(!sel || !tabs) return;
-  const val = sel.value || 'Sang';
-  tabs.querySelectorAll('button.tab').forEach(btn=>{
-    const t = btn.dataset.type;
-    btn.classList.toggle('active', t===val);
-  });
-}
-
 if (document.getElementById('btnDownloadSang')) {
   on('btnDownloadSang','click', () => {
     const pkg = buildOverridePackage('sang');
@@ -1966,6 +1986,19 @@ if (document.getElementById('btnDownloadElevraad')) {
 
     on('marksType','change', () => renderMarksTable());
     on('marksSearch','input', () => renderMarksTable());
+
+    // Tabs (Sang/Gymnastik/Elevråd) should behave like changing the select.
+    on('marksTypeTabs','click', (e) => {
+      const btn = e.target && e.target.closest && e.target.closest('button[data-type]');
+      if(!btn) return;
+      const sel = $('marksType');
+      if(!sel) return;
+      const type = btn.getAttribute('data-type');
+      if(!type) return;
+      sel.value = type;
+      saveLS(KEY_MARKS_TYPE, type);
+      renderMarksTable();
+    });
 
     on('btnExportMarks','click', () => {
       const type = $('marksType').value;
