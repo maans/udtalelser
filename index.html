@@ -195,14 +195,15 @@
       <div class="row gap wrap">
         <div class="field" style="min-width: 260px">
           <div class="tabs small" id="marksTypeTabs">
-            <button type="button" class="tab" data-type="Sang">Sang</button>
-            <button type="button" class="tab" data-type="Gymnastik">Gymnastik</button>
-            <button type="button" class="tab" data-type="Elevraad">Elevråd</button>
+            <!-- data-type values are internal codes used by app.js -->
+            <button type="button" class="tab" data-type="sang">Sang</button>
+            <button type="button" class="tab" data-type="gym">Gymnastik</button>
+            <button type="button" class="tab" data-type="elevraad">Elevråd</button>
           </div>
           <select id="marksType" style="display:none">
-            <option value="Sang">Sang</option>
-            <option value="Gymnastik">Gymnastik</option>
-            <option value="Elevraad">Elevråd</option>
+            <option value="sang">Sang</option>
+            <option value="gym">Gymnastik</option>
+            <option value="elevraad">Elevråd</option>
           </select>
         </div>
         <div class="field" style="flex:1; min-width: 260px">

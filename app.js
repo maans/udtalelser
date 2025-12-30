@@ -539,12 +539,14 @@ function normalizePlaceholderKey(key) {
     const wrap = $("marksTypeTabs");
     const sel  = $("marksType");
     if(!wrap || !sel) return;
-    const val = (sel.value || "Sang").toLowerCase();
-    wrap.querySelectorAll("button[data-type]").forEach(btn => {
-      const t = (btn.getAttribute("data-type") || "").toLowerCase();
-      btn.classList.toggle("active", t === val);
-      btn.setAttribute("aria-pressed", t === val ? "true" : "false");
-    });
+  // Compare using normalized tokens (e.g. "Elevråd" == "elevraad").
+  const val = normalizeHeader(sel.value || "sang");
+  wrap.querySelectorAll("button[data-type]").forEach(btn => {
+    const t = normalizeHeader(btn.getAttribute("data-type") || "");
+    const on = (t && t === val);
+    btn.classList.toggle("active", on);
+    btn.setAttribute("aria-pressed", on ? "true" : "false");
+  });
   }
 
 const on = (id, ev, fn, opts) => { const el = document.getElementById(id); if (el) el.addEventListener(ev, fn, opts); };
