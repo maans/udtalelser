@@ -914,7 +914,8 @@ function defaultSettings() {
 
   // ---------- UI rendering ----------
   function setTab(tab) {
-    const students = getStudents();
+    let students = getStudents();
+    if (!students.length && Array.isArray(window.__ALL_STUDENTS__)) students = window.__ALL_STUDENTS__;
     if (!students.length && tab !== 'set') tab = 'set';
 
     // Redigér kræver valgt elev. Hvis ingen er valgt, send brugeren til K-elever.
