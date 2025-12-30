@@ -616,6 +616,9 @@ const on = (id, ev, fn, opts) => { const el = document.getElementById(id); if (e
     kMeDraft: ''
   };
 
+  // Restore last UI selection (settings subtab etc.) from localStorage
+  loadUIStateInto(state);
+
 function defaultSettings() {
     return {
       contactGroupCount: "",
@@ -637,6 +640,25 @@ function defaultSettings() {
 
   function getSettings(){ return Object.assign(defaultSettings(), lsGet(KEYS.settings, {})); }
   function setSettings(s){ lsSet(KEYS.settings, s); }
+
+  // UI-state (tabs etc.) is stored inside settings.ui so it survives reloads
+  function loadUIStateInto(stateObj){
+    const s = getSettings();
+    const ui = (s && s.ui) ? s.ui : {};
+    if (typeof ui.settingsSubtab === 'string' && ui.settingsSubtab) stateObj.settingsSubtab = ui.settingsSubtab;
+    if (typeof ui.marksType === 'string' && ui.marksType) stateObj.marksType = ui.marksType;
+  }
+
+  function saveUIStateFrom(stateObj){
+    const s = getSettings();
+    s.ui = s.ui || {};
+    s.ui.settingsSubtab = stateObj.settingsSubtab;
+    s.ui.marksType = stateObj.marksType;
+    setSettings(s);
+  }
+
+  // Back-compat: older code calls saveState()
+  function saveState(){ saveUIStateFrom(state); }
   function getTemplates(){ return Object.assign(defaultTemplates(), (REMOTE_OVERRIDES.templates && (REMOTE_OVERRIDES.templates.templates || REMOTE_OVERRIDES.templates)) || {}, lsGet(KEYS.templatesImported, {}), lsGet(KEYS.templates, {})); }
   function setTemplates(t){ lsSet(KEYS.templates, t); }
   function getStudents(){ const s = lsGet(KEYS.students, []); window.__ALL_STUDENTS__ = s || []; return s; }
