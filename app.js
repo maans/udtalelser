@@ -13,8 +13,13 @@
     marksSang: LS_PREFIX + 'marks_sang',
     marksGym:  LS_PREFIX + 'marks_gym',
     marksElev: LS_PREFIX + 'marks_elevraad',
+	  marksType: LS_PREFIX + 'marks_type',
     textPrefix: LS_PREFIX + 'text_' // + unilogin
   };
+
+	// Backwards-compat alias used by some older event handlers
+	// Backwards-compat alias (older builds referenced KEY_MARKS_TYPE directly)
+	const KEY_MARKS_TYPE = KEYS.marksType;
 
   const TEACHER_ALIAS_MAP = {
   "ab": "Andreas Bech Pedersen",
@@ -2044,7 +2049,7 @@ if (document.getElementById('btnDownloadElevraad')) {
       const type = btn.getAttribute('data-type');
       if(!type) return;
       sel.value = type;
-      saveLS(KEY_MARKS_TYPE, type);
+			  saveLS(KEYS.marksType, type);
       renderMarksTable();
     });
 
