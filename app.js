@@ -145,6 +145,10 @@ Udtalelsen er skrevet med udgangspunkt i elevens hverdag og deltagelse gennem sk
     }
   }
   function lsSet(key, value) { localStorage.setItem(key, JSON.stringify(value)); }
+
+  // Compatibility alias used by some UI handlers
+  function saveLS(key, value) { return lsSet(key, value); }
+
   function lsDelPrefix(prefix) {
     const keys = [];
     for (let i = 0; i < localStorage.length; i++) {
@@ -1198,6 +1202,20 @@ function renderKList() {
     // Confirmed teacher name present -> show list.
     const meResolvedConfirmed = ((s.meResolvedConfirmed || '') + '').trim();
     const meNorm = normalizeName(meResolvedConfirmed || meResolvedRaw);
+
+    // If we landed here directly (e.g. reload with confirmed name), the dashed box
+    // may still be empty because it's normally populated in the "not confirmed" branch.
+    // Ensure the status/progress lines exist so we don't show an empty placeholder.
+    if (kMsg && (!$("kStatusLine") || !$("kProgLine"))) {
+      const who = escapeHtml(meResolvedConfirmed || meRaw || '');
+      kMsg.innerHTML = `
+        <div class="k-row" style="align-items:center; gap:10px;">
+          <div id="kStatusLine" class="muted small"></div>
+          <div style="margin-left:auto;" class="muted small">Kontaktlærer1/2 matcher "<b>Jeg er</b>".</div>
+        </div>
+        <div id="kProgLine" class="muted small" style="margin-top:6px;"></div>
+      `;
+    }
 
     // Build list (and allow quick filtering by elevnavn)
     const mineList = sortedStudents(studs)
