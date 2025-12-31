@@ -69,6 +69,9 @@ code{font-family:var(--mono)}
   border-radius:999px;
   background:rgba(255,255,255,.03);
 }
+
+.pill.tiny{padding:.15rem .45rem; font-size:.75rem; line-height:1; opacity:.9}
+.badgeRow{display:flex; gap:.35rem; flex-wrap:wrap; justify-content:flex-end}
 .search{max-width:260px}
 
 .topbar{
