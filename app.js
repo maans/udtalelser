@@ -1,6 +1,57 @@
 /* Udtalelser v1.0 – statisk GitHub Pages app (ingen libs)
    localStorage prefix: udt_
 */
+// Global fallbacks (avoid ReferenceError if helpers are referenced outside the IIFE)
+// Safe even if the IIFE defines its own versions later.
+(function(){
+  const W = (typeof window !== 'undefined') ? window : globalThis;
+
+  function _norm(s){
+    return String(s ?? '')
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g,' ')
+      .replace(/[\u2019\u2018]/g,"'")
+      .replace(/[\u201C\u201D]/g,'"');
+  }
+
+  if (typeof W.normalizeName !== 'function') {
+    W.normalizeName = _norm;
+  }
+
+  if (typeof W.deriveInitialsFromName !== 'function') {
+    W.deriveInitialsFromName = function(raw){
+      const s = String(raw ?? '').trim();
+      if(!s) return '';
+      const up = s.toUpperCase().replace(/\s+/g,'');
+      // already looks like initials
+      if(/^[A-ZÆØÅ]{1,4}$/.test(up)) return up;
+      const parts = s.split(/\s+/).filter(Boolean);
+      if(!parts.length) return '';
+      const first = (parts[0][0]||'');
+      const last = (parts[parts.length-1][0]||'');
+      return (first+last).toUpperCase();
+    };
+  }
+
+  if (typeof W.resolveTeacherName !== 'function') {
+    W.resolveTeacherName = function(v){
+      // In v1.0 we avoid any hardcoded person data; this is intentionally a no-op normalizer.
+      const s = String(v ?? '').trim();
+      return s;
+    };
+  }
+
+  if (typeof W.groupKeyFromTeachers !== 'function') {
+    W.groupKeyFromTeachers = function(k1Raw, k2Raw){
+      const a = W.deriveInitialsFromName(W.resolveTeacherName(k1Raw) || k1Raw);
+      const b = W.deriveInitialsFromName(W.resolveTeacherName(k2Raw) || k2Raw);
+      const parts = [a,b].filter(Boolean).sort((x,y)=>x.localeCompare(y,'da'));
+      return parts.length ? parts.join('/') : '—';
+    };
+  }
+})();
+
 (() => {
 
 // Scope-safety helpers (v1.0 final)
