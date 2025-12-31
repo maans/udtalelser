@@ -4,14 +4,18 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
-<title>Elevudtalelser (statisk)</title>
+<title>Udtalelser v1.0</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="manifest" href="manifest.json">
 <link href="app.css" rel="stylesheet"/>
 </head>
 <body>
 <header class="topbar no-print">
 <div class="brand" id="brandHome" title="Gå til Data & import">
 <span class="dot"></span>
-<span>Elevudtalelser</span>
+<span>Udtalelser v1.0</span>
 </div>
 <nav aria-label="Navigation" class="tabs">
 <button class="tab" data-tab="k" id="tab-k" title="K-elever">👤 <span>K-elever</span></button>
@@ -28,14 +32,30 @@
 <section class="view" id="view-k">
 <div class="viewHeader">
         <div class="viewTitleRow">
-          <h1>K-elever</h1>
-          <div class="row gap wrap" style="justify-content:flex-end">
+          <h1 id="kTitle">K-elever</h1>
+          <div id="kTitleActions" class="titleCenter no-print">
+            <button class="btn small no-print" id="btnPrintAllK" type="button" title="Print alle dine K-elever som én samlet udskrift">🖨️ Print dine K-elever</button>
+          </div>
+          <div id="kTitleRight" class="titleRight no-print">
             <div class="muted small" id="kHeaderInfo"></div>
-            <button class="btn small no-print" id="btnPrintAllK" type="button" title="Print alle dine K-elever som én samlet udskrift">🖨️ Print alle</button>
           </div>
         </div>
       </div>
-<div class="callout" id="kMessage"></div>
+<div class="callout" id="kMessage">
+  <div class="kNavHost no-print" id="kNavHost">
+    <!-- K-gruppe-navigation (vises kun i ALL) -->
+    <div class="editNavRow" id="kAllNavRow" style="display:none;">
+      <div class="navSlot left">
+        <button class="btn small" id="btnPrevGroup" type="button" title="Forrige K-gruppe">◀︎</button>
+      </div>
+      <div class="navSlot center muted small" id="kAllNavLabel"></div>
+      <div class="navSlot right" id="kAllNavRight">
+        <button class="btn small" id="btnNextGroup" type="button" title="Næste K-gruppe">▶︎</button>
+      </div>
+    </div>
+  </div>
+  <div class="kMsgHost" id="kMsgHost"></div>
+</div>
 <div class="list" id="kList"></div>
 </section>
 <!-- Redigér -->
@@ -104,8 +124,8 @@
 
   <div class="subtabs no-print" id="settingsSubtabs" role="tablist" aria-label="Indstillinger">
     <button class="subtab active" type="button" data-subtab="general" id="settingsTab-general">Generelt</button>
-    <button class="subtab" type="button" data-subtab="data" id="settingsTab-data">Data &amp; import</button>
-    <button class="subtab" type="button" data-subtab="export" id="settingsTab-export">Data &amp; eksport</button>
+    <button class="subtab" type="button" data-subtab="data" id="settingsTab-data">Import</button>
+    <button class="subtab" type="button" data-subtab="export" id="settingsTab-export">Eksport</button>
     <button class="subtab" type="button" data-subtab="texts" id="settingsTab-texts">Tekster / skabeloner</button>
     <button class="subtab" type="button" data-subtab="help" id="settingsTab-help">Hjælp</button>
   </div>
@@ -119,6 +139,7 @@
           <label>K-lærer (initialer eller navn)</label>
           <div class="teacherPicker" id="teacherPicker">
             <input id="meInput" placeholder="fx MM, RD, MTP eller fuldt navn" type="text" autocomplete="off"/>
+            <button class="clearBtn" id="meInputClear" title="Ryd" aria-label="Ryd">×</button>
             <button class="tpBtn" id="teacherPickerBtn" type="button" aria-label="Vis liste">
               ▾
             </button>
@@ -156,10 +177,13 @@
   <div class="settingsSubtab" data-subtab="data" id="settingsSubtab-data">
     <div class="card">
       <div class="callout no-print" style="margin-top:.6rem">
-        <div class="cardSubTitle" style="margin:0 0 .4rem 0">Gendan backup</div>
-        <div class="muted small" style="margin-bottom:.6rem">Vælg en tidligere backup-JSON for at gendanne alt lokalt indhold.</div>
+        <div class="cardSubTitle" style="margin:0 0 .4rem 0">Importér / gendan backup</div>
+        <div class="muted small" style="margin-bottom:.6rem">
+          Vælg en backup-JSON (din egen eller en kollegas). Appen <b>fletter sikkert</b> indholdet ind, så du ikke mister dit eget arbejde.
+          (Hvis der er overlap, udfyldes kun tomme felter.)
+        </div>
         <div class="row gap wrap">
-          <label class="btn" for="backupFileInput" title="Vælg backupfil">⬆️ Gendan backup</label>
+          <label class="btn" for="backupFileInput" title="Vælg backupfil">⬆️ Importér backup</label>
           <input type="file" id="backupFileInput" accept="application/json" style="display:none" />
         </div>
       </div>
@@ -169,13 +193,18 @@
       </div>
 
       <div class="cardSubTitle">Elevliste (CSV) – skal indlæses først</div>
-      <input accept=".csv,.txt" id="studentsFile" type="file"/>
-      <div class="muted small" id="studentsStatus" style="margin-top:.35rem"></div>
+      <div class="row between" style="gap:1rem; align-items:flex-start; flex-wrap:wrap;">
+        <div style="min-width:260px; flex: 1 1 360px;">
+          <input accept=".csv,.txt" id="studentsFile" type="file"/>
+          <div class="muted small" id="studentsStatus" style="margin-top:.35rem"></div>
+        </div>
+        <div id="studentsWarn" class="warnBox" style="display:none; flex: 0 1 360px;"></div>
+      </div>
 
       <details class="fold no-print" style="margin-top:.8rem">
         <summary>Accepterede kolonner (eksempler)</summary>
         <div class="muted small">
-          <div><b>Primært:</b> Fornavn, Efternavn, Unilogin, Køn, Kontaktlærer1, Kontaktlærer2, Klasse</div>
+          <div><b>Primært:</b> Fornavn, Efternavn, Unilogin, Køn, Kontaktlærer1, Kontaktlærer2, Klasse, Initialer for k-lærer1 (valgfri), Initialer for k-lærer2 (valgfri)</div>
           <div><b>Uni-C:</b> Klasse, Fornavn, Efternavn, Uni-C brugernavn, Relationer-Kontaktlærer-Navn, Relationer-Anden kontaktlærer-Navn</div>
           <div>Appen mapper kolonner robust (case-insensitivt, trim, accepter Unilogin/Uni-C brugernavn).</div>
         </div>
@@ -206,7 +235,10 @@
   <!-- DATA & EKSPORT (FAGLÆRERE) -->
   <div class="settingsSubtab" data-subtab="export" id="settingsSubtab-export">
     <div class="card no-print">
-      <div class="cardTitle">Data &amp; eksport (faglærere)</div>
+      <div class="row between" style="align-items:center; gap:1rem; margin-bottom:.2rem">
+        <div class="cardTitle" style="margin:0">Eksport</div>
+        <button class="btn small" id="btnPrintAllGroups" type="button" title="Udskriv alle K-grupper (alle elever) som én samlet udskrift">🖨️ Print alle K-grupper</button>
+      </div>
       <div class="row gap wrap" style="margin:.5rem 0 .9rem 0; align-items:center">
         <button class="btn ghost" id="btnBackupDownload" type="button" title="Download backup af alle lokale data">⬇️ Backup (download)</button>
         <div class="muted small">Backup gemmer alt lokalt indhold (udtalelser, indstillinger, elevliste osv.) som en JSON-fil.</div>
@@ -230,7 +262,12 @@
         </div>
         <div class="field" style="flex:1; min-width: 260px">
           <label>Find elev</label>
-          <input id="marksSearch" type="text" placeholder="Søg i navn eller Uni-login"/>
+          <div class="teacherPicker" id="marksSearchPicker">
+            <input id="marksSearch" type="text" placeholder="Søg på fornavn eller fulde navn…" autocomplete="off"/>
+            <button class="clearBtn" id="marksSearchClear" title="Ryd søgning" aria-label="Ryd søgning">×</button>
+            <button class="tpBtn" id="marksSearchBtn" type="button" aria-label="Vis elevliste">▾</button>
+            <div class="tpMenu" id="marksSearchMenu" role="listbox" aria-label="Vælg elev" hidden></div>
+          </div>
         </div>
         <div class="field" style="min-width: 200px">
           <label>&nbsp;</label>
@@ -240,9 +277,9 @@
 
       
       <div class="divider"></div>
-      <div class="cardSubTitle">Backup (valgfrit – til sikkerhed)</div>
+      <div class="cardSubTitle"></div>
       <div class="row gap wrap" style="align-items:center">
-        <div class="muted small" style="flex:1; min-width:260px">Downloader en kopi af alt lokalt gemt i denne browser (udtalelser, flueben, skabeloner m.m.).</div>
+        <div class="muted small" style="flex:1; min-width:260px"></div>
         </div>
 
       <div class="muted small" id="marksLegend" style="margin:.35rem 0 .6rem 0"></div>
@@ -399,27 +436,60 @@
 
   <!-- HJÆLP -->
   <div class="settingsSubtab" data-subtab="help" id="settingsSubtab-help">
-        <div class="card">
-          <h2>Hjælp (hvem gør hvad og i hvilken rækkefølge?)</h2>
-          <p class="muted">Sådan bruger vi appen sammen:</p>
-          <ol class="helpList">
-            <li><strong>Alle:</strong> Gå til <a href="#" class="helpLink" data-goto="set:data">Indstillinger → Data &amp; import</a> og upload <code>students.csv</code> (elevlisten).</li>
-            <li><strong>Kontaktlærer:</strong> Under <a href="#" class="helpLink" data-goto="set:general">Generelt</a> skriv dit <strong>K-lærer-navn / initialer</strong> og brug <a href="#" class="helpLink" data-goto="k">K-elever</a> til at redigere dine elever.</li>
-            <li><strong>Sang-/Gymnastik-/Elevrådslærere:</strong> Gå til <a href="#" class="helpLink" data-goto="set:export">Indstillinger → Data &amp; eksport</a>, vælg fanen og sæt krydser. Eksportér CSV og send den til kontaktlærerne.</li>
-            <li><strong>Kontaktlærer:</strong> Importér de 3 CSV’er under <a href="#" class="helpLink" data-goto="set:data">Data &amp; import</a>. (De bruges i udtalelses-skabelonen og kan ses i <a href="#" class="helpLink" data-goto="edit">Redigér</a>.)</li>
-            <li><strong>Til sidst:</strong> Gå til <a href="#" class="helpLink" data-goto="edit">Redigér</a> og brug Print / Gem som PDF.</li>
-            <li><strong>Hvis tekster/skabeloner skal opdateres:</strong> Gå til <a href="#" class="helpLink" data-goto="set:texts">Tekster / skabeloner</a>. Redigér, download og del med Måns, hvis appen skal opdateres for alle.</li>
-          </ol>
+    <div class="card">
+      <h2>Hjælp</h2>
+      <p class="muted">Kort og praktisk – uden server, uden login. Alt gemmes lokalt i din browser.</p>
 
-          <div class="helpTip">
-            <p class="muted"><strong>Tip:</strong> Alt gemmes lokalt i denne browser (localStorage). Når du rydder lokale data, forsvinder alt lokalt gemt – så lav backup først.</p>
-          </div>
+      <details class="fold" open>
+        <summary>Quick start (hvem gør hvad?)</summary>
+        <ol class="helpList">
+          <li>
+            Indlæs elevlisten (<code>students.csv</code>).
+            <span class="helpRefs">– <a href="#" class="helpLink" data-goto="set:data">Import</a></span>
+          </li>
+          <li>
+            Skriv dine initialer i <em>Generelt</em>.
+            <span class="helpRefs">– <a href="#" class="helpLink" data-goto="set:general">Generelt</a></span>
+          </li>
+          <li>
+            Redigér dine elever i <em>K-elever</em> og brug <em>Redigér</em> til fuld visning og print.
+            <span class="helpRefs">– <a href="#" class="helpLink" data-goto="k">K-elever</a> · <a href="#" class="helpLink" data-goto="edit">Redigér</a></span>
+          </li>
+          <li>
+            Faglærere: sæt krydser og eksportér CSV. Kontaktlærere: importér CSV’erne.
+            <span class="helpRefs">– <a href="#" class="helpLink" data-goto="set:export">Eksport</a> · <a href="#" class="helpLink" data-goto="set:data">Import</a></span>
+          </li>
+          <li>
+            Backup kan deles mellem lærere – import er sikker og overskriver ikke dine udfyldte felter.
+            <span class="helpRefs">– <a href="#" class="helpLink" data-goto="set:data">Importér / gendan backup</a></span>
+          </li>
+          <li>
+            Tekster og skabeloner kan opdateres centralt.
+            <span class="helpRefs">– <a href="#" class="helpLink" data-goto="set:texts">Tekster / skabeloner</a></span>
+          </li>
+        </ol>
+      </details>
+
+      <details class="fold">
+        <summary>FAQ</summary>
+        <div class="muted small" style="margin-top:.6rem; line-height:1.45">
+          <p><b>Er der en server?</b><br/>Nej. Alt ligger lokalt i browseren.</p>
+          <p><b>Er det GDPR-sikkert?</b><br/>Ja – ingen data forlader computeren.</p>
+          <p><b>Kan flere lærere arbejde på samme elever?</b><br/>Ja. Status på elevkort kan vise hvem der sidst har redigeret.</p>
+          <p><b>Hvad hvis browseren crasher?</b><br/>Data gemmes løbende. Backup anbefales.</p>
+          <p><b>Skal man bruge skabelontekst?</b><br/>Nej. Den er kun en hjælp.</p>
         </div>
+      </details>
+
+      <div class="helpTip">
+        <p class="muted"><strong>Tip:</strong> Brug <a href="#" class="helpLink" data-goto="set:export"><em>Backup (download)</em></a> før du rydder lokale data eller skifter computer/browser.</p>
       </div>
+    </div>
+  </div>
 </section>
 </main>
 <footer class="footer no-print">
-  <span class="muted small">Systemering af udtalelsesskrivning · MM 2026</span>
+  <span class="muted small">Udtalelser v1.0</span>
 </footer>
 
 <!-- (K-lærer) – custom dropdown bygges i app.js -->
