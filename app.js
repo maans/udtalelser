@@ -23,6 +23,10 @@
 
   const TEACHER_ALIAS_MAP = {};// (v1.0) ingen hardcodede navne; listen bygges fra elevlisten. 
 
+  // Globals that must exist across nested blocks (strict mode function-in-block scoping)
+  let normalizeName;
+  let updateTeacherDatalist;
+
   let SNIPPETS = {
     sang: {
       "S1": {
@@ -696,7 +700,7 @@ const s = getSettings();
 }
 
 // ---------- normalize ----------
-  function normalizeName(input) {
+  normalizeName = function normalizeName(input) {
   if (!input) return "";
   return input
     .toString()
@@ -845,7 +849,7 @@ function computeMissingKTeacher(students) {
   return miss;
 }
 
-function updateTeacherDatalist() {
+  updateTeacherDatalist = function updateTeacherDatalist() {
   // Replaces the old <datalist> UX with a custom, searchable dropdown.
   const input = document.getElementById('meInput');
   const menu  = document.getElementById('teacherPickerMenu');
