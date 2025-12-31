@@ -149,51 +149,7 @@ Udtalelsen er skrevet med udgangspunkt i elevens hverdag og deltagelse gennem sk
       return fallback;
     }
   }
-  function lsSet(key, value) { localStorage.setItem(key, JSON.stringify(value)); 
-// Index: which teacher namespaces have any saved text per unilogin.
-function buildTextOwnersIndex(){
-  const idx = {};
-  try{
-    for (let i=0; i<localStorage.length; i++){
-      const k = localStorage.key(i);
-      if (!k) continue;
-      if (!k.startsWith(KEYS.textPrefix)) continue;
-      const rest = k.slice(KEYS.textPrefix.length);
-      const u = rest.indexOf('_');
-      if (u <= 0) continue;
-      const owner = rest.slice(0, u);
-      const unilogin = rest.slice(u+1);
-      if (!unilogin) continue;
-
-      // Consider "has text" if any main fields contain non-whitespace.
-      const obj = lsGet(k, null);
-      if (!obj) continue;
-      const has = !!(((obj.elevudvikling||'')+'').trim() || ((obj.praktisk||'')+'').trim() || ((obj.kgruppe||'')+'').trim());
-      if (!has) continue;
-
-      if (!idx[unilogin]) idx[unilogin] = [];
-      if (!idx[unilogin].includes(owner)) idx[unilogin].push(owner);
-    }
-  } catch {}
-  // Stable-ish ordering (alphabetical)
-  try{
-    Object.keys(idx).forEach(u => idx[u].sort());
-  } catch {}
-  return idx;
-}
-
-function getOwnersWithText(unilogin){
-  if (!state.textOwnersIndex) state.textOwnersIndex = buildTextOwnersIndex();
-  return state.textOwnersIndex[unilogin] || [];
-}
-
-function renderOwnerBadges(unilogin){
-  const owners = getOwnersWithText(unilogin);
-  if (!owners.length) return '';
-  return `<div class="badgeRow">${owners.map(o=>`<span class="pill tiny">${escapeHtml(o)}</span>`).join('')}</div>`;
-}
-
-}
+  function lsSet(key, value) { localStorage.setItem(key, JSON.stringify(value)); }
 
   // Compatibility alias used by some UI handlers
   function saveLS(key, value) { return lsSet(key, value); }
@@ -374,35 +330,21 @@ function downloadJson(filename, obj) {
 }
 
 function exportLocalBackup() {
-  const owner = getOwnerKeyForStorage();
-  if (!owner || owner === 'ALL') {
-    alert('Vælg en konkret K-lærer (ikke "Alle") før du tager backup.');
-    return;
-  }
-
-  const prefix = KEYS.textPrefix + owner + '_';
   const data = {};
   for (let i = 0; i < localStorage.length; i++) {
     const k = localStorage.key(i);
-    if (!k || !k.startsWith(prefix)) continue;
+    if (!k || !k.startsWith(LS_PREFIX)) continue;
     data[k] = localStorage.getItem(k);
   }
-
   if (!Object.keys(data).length) {
-    alert('Der var ingen udtalelser at tage backup af for denne K-lærer endnu.');
+    alert('Der var ingen lokale data at tage backup af endnu.');
     return;
   }
-
-  const s = getSettings();
-  const year = Number(s.schoolYearEnd) || '';
   const stamp = new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
-  const file = `elevudtalelser_backup_${owner}${year ? '_' + year : ''}_${stamp}.json`;
-
-  downloadJson(file, {
-    schema: 'elevudtalelser_backup_v2',
+  downloadJson(`elevudtalelser_backup_${stamp}.json`, {
+    schema: 'elevudtalelser_backup_v1',
+    prefix: LS_PREFIX,
     createdAt: new Date().toISOString(),
-    owner,
-    prefix,
     data
   });
 }
@@ -410,18 +352,10 @@ function exportLocalBackup() {
 function getMyKStudents() {
   const s = getSettings();
   const studs = getStudents();
-  if (!studs.length) return [];
-
-  const raw = ((s.me || '') + '').trim();
-  if (isAllTeacherRaw(raw)) {
-    // "Alle": show all students that have at least one kontaktlærer set
-    return sortedStudents(studs).filter(st => (st.kontaktlaerer1 || '').trim() || (st.kontaktlaerer2 || '').trim());
-  }
-
   const meResolvedConfirmed = ((s.meResolvedConfirmed || '') + '').trim();
-  const meResolvedRaw = resolveTeacherName(raw) || raw;
+  const meResolvedRaw = resolveTeacherName(((s.me || '') + '').trim()) || (((s.me || '') + '').trim());
   const meNorm = normalizeName(meResolvedConfirmed || meResolvedRaw);
-  if (!meNorm) return [];
+  if (!studs.length || !meNorm) return [];
   return sortedStudents(studs)
     .filter(st => normalizeName(st.kontaktlaerer1) === meNorm || normalizeName(st.kontaktlaerer2) === meNorm);
 }
@@ -432,44 +366,27 @@ function getMyKStudents() {
 function applyOnePagePrintScale() {
   const preview = document.getElementById('preview');
   if (!preview) return;
-
   // Reset
   document.documentElement.style.setProperty('--printScale', '1');
-
+  // Only relevant when preview has content
   const txt = (preview.textContent || '').trim();
   if (!txt) return;
 
-  // Measure available height in px (A4 height minus @page top/bottom margin)
+  // Create a mm-to-px probe (hidden)
   const probe = document.createElement('div');
   probe.style.cssText = 'position:fixed; left:-9999px; top:-9999px; width:1mm; height:261mm; visibility:hidden; pointer-events:none;';
   document.body.appendChild(probe);
   const availPx = probe.getBoundingClientRect().height;
   probe.remove();
-  if (!availPx) return;
 
-  // Iterative fit: use getBoundingClientRect() which reflects transform scaling.
-  let scale = 1;
-  for (let i=0; i<4; i++){
-    // Apply
-    document.documentElement.style.setProperty('--printScale', String(scale));
-    const used = preview.getBoundingClientRect().height;
-    if (!used) break;
+  // Measure needed height at scale=1
+  // Use scrollHeight so we capture full content.
+  const neededPx = preview.scrollHeight;
+  if (!availPx || !neededPx) return;
 
-    // Target close to full height, but keep a tiny safety margin
-    const target = availPx * 0.995;
-
-    if (used > target) {
-      scale = scale * (target / used);
-    } else {
-      // If there's noticeable slack, scale up a bit (but never above 1)
-      const slack = target - used;
-      if (slack > (availPx * 0.02)) {
-        scale = Math.min(1, scale * (target / used));
-      } else {
-        break;
-      }
-    }
-    scale = Math.max(0.10, Math.min(1, scale));
+  if (neededPx > availPx) {
+    const s = Math.max(0.10, Math.min(1, availPx / neededPx));
+    document.documentElement.style.setProperty('--printScale', String(s));
   }
 }
 
@@ -522,28 +439,13 @@ function printAllKStudents() {
           pages.forEach(p=>{
             const c = p.querySelector('.content');
             if(!c) return;
+            // Reset
+            p.style.setProperty('--s','1');
+            // Measure at scale=1
             const avail = p.clientHeight;
-            if (!avail) return;
-
+            const needed = c.scrollHeight;
             let s = 1;
-            for (let i=0; i<4; i++){
-              p.style.setProperty('--s', String(s));
-              const used = c.getBoundingClientRect().height;
-              if (!used) break;
-              const target = avail * 0.995;
-
-              if (used > target) {
-                s = s * (target / used);
-              } else {
-                const slack = target - used;
-                if (slack > (avail * 0.02)) {
-                  s = Math.min(1, s * (target / used));
-                } else {
-                  break;
-                }
-              }
-              s = Math.max(0.10, Math.min(1, s));
-            }
+            if (needed > avail && avail > 0) s = Math.max(0.10, Math.min(1, avail / needed));
             p.style.setProperty('--s', String(s));
           });
         }
@@ -564,28 +466,24 @@ function importLocalBackup(file) {
     try {
       const obj = JSON.parse(String(reader.result || '{}'));
       if (!obj || typeof obj !== 'object' || !obj.data) throw new Error('Ugyldig backupfil.');
+      const prefix = obj.prefix || LS_PREFIX;
 
-      if (obj.schema !== 'elevudtalelser_backup_v2') {
-        throw new Error('Backupfilen har et gammelt format. Brug en nyere backup (v2).');
+      // Slet nuværende app-keys (samme prefix) for at undgå gamle rester
+      const toRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith(prefix)) toRemove.push(k);
       }
+      toRemove.forEach(k => localStorage.removeItem(k));
 
-      const owner = (obj.owner || '').toString().trim().toUpperCase();
-      const prefix = (obj.prefix || '').toString();
-      if (!owner || !prefix || !prefix.startsWith(KEYS.textPrefix + owner + '_')) {
-        throw new Error('Backupfilen mangler owner/prefix i korrekt format.');
-      }
+      // Gendan keys
+      Object.entries(obj.data).forEach(([k,v]) => {
+        if (typeof k === 'string' && k.startsWith(prefix)) localStorage.setItem(k, String(v ?? ''));
+      });
 
-      let imported = 0, skipped = 0;
-      for (const [k, v] of Object.entries(obj.data || {})) {
-        if (typeof k !== 'string' || !k.startsWith(prefix)) { skipped++; continue; }
-        localStorage.setItem(k, String(v ?? ''));
-        imported++;
-      }
-
-      alert(`Backup importeret\nOwner: ${owner}\nImporteret: ${imported}\nSkippet: ${skipped}`);
-      renderAll();
+      location.reload();
     } catch (err) {
-      alert(err?.message || String(err));
+      alert(err?.message || 'Kunne ikke indlæse backup.');
     }
   };
   reader.readAsText(file);
@@ -757,57 +655,6 @@ function resolveTeacherName(raw) {
   return resolveTeacherMatch(raw).resolved;
 }
 
-
-// --- K-lærer namespaces ----------------------------------------------------
-// Special value for "show all"
-function isAllTeacherRaw(raw){
-  const n = normalizeName((raw||'')+'');
-  return n === 'alle' || n === 'all' || n === '__all__';
-}
-
-function teacherKeyFromRaw(raw){
-  const s = getSettings();
-  const aliasMap = (s && s.aliasMap) ? s.aliasMap : DEFAULT_ALIAS_MAP;
-
-  const r = ((raw||'')+'').trim();
-  if (!r) return '';
-  if (isAllTeacherRaw(r)) return 'ALL';
-
-  // If raw matches an alias code, use it
-  const rawNorm = normalizeName(r).replace(/\s+/g,'');
-  const aliasCodes = Object.keys(aliasMap || {});
-  const hitCode = aliasCodes.find(k => normalizeName(k).replace(/\s+/g,'') === rawNorm);
-  if (hitCode) return (hitCode||'').toString().toUpperCase();
-
-  // If raw is a full name that matches an alias target, return the alias code
-  const resolved = resolveTeacherName(r) || r;
-  const resNorm = normalizeName(resolved);
-  const hitByName = aliasCodes.find(k => normalizeName(aliasMap[k]) === resNorm);
-  if (hitByName) return (hitByName||'').toString().toUpperCase();
-
-  // Fallback: stable-ish slug from resolved name
-  const slug = resNorm.replace(/[^a-z0-9]+/g,'').toUpperCase();
-  return (slug || 'UNK').slice(0, 16);
-}
-
-// Which teacher namespace should we read/write texts under?
-// - Normal mode: uses K-lærer input
-// - "Alle": uses settings.activeTeacher (the one we are editing/printing for)
-function getOwnerKeyForStorage(){
-  const s = getSettings();
-  const raw = ((s.me||'')+'').trim();
-  if (isAllTeacherRaw(raw)) {
-    const active = ((s.activeTeacher||'')+'').trim();
-    return teacherKeyFromRaw(active);
-  }
-  return teacherKeyFromRaw(raw);
-}
-
-function getTextKey(unilogin, ownerKey){
-  const ok = (ownerKey || getOwnerKeyForStorage() || '').trim();
-  return KEYS.textPrefix + ok + '_' + unilogin;
-}
-
 function updateTeacherDatalist() {
   // Replaces the old <datalist> UX with a custom, searchable dropdown.
   const input = document.getElementById('meInput');
@@ -832,13 +679,10 @@ function updateTeacherDatalist() {
     .filter(n => n && !aliasNames.has(normalizeName(n)))
     .map(n => ({ kind: 'name', code: '', name: n }));
 
-  // Special "Alle" item
-  const allModeItem = { kind:'all', code:'ALLE', name:'Alle (alle k-lærere)', value:'Alle' };
-
   // Sorted: aliases first, then names
   aliasItems.sort((a,b) => a.code.localeCompare(b.code));
   nameItems.sort((a,b) => normalizeName(a.name).localeCompare(normalizeName(b.name)));
-  const allItems = [allModeItem, ...aliasItems, ...nameItems];
+  const allItems = [...aliasItems, ...nameItems];
 
   function itemMatches(it, q){
     // Autocomplete behavior: match from the *start* of alias codes or name-words.
@@ -886,11 +730,7 @@ function updateTeacherDatalist() {
       const right = document.createElement('div');
       right.className = 'tpRight';
 
-      if (it.kind === 'all') {
-        left.textContent = 'Alle';
-        right.textContent = '(alle k-lærere)';
-        row.dataset.value = 'Alle';
-      } else if (it.kind === 'alias'){
+      if (it.kind === 'alias'){
         left.textContent = it.code;
         right.textContent = it.name ? `(${it.name})` : '';
         row.dataset.value = it.code;
@@ -1119,10 +959,10 @@ function defaultSettings() {
   function setStudents(studs){ lsSet(KEYS.students, studs); window.__ALL_STUDENTS__ = studs || []; }
   function getMarks(kindKey){ return lsGet(kindKey, {}); }
   function setMarks(kindKey, m){ lsSet(kindKey, m); }
-  function getTextFor(unilogin, ownerKey){
-    return lsGet(getTextKey(unilogin, ownerKey), { elevudvikling:'', praktisk:'', kgruppe:'', lastSavedTs:null, studentInputMeta:null });
+  function getTextFor(unilogin){
+    return lsGet(KEYS.textPrefix + unilogin, { elevudvikling:'', praktisk:'', kgruppe:'', lastSavedTs:null, studentInputMeta:null });
   }
-  function setTextFor(unilogin, obj, ownerKey){ lsSet(getTextKey(unilogin, ownerKey), obj); }
+  function setTextFor(unilogin, obj){ lsSet(KEYS.textPrefix + unilogin, obj); }
 
   function computePeriod(schoolYearEnd) {
     const endYear = Number(schoolYearEnd) || (new Date().getFullYear() + 1);
@@ -1415,14 +1255,7 @@ function setSettingsSubtab(sub) {
   function renderStatus() {
     const s = getSettings();
     const studs = getStudents();
-    const raw = ((s.me||'')+'').trim();
-    let me = '';
-    if (isAllTeacherRaw(raw)) {
-      const active = ((s.activeTeacher||'')+'').toString().toUpperCase();
-      me = `· K-lærer: Alle${active ? ' (aktiv: ' + active + ')' : ''}`;
-    } else if (s.meResolved) {
-      me = `· K-lærer: ${s.meResolved}`;
-    }
+    const me = s.meResolved ? `· K-lærer: ${s.meResolved}` : '';
     $('statusText').textContent = studs.length ? `Elever: ${studs.length} ${me}` : `Ingen elevliste indlæst`;
   }
 
@@ -1439,40 +1272,6 @@ function setSettingsSubtab(sub) {
     $('btnToggleForstander').textContent = s.forstanderLocked ? '✏️' : '🔒';
 
     $('meInput').value = s.me || '';
-    // "Alle" mode: choose which teacher we are editing/printing for
-    const activeField = $('activeTeacherField');
-    const activeSel = $('activeTeacherSelect');
-    if (activeField && activeSel) {
-      const allMode = isAllTeacherRaw(s.me);
-      activeField.style.display = allMode ? '' : 'none';
-      if (allMode) {
-        const aliasMap = (s && s.aliasMap) ? s.aliasMap : DEFAULT_ALIAS_MAP;
-        const items = Object.keys(aliasMap || {}).map(k => ({
-          code: (k||'').toString().toUpperCase(),
-          name: (aliasMap[k]||'').toString().trim()
-        })).filter(x => x.code);
-        items.sort((a,b)=>a.code.localeCompare(b.code));
-
-        // Build options
-        activeSel.innerHTML = '';
-        for (const it of items) {
-          const opt = document.createElement('option');
-          opt.value = it.code;
-          opt.textContent = it.name ? `${it.code} (${it.name})` : it.code;
-          activeSel.appendChild(opt);
-        }
-
-        // Pick current or fallback
-        const cur = ((s.activeTeacher||'')+'').toString().toUpperCase();
-        const fallback = items[0] ? items[0].code : '';
-        activeSel.value = (items.some(x=>x.code===cur) ? cur : fallback);
-        if (activeSel.value && activeSel.value !== cur) {
-          s.activeTeacher = activeSel.value;
-          setSettings(s);
-        }
-      }
-    }
-
     $('schoolYearEnd').value = s.schoolYearEnd || '';
 
     const p = computePeriod(s.schoolYearEnd);
@@ -1741,7 +1540,6 @@ const prog = mineList.reduce((acc, st) => {
     if (kList) {
       kList.innerHTML = mineList.map(st => {
         const full = `${st.fornavn || ''} ${st.efternavn || ''}`.trim();
-        const isAllMode = isAllTeacherRaw(meRaw);
         const free = getTextFor(st.unilogin);
         const hasU = !!(free.elevudvikling || '').trim();
         const hasP = !!(free.praktisk || '').trim();
@@ -1751,7 +1549,7 @@ const prog = mineList.reduce((acc, st) => {
           <div class="card clickable" data-unilogin="${escapeAttr(st.unilogin)}">
             <div class="cardTopRow">
               <div class="cardTitle"><b>${escapeHtml(full)}</b></div>
-              <div class="cardFlags muted small">${isAllMode ? renderOwnerBadges(st.unilogin) : (hasU?'U':'') + (hasP?' P':'') + (hasK?' K':'')}</div>
+              <div class="cardFlags muted small">${hasU?'U':''}${hasP?' P':''}${hasK?' K':''}</div>
             </div>
             <div class="cardSub muted small">${escapeHtml(formatClassLabel(st.klasse || ''))}</div>
           </div>
@@ -2313,17 +2111,7 @@ $('preview').textContent = buildStatement(st, getSettings());
       renderStatus();
       if (state.tab === 'k') renderKList();
       renderSettings();
-    })
-    on('activeTeacherSelect','change', () => {
-      const s = getSettings();
-      s.activeTeacher = ($('activeTeacherSelect').value || '').toString().toUpperCase();
-      setSettings(s);
-      renderStatus();
-      if (state.tab === 'k') renderKList();
-      if (state.tab === 'edit') renderEdit();
-      renderSettings();
     });
-;
     on('schoolYearEnd','input', () => {
       const s = getSettings();
       s.schoolYearEnd = Number($('schoolYearEnd').value || s.schoolYearEnd);
