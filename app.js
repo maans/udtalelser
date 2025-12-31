@@ -1232,7 +1232,14 @@ function normalizePlaceholderKey(key) {
     const parts = s.split(/\s+/).filter(Boolean);
     return parts.length ? parts[0] : s;
   }
-  function normalizeHeader(input) { return normalizeName(input).replace(/[^a-z0-9]+/g, ""); }
+  // Defensive: if a cached/partial build ever shadows normalizeName, fall back
+  // to a local normalizer so app boot never crashes.
+  function normalizeHeader(input) {
+    const fn = (typeof normalizeName === 'function')
+      ? normalizeName
+      : (v => (v ?? '').toString().trim().toLowerCase().replace(/\s+/g, ' '));
+    return fn(input).replace(/[^a-z0-9]+/g, "");
+  }
 
   // ---------- util ----------
   function escapeAttr(s) { return (s ?? '').toString().replace(/"/g,'&quot;'); }
