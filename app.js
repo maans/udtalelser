@@ -23,6 +23,42 @@
 
   const TEACHER_ALIAS_MAP = {};// (v1.0) ingen hardcodede navne; listen bygges fra elevlisten. 
 
+  // --- Safety wrappers (avoid crashes if a helper was accidentally removed in a future edit)
+  // Note: `typeof someName` is safe even if the identifier is undeclared.
+  function buildKGroupsSafe(students) {
+    try {
+      if (typeof buildKGroups === 'function') return buildKGroups(students);
+    } catch (_) {}
+    // Minimal fallback grouping
+    const groups = new Map();
+    for (const st of (students || [])) {
+      const k1 = (st?.k1Ini || '').toString().trim().toUpperCase() || deriveInitialsFromName(st?.kontaktlaerer1 || '');
+      const k2 = (st?.k2Ini || '').toString().trim().toUpperCase() || deriveInitialsFromName(st?.kontaktlaerer2 || '');
+      const parts = [k1, k2].filter(Boolean).sort((a,b)=>a.localeCompare(b,'da'));
+      const key = parts.length ? parts.join('/') : '—';
+      if (!groups.has(key)) groups.set(key, { key, students: [] });
+      groups.get(key).students.push(st);
+    }
+    const coll = new Intl.Collator('da', { sensitivity: 'base' });
+    for (const g of groups.values()) {
+      g.students.sort((x,y)=>coll.compare((x.fornavn||'').trim(), (y.fornavn||'').trim()) || coll.compare((x.efternavn||'').trim(), (y.efternavn||'').trim()));
+    }
+    return Array.from(groups.values()).sort((a,b)=>{
+      if (a.key==='—' && b.key!=='—') return 1;
+      if (b.key==='—' && a.key!=='—') return -1;
+      return coll.compare(a.key,b.key);
+    });
+  }
+
+  function printAllKStudentsSafe(ev) {
+    try {
+      if (typeof printAllKStudents === 'function') return printAllKStudents(ev);
+    } catch (_) {}
+    // Fallback: print current group (same behavior as print group)
+    if (typeof printAllKGroups === 'function') return printAllKGroups();
+    alert('Print-funktionen er ikke tilgængelig i denne build.');
+  }
+
   // Helpers (must be in top-scope inside IIFE)
   function normalizeName(input) {
     if (!input) return "";
@@ -383,7 +419,7 @@ function applyOnePagePrintScale() {
 
 function printAllKStudents() {
   const studs = getStudents();
-  const kGroups = buildKGroups(studs);
+  const kGroups = buildKGroupsSafe(studs);
 
   // K-mode: print "mine" K-elever
   // ALL-mode: print den aktive K-gruppe (som UI'et viser)
@@ -468,7 +504,7 @@ function printAllKGroups() {
     alert('Der er ingen elevliste indlæst endnu.');
     return;
   }
-  const kGroups = buildKGroups(studs);
+  const kGroups = buildKGroupsSafe(studs);
   const all = [];
 
   // Flatten i gruppe-rækkefølge (stabilt og forudsigeligt)
@@ -1711,7 +1747,7 @@ function updateTabLabels(){
     const studs = getStudents();
     const isAll = state.viewMode === 'ALL';
     // Build k-grupper (teacher pairs) once; later UI uses this.
-    const kGroups = buildKGroups(studs);
+    const kGroups = buildKGroupsSafe(studs);
     state.__kGroups = kGroups;
     if (state.kGroupIndex < 0) state.kGroupIndex = 0;
     if (state.kGroupIndex > Math.max(0, kGroups.length-1)) state.kGroupIndex = Math.max(0, kGroups.length-1);
@@ -1726,7 +1762,7 @@ function updateTabLabels(){
     const studs = getStudents();
     const isAll = state.viewMode === 'ALL';
     // Build k-grupper (teacher pairs) once; later UI uses this.
-    const kGroups = buildKGroups(studs);
+    const kGroups = buildKGroupsSafe(studs);
     state.__kGroups = kGroups;
     if (state.kGroupIndex < 0) state.kGroupIndex = 0;
     if (state.kGroupIndex > Math.max(0, kGroups.length-1)) state.kGroupIndex = Math.max(0, kGroups.length-1);
@@ -1897,7 +1933,7 @@ function renderKList() {
     const studs = getStudents();
     const isAll = state.viewMode === 'ALL';
     // Build k-grupper (teacher pairs) once; later UI uses this.
-    const kGroups = buildKGroups(studs);
+    const kGroups = buildKGroupsSafe(studs);
     state.__kGroups = kGroups;
     if (state.kGroupIndex < 0) state.kGroupIndex = 0;
     if (state.kGroupIndex > Math.max(0, kGroups.length-1)) state.kGroupIndex = Math.max(0, kGroups.length-1);
@@ -2237,7 +2273,7 @@ function formatTime(ts) {
     const studs = getStudents();
     const isAll = state.viewMode === 'ALL';
     // Build k-grupper (teacher pairs) once; later UI uses this.
-    const kGroups = buildKGroups(studs);
+    const kGroups = buildKGroupsSafe(studs);
     state.__kGroups = kGroups;
     if (state.kGroupIndex < 0) state.kGroupIndex = 0;
     if (state.kGroupIndex > Math.max(0, kGroups.length-1)) state.kGroupIndex = Math.max(0, kGroups.length-1);
@@ -2274,7 +2310,7 @@ function formatTime(ts) {
     const studs = getStudents();
     const isAll = state.viewMode === 'ALL';
     // Build k-grupper (teacher pairs) once; later UI uses this.
-    const kGroups = buildKGroups(studs);
+    const kGroups = buildKGroupsSafe(studs);
     state.__kGroups = kGroups;
     if (state.kGroupIndex < 0) state.kGroupIndex = 0;
     if (state.kGroupIndex > Math.max(0, kGroups.length-1)) state.kGroupIndex = Math.max(0, kGroups.length-1);
@@ -2424,7 +2460,7 @@ $('preview').textContent = buildStatement(st, getSettings());
     if (!wrap || !legendEl) return;
 
     // Keep kGroups cached for K-grp labels
-    const kGroups = buildKGroups(studs);
+    const kGroups = buildKGroupsSafe(studs);
     window.__kGroupsCache = kGroups;
 
     // Tabs for marks type (Sang/Gymnastik/Elevråd)
@@ -2941,7 +2977,7 @@ if (document.getElementById('btnDownloadElevraad')) {
       const studs = getStudents();
     const isAll = state.viewMode === 'ALL';
     // Build k-grupper (teacher pairs) once; later UI uses this.
-    const kGroups = buildKGroups(studs);
+    const kGroups = buildKGroupsSafe(studs);
     state.__kGroups = kGroups;
     if (state.kGroupIndex < 0) state.kGroupIndex = 0;
     if (state.kGroupIndex > Math.max(0, kGroups.length-1)) state.kGroupIndex = Math.max(0, kGroups.length-1);
@@ -3245,7 +3281,7 @@ if (document.getElementById('btnDownloadElevraad')) {
 
     // K-elever: Print alle
     const btnPrintAllK = $("btnPrintAllK");
-    if (btnPrintAllK) btnPrintAllK.addEventListener("click", printAllKStudents);
+    if (btnPrintAllK) btnPrintAllK.addEventListener("click", printAllKStudentsSafe);
 
     // Indstillinger → Eksport: Print alle K-grupper (alle elever)
     const btnPrintAllGroups = $("btnPrintAllGroups");
