@@ -23,9 +23,29 @@
 
   const TEACHER_ALIAS_MAP = {};// (v1.0) ingen hardcodede navne; listen bygges fra elevlisten. 
 
-  // Globals that must exist across nested blocks (strict mode function-in-block scoping)
-  let normalizeName;
-  let updateTeacherDatalist;
+  // Helpers (must be in top-scope inside IIFE)
+  function normalizeName(input) {
+    if (!input) return "";
+    return input
+      .toString()
+      .trim()
+      .toLowerCase()
+      .replace(/\./g, " ")
+      // Danish letters are not decomposed by NFD, so transliterate explicitly
+      .replace(/æ/g, "ae")
+      .replace(/ø/g, "oe")
+      .replace(/å/g, "aa")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  // Declared as function for reliability (used from nested blocks)
+  function updateTeacherDatalist() {
+    // body is defined later by overwriting this no-op in wireEvents(),
+    // but having a safe default prevents crashes during early init.
+  }
 
   let SNIPPETS = {
     sang: {
@@ -700,22 +720,7 @@ const s = getSettings();
 }
 
 // ---------- normalize ----------
-  normalizeName = function normalizeName(input) {
-  if (!input) return "";
-  return input
-    .toString()
-    .trim()
-    .toLowerCase()
-    .replace(/\./g, " ")
-    // Danish letters are not decomposed by NFD, so transliterate explicitly
-    .replace(/æ/g, "ae")
-    .replace(/ø/g, "oe")
-    .replace(/å/g, "aa")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
+// (normalizeName er nu en top-level helper-funktion)
 
 function uniqStrings(arr) {
   const out = [];
