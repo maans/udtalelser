@@ -2,6 +2,78 @@
    localStorage prefix: udt_
 */
 (() => {
+
+// Scope-safety helpers (v1.0 final)
+// These are defined near the top to avoid block-scope issues when refactoring.
+
+function deriveInitialsFromName(raw){
+  const s = String(raw ?? "").trim();
+  if(!s) return "";
+  const up = s.toUpperCase().replace(/\s+/g, "");
+  if(/^[A-ZÆØÅ]{1,4}$/.test(up)) return up;
+  const parts = s.replace(/[.,]/g, "").trim().split(/\s+/).filter(Boolean);
+  if(!parts.length) return "";
+  if(parts.length === 1) return (parts[0][0] || "").toUpperCase();
+  return ((parts[0][0] || "") + (parts[parts.length-1][0] || "")).toUpperCase();
+}
+
+function printAllKGroups(){
+  const studs = getStudents();
+  if (!studs || !studs.length) { alert('Der er ingen elevliste indlæst endnu.'); return; }
+  const groups = buildKGroupsSafe(studs);
+  const all = [];
+  groups.forEach(g => (g.students || []).forEach(st => all.push(st)));
+  if (!all.length) { alert('Der var ingen elever i K-grupperne at printe.'); return; }
+
+  const title = 'Udtalelser v1.0 – print alle K-grupper';
+  const styles = `
+    <style>
+      @page { size: A4; margin: 18mm 16mm; }
+      body{ font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; color:#000; background:#fff; }
+      .entry{ page-break-after: always; }
+      .page{ width: 178mm; height: 261mm; overflow:hidden; position:relative; }
+      pre.content{
+        white-space: pre-wrap;
+        font: 11pt/1.45 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        margin:0;
+        transform: scale(var(--s, 1));
+        transform-origin: top left;
+        width: calc(100% / var(--s, 1));
+      }
+    </style>
+  `;
+  const body = all.map(st => {
+    const t = buildStatement(st, getSettings());
+    return `<section class="entry"><div class="page"><pre class="content">${escapeHtml(t)}</pre></div></section>`;
+  }).join('');
+
+  const w = window.open('', '_blank');
+  if (!w) { alert('Pop-up blev blokeret. Tillad pop-ups for at printe alle.'); return; }
+  w.document.open();
+  w.document.write(`<!doctype html><html lang="da"><head><meta charset="utf-8"><title>${title}</title>${styles}</head><body>${body}
+    <script>
+      (function(){
+        function fitAll(){
+          document.querySelectorAll('.page').forEach(function(p){
+            var c = p.querySelector('.content');
+            if(!c) return;
+            p.style.setProperty('--s','1');
+            var avail = p.clientHeight;
+            var needed = c.scrollHeight;
+            var s = 1;
+            if (needed > avail && avail > 0) s = Math.max(0.10, Math.min(1, avail / needed));
+            p.style.setProperty('--s', String(s));
+          });
+        }
+        window.addEventListener('load', fitAll);
+        window.addEventListener('beforeprint', fitAll);
+      })();
+    </script>
+  </body></html>`);
+  w.document.close();
+  setTimeout(()=>{ try{ w.focus(); w.print(); }catch(e){} }, 250);
+}
+
   'use strict';
 
   const LS_PREFIX = 'udt_';
