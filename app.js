@@ -21,9 +21,76 @@
 	// Backwards-compat alias (older builds referenced KEY_MARKS_TYPE directly)
 	const KEY_MARKS_TYPE = KEYS.marksType;
 
-  const DEFAULT_ALIAS_MAP = {};
+    // NOTE: No hardcoded teacher directory in v1.0 (privacy). Teachers/identity are derived from imported students.csv
+  const TEACHER_ALIAS_MAP = {};
 
-    const SNIPPETS_DEFAULT = JSON.parse(JSON.stringify(SNIPPETS));
+let SNIPPETS = {
+    sang: {
+      "S1": {
+        "title": "Sang – niveau 1",
+        "text_m": "{{FORNAVN}} har bidraget til fællessang på allerbedste vis. Med sangglæde, engagement og nysgerrighed har {{FORNAVN}} været en drivkraft i timerne og en inspiration for andre. {{FORNAVN}} har herigennem oplevet det fællesskab, som fællessang kan give.",
+        "text_k": "{{FORNAVN}} har bidraget til fællessang på allerbedste vis. Med sangglæde, engagement og nysgerrighed har {{FORNAVN}} været en drivkraft i timerne og en inspiration for andre. {{FORNAVN}} har herigennem oplevet det fællesskab, som fællessang kan give."
+      },
+      "S2": {
+        "title": "Sang – niveau 2",
+        "text_m": "{{FORNAVN}} har med godt humør bidraget til fællessang og kor og har derigennem vist sangglæde og åbenhed og fået kendskab til nye sange. {{FORNAVN}} har oplevet det fællesskab, som fællessang kan give.",
+        "text_k": "{{FORNAVN}} har med godt humør bidraget til fællessang og kor og har derigennem vist sangglæde og åbenhed og fået kendskab til nye sange. {{FORNAVN}} har oplevet det fællesskab, som fællessang kan give."
+      },
+      "S3": {
+        "title": "Sang – niveau 3",
+        "text_m": "{{FORNAVN}} har deltaget i fællessang og kor og har derigennem fået kendskab til nye sange og har oplevet det fællesskab, som fællessang kan give.",
+        "text_k": "{{FORNAVN}} har deltaget i fællessang og kor og har derigennem fået kendskab til nye sange og har oplevet det fællesskab, som fællessang kan give."
+      }
+    },
+    gym:  {
+  "G1": {
+    "title": "Meget engageret",
+    "text_m": "{{FORNAVN}} har deltaget meget engageret i fællesgymnastik og har vist stor lyst til at udfordre sig selv. {{HAN_HUN}} har bidraget positivt til holdets fællesskab.",
+    "text_k": "{{FORNAVN}} har deltaget meget engageret i fællesgymnastik og har vist stor lyst til at udfordre sig selv. {{HAN_HUN}} har bidraget positivt til holdets fællesskab."
+  },
+  "G2": {
+    "title": "Stabil deltagelse",
+    "text_m": "{{FORNAVN}} har deltaget stabilt i fællesgymnastik og har mødt undervisningen med en positiv indstilling.",
+    "text_k": "{{FORNAVN}} har deltaget stabilt i fællesgymnastik og har mødt undervisningen med en positiv indstilling."
+  },
+  "G3": {
+    "title": "Varierende deltagelse",
+    "text_m": "{{FORNAVN}} har haft en varierende deltagelse i fællesgymnastik, men har i perioder vist vilje til at indgå i fællesskabet.",
+    "text_k": "{{FORNAVN}} har haft en varierende deltagelse i fællesgymnastik, men har i perioder vist vilje til at indgå i fællesskabet."
+  }
+},
+    roller: {
+  "FANEBÆRER": {
+    "title": "Fanebærer",
+    "text_m": "{{FORNAVN}} har været udtaget som fanebærer til skolens fælles gymnastikopvisninger. Et hverv {{HAN_HUN}} har varetaget ansvarsfuldt og respektfuldt.",
+    "text_k": "{{FORNAVN}} har været udtaget som fanebærer til skolens fælles gymnastikopvisninger. Et hverv {{HAN_HUN}} har varetaget ansvarsfuldt og respektfuldt."
+  },
+  "REDSKAB": {
+    "title": "Redskabshold",
+    "text_m": "{{FORNAVN}} har været en del af redskabsholdet, som {{HAN_HUN}} frivilligt har meldt sig til. {{HAN_HUN}} har ydet en stor indsats og taget ansvar.",
+    "text_k": "{{FORNAVN}} har været en del af redskabsholdet, som {{HAN_HUN}} frivilligt har meldt sig til. {{HAN_HUN}} har ydet en stor indsats og taget ansvar."
+  },
+  "DGI": {
+    "title": "DGI-instruktør",
+    "text_m": "{{FORNAVN}} har deltaget aktivt i skolens frivillige samarbejde med foreningslivet og har vist engagement og ansvar.",
+    "text_k": "{{FORNAVN}} har deltaget aktivt i skolens frivillige samarbejde med foreningslivet og har vist engagement og ansvar."
+  }
+},
+    elevraad: {
+      YES: {
+        title: "Elevrådsrepræsentant",
+        text_m: "{{ELEV_FORNAVN}} har været en del af elevrådet på Himmerlands Ungdomsskole, hvor elevrådet blandt andet har stået for ugentlige fællesmøder for elever og lærere. Derudover har elevrådsarbejdet omfattet en række forskellige opgaver i løbet af året med ansvar for at sætte aktiviteter i gang i fællesskabets ånd. I den forbindelse har {{ELEV_FORNAVN}} vist engagement og vilje til at påtage sig og gennemføre forskellige opgaver og aktiviteter.",
+        text_k: "{{ELEV_FORNAVN}} har været en del af elevrådet på Himmerlands Ungdomsskole, hvor elevrådet blandt andet har stået for ugentlige fællesmøder for elever og lærere. Derudover har elevrådsarbejdet omfattet en række forskellige opgaver i løbet af året med ansvar for at sætte aktiviteter i gang i fællesskabets ånd. I den forbindelse har {{ELEV_FORNAVN}} vist engagement og vilje til at påtage sig og gennemføre forskellige opgaver og aktiviteter."
+      }
+    },
+    kontaktgruppeDefault: "I kontaktgruppen har vi arbejdet med trivsel, ansvar og fællesskab.",
+    afslutningDefault: "Vi ønsker eleven alt det bedste fremover."
+  };
+
+  // Backwards compatibility: some code paths still reference DEFAULT_ALIAS_MAP.
+  // Keep it as an alias of TEACHER_ALIAS_MAP.
+    const DEFAULT_ALIAS_MAP = {};
+const SNIPPETS_DEFAULT = JSON.parse(JSON.stringify(SNIPPETS));
 
 const DEFAULT_SCHOOL_TEXT =
 `På Himmerlands Ungdomsskole arbejder vi med både faglighed, fællesskab og personlig udvikling.
@@ -251,13 +318,12 @@ function exportLocalBackup() {
 function getMyKStudents() {
   const s = getSettings();
   const studs = getStudents();
-  const meResolvedConfirmed = ((s.meResolvedConfirmed || '') + '').trim();
-  const meResolvedRaw = resolveTeacherName(((s.me || '') + '').trim()) || (((s.me || '') + '').trim());
-  const meNorm = normalizeName(meResolvedConfirmed || meResolvedRaw);
-  if (!studs.length || !meNorm) return [];
+  const meIni = (((s.me || "") + "").trim()).toUpperCase();
+  if (!studs.length || !meIni) return [];
   return sortedStudents(studs)
-    .filter(st => normalizeName(st.kontaktlaerer1) === meNorm || normalizeName(st.kontaktlaerer2) === meNorm);
+    .filter(st => getStudentKInitials(st,1) === meIni || getStudentKInitials(st,2) === meIni);
 }
+
 
 // --- Print: force single-student print to always fit on ONE A4 page by scaling down.
 // Strategy: compute available content height (A4 minus margins = 261mm) in px,
@@ -670,48 +736,28 @@ function getAllTeacherNamesFromStudents() {
 }
 
 function resolveTeacherMatch(raw) {
-  const s = getSettings();
   const input = (raw ?? "").toString().trim();
   if (!input) return { raw: "", resolved: "" };
-
-  // Merge alias maps, but let DEFAULT_ALIAS_MAP win to avoid stale/wrong mappings in localStorage.
-  const aliasMap = { ...(s && s.aliasMap ? s.aliasMap : {}), ...DEFAULT_ALIAS_MAP };
-  const key = normalizeName(input).replace(/\s+/g, "");
-  if (aliasMap && aliasMap[key]) {
-    return { raw: input, resolved: aliasMap[key] };
-  }
-
-  const all = getAllTeacherNamesFromStudents();
-  const nIn = normalizeName(input);
-  const exact = all.find(n => normalizeName(n) === nIn);
-  if (exact) return { raw: input, resolved: exact };
-
-  // Partial match: allow "Måns" -> "Måns Patrik Mårtensson" etc.
-  const partial = all.filter(n => normalizeName(n).includes(nIn));
-  if (partial.length === 1) return { raw: input, resolved: partial[0] };
-
+  // In v1.0 we do not resolve to full names. We treat input as either initials or a free-form name.
   return { raw: input, resolved: input };
 }
 
-function resolveTeacherName(raw) {
-  return resolveTeacherMatch(raw).resolved;
-}
 
+function resolveTeacherName(raw) { return ((raw ?? "") + "").trim(); }
 function toInitials(raw) {
-  const s = ((raw ?? '') + '').trim();
-  if (!s) return '';
+  const s = ((raw||"")+"").trim();
+  if (!s) return "";
   const up = s.toUpperCase();
-
-  // If it already looks like initials (1–4 letters, optionally with /)
-  if (/^[A-ZÆØÅ]{1,4}(\/[A-ZÆØÅ]{1,4})?$/.test(up)) return up;
-
-  const parts = up.split(/[\s\-]+/).filter(Boolean);
-  if (!parts.length) return '';
-
-  const first = parts[0][0] || '';
-  const last = parts[parts.length - 1][0] || '';
-  return (first + last).toUpperCase();
+  // If it already looks like initials (1-4 letters), keep it.
+  if (/^[A-ZÆØÅ]{1,4}$/.test(up)) return up;
+  // Otherwise derive: first letter of first word + first letter of last word.
+  const parts = up.split(/[^A-ZÆØÅ]+/).filter(Boolean);
+  if (!parts.length) return "";
+  const a = parts[0][0] || "";
+  const b = parts[parts.length-1][0] || "";
+  return (a + b).toUpperCase();
 }
+
 
 function reverseResolveTeacherInitials(nameOrInitials) {
   // Try to map full name -> initials based on known alias map (if present in settings).
@@ -726,16 +772,27 @@ function reverseResolveTeacherInitials(nameOrInitials) {
 }
 
 function groupKeyFromTeachers(k1Raw, k2Raw) {
-  const a = toInitials(resolveTeacherName(k1Raw) || k1Raw);
-  const b = toInitials(resolveTeacherName(k2Raw) || k2Raw);
-  const parts = [a,b].filter(Boolean).sort((x,y)=>x.localeCompare(y,'da'));
+    const a = toInitials(k1Raw);
+  const b = toInitials(k2Raw);
+const parts = [a,b].filter(Boolean).sort((x,y)=>x.localeCompare(y,'da'));
   return parts.length ? parts.join('/') : '—';
 }
+
+function getStudentKInitials(st, which){
+  if (!st) return '';
+  if (which === 1) {
+    const ov = ((st.kontaktlaerer1_initialer||'')+'').trim().toUpperCase();
+    return ov || toInitials(st.kontaktlaerer1||'');
+  }
+  const ov = ((st.kontaktlaerer2_initialer||'')+'').trim().toUpperCase();
+  return ov || toInitials(st.kontaktlaerer2||'');
+}
+
 
 function buildKGroups(students) {
   const groups = new Map();
   for (const st of students) {
-    const key = groupKeyFromTeachers(st.kontaktlaerer1||'', st.kontaktlaerer2||'');
+        const key = groupKeyFromTeachers(getStudentKInitials(st,1), getStudentKInitials(st,2));
     if (!groups.has(key)) groups.set(key, {key, students: []});
     groups.get(key).students.push(st);
   }
@@ -769,34 +826,86 @@ function computeMissingKTeacher(students) {
 }
 
 function updateTeacherDatalist() {
-  // Identitet-listen bygges KUN fra de importerede elever (ingen hardcodet lærer-directory).
-  const input = $('me');
-  const dl = $('teachers');
-  if (!input || !dl) return;
+  const input = document.getElementById("meInput");
+  const menu  = document.getElementById("teacherPickerMenu");
+  const btn   = document.getElementById("teacherPickerBtn");
+  const wrap  = document.getElementById("teacherPicker");
+  const clear = document.getElementById("meInputClear");
+  if (!input || !menu || !btn || !wrap) return;
 
   const studs = getStudents();
-  if (!studs || !studs.length) {
-    input.value = '';
-    input.disabled = true;
-    input.placeholder = 'Indlæs elevliste først';
-    dl.innerHTML = '';
+  const hasStudents = Array.isArray(studs) && studs.length > 0;
+
+  // Disable if no students imported yet
+  input.disabled = !hasStudents;
+  btn.disabled = !hasStudents;
+  if (!hasStudents) {
+    input.value = "";
+    input.placeholder = "Indlæs elevliste først";
+    menu.innerHTML = "";
     return;
   }
+  input.placeholder = "fx AB, MTP";
 
-  input.disabled = false;
-  input.placeholder = 'fx AB, MTP';
-
+  // Build unique teacher initials from students
   const set = new Set();
   for (const st of studs) {
-    const t1 = (st && st.kontaktlaerer1) ? (st.kontaktlaerer1 + '').trim() : '';
-    const t2 = (st && st.kontaktlaerer2) ? (st.kontaktlaerer2 + '').trim() : '';
-    if (t1) set.add(toInitials(t1));
-    if (t2) set.add(toInitials(t2));
+    const a = getStudentKInitials(st,1);
+    const b = getStudentKInitials(st,2);
+    if (a) set.add(a);
+    if (b) set.add(b);
+  }
+  const items = Array.from(set).sort((x,y)=> x.localeCompare(y, "da"));
+
+  // Render menu
+  const render = (filter="") => {
+    const f = (filter||"").trim().toUpperCase();
+    const filtered = !f ? items : items.filter(x => x.includes(f));
+    menu.innerHTML = filtered.map(code => `<div class="pickerItem" role="option" data-value="${escapeAttr(code)}">${escapeHtml(code)}</div>`).join("") || `<div class="pickerEmpty">Ingen match</div>`;
+  };
+
+  render("");
+
+  // Open/close
+  const open = () => { wrap.classList.add("open"); render(input.value); };
+  const close = () => { wrap.classList.remove("open"); };
+
+  btn.onclick = (e) => { e.preventDefault(); wrap.classList.contains("open") ? close() : open(); input.focus(); };
+  input.oninput = () => { if (!wrap.classList.contains("open")) open(); else render(input.value); };
+
+  menu.onclick = (e) => {
+    const el = e.target.closest("[data-value]");
+    if (!el) return;
+    const val = (el.getAttribute("data-value")||"").toUpperCase();
+    input.value = val;
+    const s = getSettings();
+    s.me = val;
+    s.meResolvedConfirmed = "";
+    lsSet(KEYS.settings, s);
+    close();
+    renderAll();
+  };
+
+  // Clear button
+  if (clear) {
+    clear.onclick = (e) => {
+      e.preventDefault();
+      input.value = "";
+      const s = getSettings();
+      s.me = "";
+      s.meResolvedConfirmed = "";
+      lsSet(KEYS.settings, s);
+      close();
+      renderAll();
+    };
   }
 
-  const items = Array.from(set).filter(Boolean).sort((a,b)=>a.localeCompare(b,'da'));
-  dl.innerHTML = items.map(v => `<option value="${escapeAttr(v)}"></option>`).join('');
+  // Close on outside click
+  document.addEventListener("click", (e) => {
+    if (!wrap.contains(e.target)) close();
+  }, { capture: true });
 }
+
 
 // ---------- Elev-søgning i Eksport (custom dropdown, ikke native <datalist>) ----------
 function initMarksSearchPicker(){
@@ -1112,9 +1221,6 @@ function initMarksSearchPicker(){
     });
 }
 
-  // If settings/students changed, refresh suggestions when open
-  if (!menu.hidden) renderMenu();
-}
 
 function normalizePlaceholderKey(key) {
   if (!key) return "";
@@ -1290,28 +1396,10 @@ function defaultSettings() {
   function getStudents(){ const s = lsGet(KEYS.students, []); window.__ALL_STUDENTS__ = s || []; return s; }
   
 function rebuildAliasMapFromStudents(studs){
-  const s = getSettings();
-  const alias = { ...(s.aliasMap || {}) };
-  const add = (ini, full) => {
-    if (!ini || !full) return;
-    const k = (ini||'').toString().trim().toLowerCase();
-    if (k) alias[k] = full;
-    const nk = normalizeName(full).replace(/\s+/g,'');
-    if (nk) alias[nk] = full;
-  };
-  (studs || []).forEach(st => {
-    const t1 = (st && st.kontaktlaerer1) ? (st.kontaktlaerer1+'').trim() : '';
-    const t2 = (st && st.kontaktlaerer2) ? (st.kontaktlaerer2+'').trim() : '';
-    [t1,t2].filter(Boolean).forEach(t => {
-      if (/^[A-ZÆØÅ]{1,4}(\/[A-ZÆØÅ]{1,4})?$/.test(t)) {
-        add(t, t); // initials-only (fallback)
-      } else {
-        add(toInitials(t), t);
-      }
-    });
-  });
-  setSettings({ ...s, aliasMap: alias });
+  // No-op in v1.0 (no alias maps stored; identity is derived from students.csv initials)
+  return;
 }
+
 
 function setStudents(studs){ lsSet(KEYS.students, studs); rebuildAliasMapFromStudents(studs); window.__ALL_STUDENTS__ = studs || []; rebuildAliasMapFromStudents(studs); }
   function getMarks(kindKey){ return lsGet(kindKey, {}); }
@@ -1551,13 +1639,11 @@ function setStudents(studs){ lsSet(KEYS.students, studs); rebuildAliasMapFromStu
     const unilogin = get('unilogin') || (normalizeName((fornavn + ' ' + efternavn)).replace(/\s/g, '') + '_missing');
     const koen = get('koen');
     const klasse = get('klasse');
-    const rawK1 = get('kontakt1');
-    const rawK2 = get('kontakt2');
     const ini1 = (get('ini1') || '').trim();
     const ini2 = (get('ini2') || '').trim();
-    const k1 = ini1 ? ini1.toUpperCase() : toInitials(rawK1);
-    const k2 = ini2 ? ini2.toUpperCase() : toInitials(rawK2);
-    return { fornavn, efternavn, unilogin, koen, klasse, kontaktlaerer1: k1, kontaktlaerer2: k2 };
+    const k1 = ini1 ? ini1.toUpperCase() : resolveTeacherName(get('kontakt1'));
+    const k2 = ini2 ? ini2.toUpperCase() : resolveTeacherName(get('kontakt2'));
+    return { fornavn, efternavn, unilogin, koen, klasse, kontaktlaerer1: k1, kontaktlaerer2: k2, kontaktlaerer1_initialer, kontaktlaerer2_initialer };
   }
 
   // ---------- UI rendering ----------
@@ -2389,32 +2475,23 @@ $('preview').textContent = buildStatement(st, getSettings());
       return groupKeyFromTeachers(a, b);
     };
 
-    function renderRowCheckbox(unilogin, key, checked){
-      const pressed = checked ? 'true' : 'false';
-      const label = escapeAttr(key);
-      const mark = checked ? '✓' : '';
-      return `<td class="cb"><button type="button" class="tickbox" data-uni="${escapeAttr(unilogin)}" data-key="${label}" aria-pressed="${pressed}" aria-label="${label}">${mark}</button></td>`;
+    function renderRowTickbox(unilogin, key, checked){
+      const pressed = checked ? "true" : "false";
+      const cls = checked ? "tickbox on" : "tickbox";
+      return `<td class="cb"><button type="button" class="${cls}" aria-pressed="${pressed}" data-uni="${escapeAttr(unilogin)}" data-key="${escapeAttr(key)}" aria-label="${escapeAttr(key)}">✓</button></td>`;
     }
 
-    function bindCheckboxes(storeKey){
-      wrap.querySelectorAll('button.tickbox[data-uni]').forEach(btn=>{
-        btn.onclick = ()=>{
-          const uni = btn.dataset.uni;
-          const key = btn.dataset.key;
-          const isOn = btn.getAttribute('aria-pressed') === 'true';
-          const nextOn = !isOn;
-
-          btn.setAttribute('aria-pressed', nextOn ? 'true' : 'false');
-          btn.textContent = nextOn ? '✓' : '';
-
+    function bindTickboxes(storeKey){
+      wrap.querySelectorAll('button.tickbox[data-uni]').forEach(cb=>{
+        cb.onchange = ()=>{
+          const uni = cb.dataset.uni;
+          const key = cb.dataset.key;
           const marks = getMarks(storeKey);
           const prev = marks[uni] || {};
-          const next = { ...prev, [key]: nextOn ? '1' : '' };
+          const next = { ...prev, [key]: cb.checked ? '1' : '' };
           marks[uni] = next;
           setMarks(storeKey, marks);
         };
-      });
-    };
       });
     }
 
@@ -2439,13 +2516,13 @@ $('preview').textContent = buildStatement(st, getSettings());
                 <td>${escapeHtml(full)}</td>
                 <td class="muted small">${escapeHtml(kgrpLabel(st))}</td>
                 <td class="muted small">${escapeHtml(st.klasse||'')}</td>
-                ${cols.map(c => renderRowCheckbox(st.unilogin, c, !!m[c])).join('')}
+                ${cols.map(c => renderRowTickbox(st.unilogin, c, !!m[c])).join('')}
               </tr>`;
             }).join('')}
           </tbody>
         </table>
       `;
-      bindCheckboxes(KEYS.marksSang);
+      bindTickboxes(KEYS.marksSang);
       return;
     }
 
@@ -2470,13 +2547,13 @@ $('preview').textContent = buildStatement(st, getSettings());
                 <td>${escapeHtml(full)}</td>
                 <td class="muted small">${escapeHtml(kgrpLabel(st))}</td>
                 <td class="muted small">${escapeHtml(st.klasse||'')}</td>
-                ${cols.map(c => renderRowCheckbox(st.unilogin, c, !!m[c])).join('')}
+                ${cols.map(c => renderRowTickbox(st.unilogin, c, !!m[c])).join('')}
               </tr>`;
             }).join('')}
           </tbody>
         </table>
       `;
-      bindCheckboxes(KEYS.marksGym);
+      bindTickboxes(KEYS.marksGym);
       return;
     }
 
@@ -2501,13 +2578,13 @@ $('preview').textContent = buildStatement(st, getSettings());
               <td>${escapeHtml(full)}</td>
               <td class="muted small">${escapeHtml(kgrpLabel(st))}</td>
               <td class="muted small">${escapeHtml(st.klasse||'')}</td>
-              ${cols.map(c => renderRowCheckbox(st.unilogin, c, !!m[c])).join('')}
+              ${cols.map(c => renderRowTickbox(st.unilogin, c, !!m[c])).join('')}
             </tr>`;
           }).join('')}
         </tbody>
       </table>
     `;
-    bindCheckboxes(KEYS.marksElevraad);
+    bindTickboxes(KEYS.marksElevraad);
 }
 
   async function importMarksFile(e, kind) {

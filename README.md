@@ -6,7 +6,7 @@ En statisk (serverløs) browser-app til kontaktlærere og faglærere på HU, der
 
 1. Åbn appen (GitHub Pages).
 2. Gå til **Indstillinger → Import** og indlæs din elevliste (**students.csv**).
-3. Gå til **Indstillinger → Generelt** og vælg/skriv dine initialer.
+3. Gå til **Indstillinger → Generelt** og vælg/skriv dine initialer (eller navn).
 4. Brug fanen **K-elever** til at skrive udtalelser og fanen **Redigér** til fuld visning/print.
 5. Brug **Backup (download)** som sikkerhed, og **Importér backup** til at samle flere læreres arbejde i én browser uden at overskrive udfyldte felter.
 

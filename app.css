@@ -245,29 +245,6 @@ th,td{border-bottom:1px solid rgba(42,47,58,.8); padding:.55rem .6rem; vertical-
 /* Marks tables: checkbox columns */
 td.cb, th.cb { text-align:center; width:1%; white-space:nowrap; }
 td.cb input[type="checkbox"] { transform: translateY(1px); }
-
-td.cb .tickbox{
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  border: 1px solid rgba(255,255,255,.18);
-  background: rgba(255,255,255,.04);
-  color: var(--text);
-  font-weight: 900;
-  line-height: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-td.cb .tickbox[aria-pressed="true"]{
-  background: rgba(255,255,255,.10);
-  border-color: rgba(255,255,255,.28);
-}
-td.cb .tickbox:focus{
-  outline: 2px solid rgba(255,255,255,.35);
-  outline-offset: 2px;
-}
 th{
   position:sticky; top:0;
   background: rgba(15,17,21,.98);
@@ -564,3 +541,9 @@ td.cb { width: 56px; text-align: center; }
 .markBtn .empty { font-size: 14px; line-height: 1; opacity: .25; }
 .markBtn[aria-pressed="true"] .empty { opacity: 0; }
 
+
+
+/* Tick buttons (replace checkboxes) */
+.tickbox{ display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border:1px solid var(--bd); border-radius:8px; background:transparent; color:transparent; cursor:pointer; user-select:none; }
+.tickbox.on{ background:var(--acc); border-color:var(--acc); color:#fff; }
+.tickbox:focus{ outline:2px solid var(--acc); outline-offset:2px; }
