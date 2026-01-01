@@ -1772,8 +1772,6 @@ function commitSnippetsFromUI(scope) {
 function renderKList() {
     const s = getSettings();
     const studs = getStudents();
-    const meResolvedRaw = ((s.meResolved || s.me || '') + '').trim();
-
     const isAll = state.viewMode === 'ALL';
     // Build k-grupper (teacher pairs) once; later UI uses this.
     const kGroups = buildKGroups(studs);
@@ -1784,6 +1782,7 @@ function renderKList() {
     // K-lærer-identitet er initialer (persondata-sikkert). Filtrér på elevernes k-lærer-initialer.
     const meRaw = ((s.me || '') + '').trim();
     const meIni = toInitials(meRaw);
+    const meResolvedRaw = meIni || meRaw;
     const minePreview = isAll
       ? studs.slice()
       : (meIni
@@ -2298,6 +2297,19 @@ $('preview').textContent = buildStatement(st, getSettings());
     const legendEl = $('marksLegend');
     if (!wrap || !legendEl) return;
 
+    // Sticky kolonneheader i eksport-tabellen (marks)
+    if (!document.getElementById('marksStickyCss')) {
+      const st = document.createElement('style');
+      st.id = 'marksStickyCss';
+      st.textContent = `
+        #marksTableWrap { overflow:auto; max-height:70vh; }
+        #marksTableWrap table { border-collapse: separate; border-spacing: 0; }
+        #marksTableWrap thead th { position: sticky; top: 0; z-index: 5; background: rgba(14,18,24,0.98); }
+      `;
+      document.head.appendChild(st);
+    }
+
+
     // Keep kGroups cached for K-grp labels
     const kGroups = buildKGroups(studs);
     window.__kGroupsCache = kGroups;
@@ -2400,7 +2412,8 @@ $('preview').textContent = buildStatement(st, getSettings());
                 <td>${escapeHtml(full)}</td>
                 <td class="muted small">${escapeHtml(kgrpLabel(st))}</td>
                 <td class="muted small">${escapeHtml(st.klasse||'')}</td>
-                ${cols.map(c => renderTick(st.unilogin, c, ((m.sang_variant||'')===c))).join('')}
+                ${cols.map(c => renderTick(st.unilogin, c, ((m.gym_variant||'')===c))).join('')}
+                ${roleCodes.map(r => renderTick(st.unilogin, 'role:'+r, (Array.isArray(m.gym_roles)?m.gym_roles:[]).includes(r))).join('')}
               </tr>`;
             }).join('')}
           </tbody>
@@ -2430,7 +2443,7 @@ $('preview').textContent = buildStatement(st, getSettings());
               <td>${escapeHtml(full)}</td>
               <td class="muted small">${escapeHtml(kgrpLabel(st))}</td>
               <td class="muted small">${escapeHtml(st.klasse||'')}</td>
-              ${cols.map(c => renderTick(st.unilogin, c, ((m.sang_variant||'')===c))).join('')}
+              ${cols.map(c => renderTick(st.unilogin, c, ((m.elevraad_variant||'')===c))).join('')}
             </tr>`;
           }).join('')}
         </tbody>
