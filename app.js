@@ -2268,10 +2268,30 @@ function formatTime(ts) {
       $('studentInputMeta').textContent = '';
     }
 
-    $('btnOpenStudentInput').textContent = 'Åbn i nyt vindue';
-    $('btnOpenStudentInput').disabled = !hasInputUrl;
-    $('btnClearStudentInput').disabled = !hasMeta;
-    $('btnPickStudentPdf').textContent = hasMeta ? (hasInputUrl ? 'Skift PDF…' : 'Vælg PDF igen…') : 'Vælg PDF…';
+    const btnPick = $('btnPickStudentPdf');
+    const btnOpen = $('btnOpenStudentInput');
+    const btnClear = $('btnClearStudentInput');
+
+    // PDF-knapper: Som ønsket
+    // - Ingen PDF valgt: vis kun "Vælg PDF…"
+    // - PDF valgt og kan åbnes (har URL): vis "Åbn i nyt vindue" + "Fjern"
+    const hasReadyPdf = !!hasInputUrl;
+
+    if (btnPick) {
+      btnPick.textContent = 'Vælg PDF…';
+      btnPick.style.display = hasReadyPdf ? 'none' : '';
+      btnPick.disabled = false;
+    }
+    if (btnOpen) {
+      btnOpen.textContent = 'Åbn i nyt vindue';
+      btnOpen.style.display = hasReadyPdf ? '' : 'none';
+      btnOpen.disabled = !hasReadyPdf;
+    }
+    if (btnClear) {
+      btnClear.textContent = 'Fjern';
+      btnClear.style.display = hasReadyPdf ? '' : 'none';
+      btnClear.disabled = !hasReadyPdf;
+    }
 
     // PDF preview (session only)
     const pWrap = $('studentInputPreviewWrap');
