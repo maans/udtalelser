@@ -1772,6 +1772,8 @@ function commitSnippetsFromUI(scope) {
 function renderKList() {
     const s = getSettings();
     const studs = getStudents();
+    const meResolvedRaw = ((s.meResolved || s.me || '') + '').trim();
+
     const isAll = state.viewMode === 'ALL';
     // Build k-grupper (teacher pairs) once; later UI uses this.
     const kGroups = buildKGroups(studs);
