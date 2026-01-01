@@ -1653,7 +1653,7 @@ function updateTabLabels(){
       try { renderMarksTable(); } catch (e) { /* no-op */ }
     }
 
-    const meNorm = normalizeName(s.meResolved);
+    const meNorm = normalizeName((s.meResolved || s.me || '').toString());
     if (studs.length && meNorm) {
       const count = studs.filter(st => normalizeName(toInitials(st.kontaktlaerer1_ini)) === meNorm || normalizeName(toInitials(st.kontaktlaerer2_ini)) === meNorm).length;
       $('contactCount').value = String(count);
@@ -2123,7 +2123,7 @@ function formatTime(ts) {
       return g.students.map(st => st.unilogin);
     }
 
-    const meNorm = normalizeName(s.meResolved);
+    const meNorm = normalizeName((s.meResolved || s.me || '').toString());
     if (!studs.length || !meNorm) return [];
     return sortedStudents(studs)
       .filter(st => normalizeName(toInitials(st.kontaktlaerer1_ini)) === meNorm || normalizeName(toInitials(st.kontaktlaerer2_ini)) === meNorm)
@@ -2352,6 +2352,8 @@ $('preview').textContent = buildStatement(st, getSettings());
     }
 
     const type = (typeEl && typeEl.value) ? typeEl.value : 'sang';
+
+    const storageKey = (type === 'sang') ? KEYS.marksSang : (type === 'gym') ? KEYS.marksGym : KEYS.marksElev;
     const q = normalizeName((searchEl && searchEl.value) ? searchEl.value : '').trim();
 
     if (!studs || !studs.length){
@@ -2380,7 +2382,7 @@ $('preview').textContent = buildStatement(st, getSettings());
     }
 
     if (type === 'sang') {
-      const marks = getMarks('sang');
+      const marks = getMarks(KEYS.marksSang);
       $('marksLegend').textContent = '';
       const cols = Object.keys(SNIPPETS.sang);
 
@@ -2410,7 +2412,7 @@ $('preview').textContent = buildStatement(st, getSettings());
     }
 
     if (type === 'gym') {
-      const marks = getMarks('gym');
+      const marks = getMarks(KEYS.marksGym);
       $('marksLegend').textContent = '';
       const cols = Object.keys(SNIPPETS.gym);
       const roleCodes = Object.keys(SNIPPETS.roller || {});
@@ -2443,7 +2445,7 @@ $('preview').textContent = buildStatement(st, getSettings());
     }
 
     // elevraad
-    const marks = getMarks('elevraad');
+    const marks = getMarks(KEYS.marksElev);
     $('marksLegend').textContent = '';
     const cols = Object.keys(SNIPPETS.elevraad);
 
@@ -2834,7 +2836,7 @@ if (document.getElementById('btnDownloadElevraad')) {
       const sorted = sortedStudents(studs);
 
       if (type === 'sang') {
-        const marks = getMarks('sang');
+        const marks = getMarks(KEYS.marksSang);
         const rows = sorted.map(st => {
           const full = `${st.fornavn} ${st.efternavn}`.trim();
           const m = marks[st.unilogin] || {};
@@ -2843,7 +2845,7 @@ if (document.getElementById('btnDownloadElevraad')) {
         downloadText('sang_marks.csv', toCsv(rows, ['Unilogin','Navn','Sang_variant']));
       }
       if (type === 'gym') {
-        const marks = getMarks('gym');
+        const marks = getMarks(KEYS.marksGym);
         const roleCodes = Object.keys(SNIPPETS.roller);
         const headers = ['Unilogin','Navn','Gym_variant', ...roleCodes];
         const rows = sorted.map(st => {
@@ -3003,7 +3005,7 @@ if (document.getElementById('btnDownloadElevraad')) {
         const k = el.getAttribute('data-k');
         if (!u || !k) return;
         const type = (state.marksType || 'sang');
-        const marks = getMarks(type);
+        const marks = getMarks(storageKey);
         marks[u] = marks[u] || {};
 
         if (k.startsWith('role:')) {
@@ -3021,7 +3023,7 @@ if (document.getElementById('btnDownloadElevraad')) {
           else if (marks[u][field] === k) marks[u][field] = '';
         }
 
-        setMarks(type, marks);
+        setMarks(storageKey, marks);
         renderMarksTable();
       });
     }
@@ -3037,7 +3039,7 @@ if (document.getElementById('btnDownloadElevraad')) {
         const k = btn.getAttribute('data-k');
         if (!u || !k) return;
         const type = (state.marksType || 'sang');
-        const marks = getMarks(type);
+        const marks = getMarks(storageKey);
         marks[u] = marks[u] || {};
 
         if (k.startsWith('role:')) {
@@ -3053,7 +3055,7 @@ if (document.getElementById('btnDownloadElevraad')) {
           marks[u][field] = (cur === k) ? '' : k;
         }
 
-        setMarks(type, marks);
+        setMarks(storageKey, marks);
         renderMarksTable();
       });
     }
@@ -3066,7 +3068,7 @@ if (document.getElementById('btnDownloadElevraad')) {
         const type = (state.marksType || 'sang');
         const studs = getStudents() || [];
         if (!studs.length) { alert('Upload elevliste først.'); return; }
-        const marks = getMarks(type) || {};
+        const marks = getMarks(storageKey) || {};
 
         const baseCols = ['UniLogin','Navn','Klasse'];
         let extraCols = [];
