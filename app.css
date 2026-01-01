@@ -255,10 +255,20 @@ button.tickbox{
   cursor:pointer;
   padding:0;
 }
-button.tickbox .check{ opacity:0; font-weight:900; line-height:1; }
-button.tickbox.on .check{ opacity:1; }
-td.cb button.tickbox{ margin:0 auto; }
+button.tickbox .check{
+  opacity:0;
+  font-weight:900;
+  line-height:1;
+  font-size:16px;
+}
+/* vis ✓ både ved class "on" og ved aria-pressed="true" (robust mod partial re-render) */
+button.tickbox.on .check,
+button.tickbox[aria-pressed="true"] .check{ opacity:1; }
+/* let baggrund ved on/pressed så det også kan ses uden ✓ (lav kontrast) */
+button.tickbox.on,
+button.tickbox[aria-pressed="true"]{ background: rgba(255,255,255,.10); }
 
+td.cb button.tickbox{ margin:0 auto; }
 /* Sticky header inside marks scroll area */
 #marksTableWrap table thead th{
   position: sticky;
