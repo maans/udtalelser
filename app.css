@@ -323,6 +323,8 @@ tr:hover td{background: rgba(255,255,255,.02)}
 .markbtn.clear .check { opacity: 1.0; }
 .markbtn.clear:hover { opacity: 1.0; background: rgba(255,255,255,0.06); }
 
+#marksTableWrap table{border-collapse:separate;border-spacing:0;}
+
 /* Sticky header in marks tables */
 #marksTableWrap table thead th {
   position: sticky;

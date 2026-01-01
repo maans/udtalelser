@@ -320,13 +320,12 @@ function exportLocalBackup() {
 function getMyKStudents() {
   const s = getSettings();
   const studs = getStudents();
-  const meResolvedConfirmed = ((s.meResolvedConfirmed || '') + '').trim();
-  const meResolvedRaw = resolveTeacherName(((s.me || '') + '').trim()) || (((s.me || '') + '').trim());
-  const meNorm = normalizeName(meResolvedConfirmed || meResolvedRaw);
-  if (!studs.length || !meNorm) return [];
+  const meIni = toInitials((s.me || '') + '');
+  if (!studs.length || !meIni) return [];
   return sortedStudents(studs)
-    .filter(st => normalizeName(st.kontaktlaerer1) === meNorm || normalizeName(st.kontaktlaerer2) === meNorm);
+    .filter(st => toInitials(st.kontaktlaerer1_ini) === meIni || toInitials(st.kontaktlaerer2_ini) === meIni);
 }
+
 
 // --- Print: force single-student print to always fit on ONE A4 page by scaling down.
 // Strategy: compute available content height (A4 minus margins = 261mm) in px,
@@ -797,8 +796,8 @@ function reverseResolveTeacherInitials(nameOrInitials) {
 }
 
 function groupKeyFromTeachers(k1Raw, k2Raw) {
-  const a = toInitials(resolveTeacherName(k1Raw) || k1Raw);
-  const b = toInitials(resolveTeacherName(k2Raw) || k2Raw);
+  const a = toInitials(k1Raw);
+  const b = toInitials(k2Raw);
   const parts = [a,b].filter(Boolean).sort((x,y)=>x.localeCompare(y,'da'));
   return parts.length ? parts.join('/') : '—';
 }
@@ -806,7 +805,7 @@ function groupKeyFromTeachers(k1Raw, k2Raw) {
 function buildKGroups(students) {
   const groups = new Map();
   for (const st of students) {
-    const key = groupKeyFromTeachers(st.kontaktlaerer1||'', st.kontaktlaerer2||'');
+    const key = groupKeyFromTeachers(st.kontaktlaerer1_ini||'', st.kontaktlaerer2_ini||'');
     if (!groups.has(key)) groups.set(key, {key, students: []});
     groups.get(key).students.push(st);
   }
@@ -832,8 +831,8 @@ function buildKGroups(students) {
 function computeMissingKTeacher(students) {
   const miss = [];
   for (const st of students) {
-    const k1 = ((st.kontaktlaerer1||'')+'').trim();
-    const k2 = ((st.kontaktlaerer2||'')+'').trim();
+    const k1 = ((st.kontaktlaerer1_ini||'')+'').trim();
+    const k2 = ((st.kontaktlaerer2_ini||'')+'').trim();
     if (!k1 && !k2) miss.push(st);
   }
   return miss;
@@ -864,8 +863,8 @@ function updateTeacherDatalist() {
 
   const set = new Set();
   for (const st of studs) {
-    const a = (st.kontaktlaerer1 || '').toString().trim().toUpperCase();
-    const b = (st.kontaktlaerer2 || '').toString().trim().toUpperCase();
+    const a = (st.kontaktlaerer1_ini || '').toString().trim().toUpperCase();
+    const b = (st.kontaktlaerer2_ini || '').toString().trim().toUpperCase();
     if (a) set.add(a);
     if (b) set.add(b);
   }
@@ -994,7 +993,7 @@ function initMarksSearchPicker(){
     const coll = new Intl.Collator('da', {sensitivity:'base'});
     items = studs.slice().sort((a,b)=>coll.compare((a.efternavn||'')+' '+(a.fornavn||''),(b.efternavn||'')+' '+(b.fornavn||''))).map(st=>{
       const full = `${(st.fornavn||'').trim()} ${(st.efternavn||'').trim()}`.trim();
-      return { full, unilogin: (st.unilogin||'').trim(), kgrp: groupKeyFromTeachers(st.kontaktlaerer1||'', st.kontaktlaerer2||'') };
+      return { full, unilogin: (st.unilogin||'').trim(), kgrp: groupKeyFromTeachers(st.kontaktlaerer1_ini||'', st.kontaktlaerer2_ini||'') };
     });
   }
 
@@ -1012,6 +1011,7 @@ function initMarksSearchPicker(){
       row.className = 'tpItem';
       row.setAttribute('role','option');
       row.dataset.value = it.unilogin || it.full;
+      row.setAttribute('data-full', it.full || '');
       row.innerHTML = `<div class="tpLeft">${escapeHtml(it.full)}</div><div class="tpRight">${escapeHtml(it.kgrp||'')}</div>`;
       row.addEventListener('mousedown', (e) => {
         e.preventDefault();
@@ -1052,13 +1052,16 @@ function initMarksSearchPicker(){
   }
 
   input.addEventListener('keydown', (e) => {
-    if (!wrap.classList.contains('open')) return;
-    if (e.key === 'ArrowDown'){ e.preventDefault(); setActive(activeIndex+1); }
-    else if (e.key === 'ArrowUp'){ e.preventDefault(); setActive(activeIndex-1); }
-    else if (e.key === 'Escape'){ e.preventDefault(); closeMenu(); }
-    else if (e.key === 'Enter'){
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      if (!wrap.classList.contains('open')) openMenu();
+      e.preventDefault();
+      setActive(activeIndex + (e.key === 'ArrowDown' ? 1 : -1));
+      return;
+    }
+    if (e.key === 'Escape') { e.preventDefault(); closeMenu(); return; }
+    if (e.key === 'Enter') {
       const el = menu.querySelectorAll('[role="option"]')[activeIndex];
-      if (el){ e.preventDefault(); commit(el.textContent.trim()); closeMenu(); }
+      if (el){ e.preventDefault(); commit((el.getAttribute('data-full') || el.dataset.full || el.textContent || '').trim()); closeMenu(); }
     }
   });
 
@@ -1426,10 +1429,10 @@ function setStudents(studs){ lsSet(KEYS.students, studs); rebuildAliasMapFromStu
 "KGRUPPE_FRI": (free.kgruppe || ''),
 "KONTAKTGRUPPE_ANTAL": String(settings.contactGroupCount || (window.__ALL_STUDENTS__ ? window.__ALL_STUDENTS__.length : "") || ''),
 "KONTAKTGRUPPE_BESKRIVELSE": (free.kgruppe || SNIPPETS.kontaktgruppeDefault || ''),
-"KONTAKTLAERER_1_NAVN": (student.kontaktlaerer1 || '').trim(),
-"KONTAKTLAERER_2_NAVN": (student.kontaktlaerer2 || '').trim(),
-      "KONTAKTLÆRER_1_NAVN": (student.kontaktlaerer1 || '').trim(),
-      "KONTAKTLÆRER_2_NAVN": (student.kontaktlaerer2 || '').trim(),
+"KONTAKTLAERER_1_NAVN": ((student.kontaktlaerer1 || '') + '').trim(),
+"KONTAKTLAERER_2_NAVN": ((student.kontaktlaerer2 || '') + '').trim(),
+      "KONTAKTLÆRER_1_NAVN": ((student.kontaktlaerer1 || '') + '').trim(),
+      "KONTAKTLÆRER_2_NAVN": ((student.kontaktlaerer2 || '') + '').trim(),
 "FORSTANDER_NAVN": settings.forstanderName || '',
 
       "HAN_HUN": pr.HAN_HUN,
@@ -1506,7 +1509,10 @@ function setStudents(studs){ lsSet(KEYS.students, studs); rebuildAliasMapFromStu
     const ini2 = (get('ini2') || '').trim();
     const k1 = ini1 ? ini1.toUpperCase() : toInitials(get('kontakt1'));
     const k2 = ini2 ? ini2.toUpperCase() : toInitials(get('kontakt2'));
-    return { fornavn, efternavn, unilogin, koen, klasse, kontaktlaerer1: k1, kontaktlaerer2: k2 };
+    const kontakt1_navn = get('kontakt1');
+    const kontakt2_navn = get('kontakt2');
+    const navn = `${fornavn} ${efternavn}`.trim();
+    return { fornavn, efternavn, navn, unilogin, koen, klasse, kontaktlaerer1: kontakt1_navn, kontaktlaerer2: kontakt2_navn, kontaktlaerer1_ini: k1, kontaktlaerer2_ini: k2 };
   }
 
   // ---------- UI rendering ----------
@@ -1649,7 +1655,7 @@ function updateTabLabels(){
 
     const meNorm = normalizeName(s.meResolved);
     if (studs.length && meNorm) {
-      const count = studs.filter(st => normalizeName(st.kontaktlaerer1) === meNorm || normalizeName(st.kontaktlaerer2) === meNorm).length;
+      const count = studs.filter(st => normalizeName(toInitials(st.kontaktlaerer1_ini)) === meNorm || normalizeName(toInitials(st.kontaktlaerer2_ini)) === meNorm).length;
       $('contactCount').value = String(count);
       // persist contact group count for placeholders
       const s0 = getSettings();
@@ -1707,7 +1713,7 @@ function renderSnippetsEditor() {
           <label>Tekst</label>
           <textarea class="roleText" rows="3">${escapeHtml((it.text_m || it.text_k || ''))}</textarea>
         </div>
-        <button class="btn danger" type="button" data-remove-role="${escapeHtml(key)}">Slet</button>
+        
       </div>
     `;
     list.appendChild(row);
@@ -1773,17 +1779,13 @@ function renderKList() {
     if (state.kGroupIndex < 0) state.kGroupIndex = 0;
     if (state.kGroupIndex > Math.max(0, kGroups.length-1)) state.kGroupIndex = Math.max(0, kGroups.length-1);
 
-    // Resolve teacher input via alias-map (MM -> Måns ...) for both filtering and UI.
+    // K-lærer-identitet er initialer (persondata-sikkert). Filtrér på elevernes k-lærer-initialer.
     const meRaw = ((s.me || '') + '').trim();
-    const meResolvedRaw = resolveTeacherName(meRaw) || meRaw;
+    const meIni = toInitials(meRaw);
     const minePreview = isAll
       ? studs.slice()
-      : (meResolvedRaw
-        ? studs.filter(st => {
-            const k1 = resolveTeacherName((st.kontaktlaerer1 || '') + '');
-            const k2 = resolveTeacherName((st.kontaktlaerer2 || '') + '');
-            return (k1 && k1 === meResolvedRaw) || (k2 && k2 === meResolvedRaw);
-          })
+      : (meIni
+        ? studs.filter(st => toInitials(st.kontaktlaerer1_ini) === meIni || toInitials(st.kontaktlaerer2_ini) === meIni)
         : []);
     const kBox = $('kMessage');
     const kMsg = $('kMsgHost');
@@ -1968,7 +1970,7 @@ if (gi < totalGroups - 1) {
     // - ALL mode: show current K-gruppe (state.kGroupIndex)
     const mineList = isAll
       ? ((kGroups[state.kGroupIndex] && kGroups[state.kGroupIndex].students) ? kGroups[state.kGroupIndex].students.slice() : [])
-      : sortedStudents(studs).filter(st => normalizeName(st.kontaktlaerer1) === meNorm || normalizeName(st.kontaktlaerer2) === meNorm);
+      : sortedStudents(studs).filter(st => normalizeName(toInitials(st.kontaktlaerer1_ini)) === meNorm || normalizeName(toInitials(st.kontaktlaerer2_ini)) === meNorm);
     // Sortér altid alfabetisk efter fornavn i den viste liste
     mineList.sort((a,b)=>(a.fornavn||'').localeCompare(b.fornavn||'', 'da') || (a.efternavn||'').localeCompare(b.efternavn||'', 'da'));
 
@@ -2123,7 +2125,7 @@ function formatTime(ts) {
     const meNorm = normalizeName(s.meResolved);
     if (!studs.length || !meNorm) return [];
     return sortedStudents(studs)
-      .filter(st => normalizeName(st.kontaktlaerer1) === meNorm || normalizeName(st.kontaktlaerer2) === meNorm)
+      .filter(st => normalizeName(toInitials(st.kontaktlaerer1_ini)) === meNorm || normalizeName(toInitials(st.kontaktlaerer2_ini)) === meNorm)
       .map(st => st.unilogin);
   }
 
@@ -2334,31 +2336,17 @@ $('preview').textContent = buildStatement(st, getSettings());
 
     const kgrpLabel = (st) => {
       // Always show initials-based group key (e.g. AB/EB), even if CSV stores full teacher names.
-      const a = (st.k1 || st.k_l1 || st.kontaktlaerer1 || st.kontaktlærer1 || st.k_lærer1 || '').toString().trim();
-      const b = (st.k2 || st.k_l2 || st.kontaktlaerer2 || st.kontaktlærer2 || st.k_lærer2 || '').toString().trim();
+      const a = (st.kontaktlaerer1_ini || '').toString().trim();
+      const b = (st.kontaktlaerer2_ini || '').toString().trim();
       return groupKeyFromTeachers(a, b);
     };
 
-    function renderRowCheckbox(unilogin, key, checked){
-      return `<td class="cb"><input type="checkbox" data-uni="${escapeAttr(unilogin)}" data-key="${escapeAttr(key)}" ${checked?'checked':''} aria-label="${escapeAttr(key)}" /></td>`;
-    }
-
-    function bindCheckboxes(storeKey){
-      wrap.querySelectorAll('input[type="checkbox"][data-uni]').forEach(cb=>{
-        cb.onchange = ()=>{
-          const uni = cb.dataset.uni;
-          const key = cb.dataset.key;
-          const marks = getMarks(storeKey);
-          const prev = marks[uni] || {};
-          const next = { ...prev, [key]: cb.checked ? '1' : '' };
-          marks[uni] = next;
-          setMarks(storeKey, marks);
-        };
-      });
+    function renderTick(unilogin, key, on){
+      return `<td class="cb"><button type="button" class="markbtn tickbox ${on?'on':''}" data-u="${escapeAttr(unilogin)}" data-k="${escapeAttr(key)}" aria-pressed="${on?'true':'false'}"><span class="check">✓</span></button></td>`;
     }
 
     if (type === 'sang') {
-      const marks = getMarks(KEYS.marksSang);
+      const marks = getMarks('sang');
       $('marksLegend').textContent = '';
       const cols = Object.keys(SNIPPETS.sang);
 
@@ -2378,20 +2366,20 @@ $('preview').textContent = buildStatement(st, getSettings());
                 <td>${escapeHtml(full)}</td>
                 <td class="muted small">${escapeHtml(kgrpLabel(st))}</td>
                 <td class="muted small">${escapeHtml(st.klasse||'')}</td>
-                ${cols.map(c => renderRowCheckbox(st.unilogin, c, !!m[c])).join('')}
+                ${cols.map(c => renderTick(st.unilogin, c, ((m.sang_variant||'')===c))).join('')}
               </tr>`;
             }).join('')}
           </tbody>
         </table>
       `;
-      bindCheckboxes(KEYS.marksSang);
       return;
     }
 
     if (type === 'gym') {
-      const marks = getMarks(KEYS.marksGym);
+      const marks = getMarks('gym');
       $('marksLegend').textContent = '';
       const cols = Object.keys(SNIPPETS.gym);
+      const roleCodes = Object.keys(SNIPPETS.roller || {});
 
       wrap.innerHTML = `
         <table>
@@ -2399,6 +2387,7 @@ $('preview').textContent = buildStatement(st, getSettings());
             <tr>
               <th>Navn</th><th>K-grp</th><th>Klasse</th>
               ${cols.map(c => `<th class="cb" title="${escapeAttr(SNIPPETS.gym[c].hint||'')}"><span class="muted small">${escapeHtml(SNIPPETS.gym[c].title||'')}</span></th>`).join('')}
+              ${roleCodes.map(r => `<th class="cb" title="${escapeAttr((SNIPPETS.roller[r]||{}).hint||'')}"><span class="muted small">${escapeHtml((SNIPPETS.roller[r]||{}).title||r)}</span></th>`).join('')}
             </tr>
           </thead>
           <tbody>
@@ -2409,18 +2398,17 @@ $('preview').textContent = buildStatement(st, getSettings());
                 <td>${escapeHtml(full)}</td>
                 <td class="muted small">${escapeHtml(kgrpLabel(st))}</td>
                 <td class="muted small">${escapeHtml(st.klasse||'')}</td>
-                ${cols.map(c => renderRowCheckbox(st.unilogin, c, !!m[c])).join('')}
+                ${cols.map(c => renderTick(st.unilogin, c, ((m.sang_variant||'')===c))).join('')}
               </tr>`;
             }).join('')}
           </tbody>
         </table>
       `;
-      bindCheckboxes(KEYS.marksGym);
       return;
     }
 
     // elevraad
-    const marks = getMarks(KEYS.marksElevraad);
+    const marks = getMarks('elevraad');
     $('marksLegend').textContent = '';
     const cols = Object.keys(SNIPPETS.elevraad);
 
@@ -2440,13 +2428,12 @@ $('preview').textContent = buildStatement(st, getSettings());
               <td>${escapeHtml(full)}</td>
               <td class="muted small">${escapeHtml(kgrpLabel(st))}</td>
               <td class="muted small">${escapeHtml(st.klasse||'')}</td>
-              ${cols.map(c => renderRowCheckbox(st.unilogin, c, !!m[c])).join('')}
+              ${cols.map(c => renderTick(st.unilogin, c, ((m.sang_variant||'')===c))).join('')}
             </tr>`;
           }).join('')}
         </tbody>
       </table>
     `;
-    bindCheckboxes(KEYS.marksElevraad);
 }
 
   async function importMarksFile(e, kind) {
@@ -2812,7 +2799,7 @@ if (document.getElementById('btnDownloadElevraad')) {
       const sorted = sortedStudents(studs);
 
       if (type === 'sang') {
-        const marks = getMarks(KEYS.marksSang);
+        const marks = getMarks('sang');
         const rows = sorted.map(st => {
           const full = `${st.fornavn} ${st.efternavn}`.trim();
           const m = marks[st.unilogin] || {};
@@ -2821,7 +2808,7 @@ if (document.getElementById('btnDownloadElevraad')) {
         downloadText('sang_marks.csv', toCsv(rows, ['Unilogin','Navn','Sang_variant']));
       }
       if (type === 'gym') {
-        const marks = getMarks(KEYS.marksGym);
+        const marks = getMarks('gym');
         const roleCodes = Object.keys(SNIPPETS.roller);
         const headers = ['Unilogin','Navn','Gym_variant', ...roleCodes];
         const rows = sorted.map(st => {
@@ -3004,6 +2991,38 @@ if (document.getElementById('btnDownloadElevraad')) {
       });
     }
 
+    // Tick-buttons (erstatter checkboxes)
+    if (marksWrap && !marksWrap.__wiredClick) {
+      marksWrap.__wiredClick = true;
+      marksWrap.addEventListener('click', (e) => {
+        const btn = e.target && (e.target.closest ? e.target.closest('button.tickbox[data-u][data-k]') : null);
+        if (!btn) return;
+        e.preventDefault();
+        const u = btn.getAttribute('data-u');
+        const k = btn.getAttribute('data-k');
+        if (!u || !k) return;
+        const type = (state.marksType || 'sang');
+        const marks = getMarks(type);
+        marks[u] = marks[u] || {};
+
+        if (k.startsWith('role:')) {
+          const roleKey = k.slice(5);
+          const arr = Array.isArray(marks[u].gym_roles) ? marks[u].gym_roles : [];
+          const has = arr.includes(roleKey);
+          if (has) arr.splice(arr.indexOf(roleKey), 1);
+          else arr.push(roleKey);
+          marks[u].gym_roles = arr;
+        } else {
+          const field = (type === 'gym') ? 'gym_variant' : (type === 'elevraad' ? 'elevraad_variant' : 'sang_variant');
+          const cur = (marks[u][field] || '');
+          marks[u][field] = (cur === k) ? '' : k;
+        }
+
+        setMarks(type, marks);
+        renderMarksTable();
+      });
+    }
+
     // Eksportér CSV
     const btnExport = document.getElementById('btnExportMarksCSV');
     if (btnExport && !btnExport.__wired) {
@@ -3085,7 +3104,7 @@ if (document.getElementById('btnDownloadElevraad')) {
 
     const s = getSettings();
     if (s.me && !s.meResolved) {
-      s.meResolved = resolveTeacherName(s.me);
+      s.meResolved = toInitials(s.me);
       setSettings(s);
     }
     // Top: Hjælp-knap
