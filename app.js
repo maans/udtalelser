@@ -2381,7 +2381,8 @@ $('preview').textContent = buildStatement(st, getSettings());
     function renderTick(unilogin, key, on){
       const pressed = on ? 'true' : 'false';
       const cls = 'tickbox' + (on ? ' on' : '');
-      return `<td class="cb"><button type="button" class="${cls}" data-u="${escapeHtml(unilogin)}" data-k="${escapeHtml(key)}" aria-pressed="${pressed}"><span class="check">✓</span></button></td>`;
+      // data-u/data-k bruges af click-handleren på marks-tabellen
+      return `<td class="cb"><button type="button" class="${cls}" data-u="${escapeAttr(unilogin)}" data-k="${escapeAttr(key)}" aria-pressed="${pressed}"><span class="check">✓</span></button></td>`;
     }
 
 
