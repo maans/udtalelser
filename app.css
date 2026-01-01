@@ -578,3 +578,27 @@ td.cb { width: 56px; text-align: center; }
 .markBtn .empty { font-size: 14px; line-height: 1; opacity: .25; }
 .markBtn[aria-pressed="true"] .empty { opacity: 0; }
 
+/* --- Tick buttons: higher contrast in dark theme --- */
+.tickbox{
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 1px solid rgba(255,255,255,0.25);
+  background: rgba(0,0,0,0.35);
+}
+.tickbox .check{
+  font-size: 16px;
+  line-height: 1;
+  color: rgba(255,255,255,0.95);
+  text-shadow: 0 0 6px rgba(0,0,0,0.8);
+}
+.tickbox.on,
+.tickbox[aria-pressed="true"]{
+  border-color: rgba(140,200,255,0.8);
+  background: rgba(40,120,200,0.35);
+  box-shadow: 0 0 0 1px rgba(140,200,255,0.35), 0 0 10px rgba(60,140,220,0.25);
+}
+.tickbox.on .check,
+.tickbox[aria-pressed="true"] .check{
+  color: #fff;
+}
