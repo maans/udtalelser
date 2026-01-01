@@ -242,6 +242,31 @@ select option{
 table{width:100%; border-collapse: collapse; font-size:.95rem}
 th,td{border-bottom:1px solid rgba(42,47,58,.8); padding:.55rem .6rem; vertical-align: top}
 
+
+/* Tick buttons (marks) */
+button.tickbox{
+  width:22px; height:22px;
+  border:1px solid rgba(255,255,255,.25);
+  background:transparent;
+  border-radius:6px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  padding:0;
+}
+button.tickbox .check{ opacity:0; font-weight:900; line-height:1; }
+button.tickbox.on .check{ opacity:1; }
+td.cb button.tickbox{ margin:0 auto; }
+
+/* Sticky header inside marks scroll area */
+#marksTableWrap table thead th{
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: rgba(15,17,21,.98);
+}
+
 /* Marks tables: checkbox columns */
 td.cb, th.cb { text-align:center; width:1%; white-space:nowrap; }
 td.cb input[type="checkbox"] { transform: translateY(1px); }

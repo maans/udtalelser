@@ -1409,6 +1409,7 @@ function setStudents(studs){ lsSet(KEYS.students, studs); rebuildAliasMapFromStu
       "SKOLENS_STANDARDTEKST": tpls.schoolText || '',
       "SANG_AFSNIT": sangAfsnit,
       "GYM_AFSNIT": gymAfsnit,
+      "SANG_GYM_AFSNIT": [sangAfsnit, gymAfsnit].filter(Boolean).join("\n\n"),
       "ELEVRAAD_AFSNIT": elevraadAfsnit,
       "ROLLE_AFSNIT": rolleAfsnit,
 
@@ -2380,9 +2381,9 @@ $('preview').textContent = buildStatement(st, getSettings());
     function renderTick(unilogin, key, on){
       const pressed = on ? 'true' : 'false';
       const cls = 'tickbox' + (on ? ' on' : '');
-      // data-u/data-k bruges af click-handleren på marks-tabellen
       return `<td class="cb"><button type="button" class="${cls}" data-u="${escapeHtml(unilogin)}" data-k="${escapeHtml(key)}" aria-pressed="${pressed}"><span class="check">✓</span></button></td>`;
     }
+
 
 
     if (type === 'sang') {
