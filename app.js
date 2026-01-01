@@ -1144,10 +1144,11 @@ function initMarksSearchPicker(){
     if (menu.hidden) openMenu(); else closeMenu();
   }
 
+
   // Init listeners once
-  if (!window.__TEACHER_PICKER_INIT__){
-    window.__TEACHER_PICKER_INIT__ = true;
-    btn.addEventListener('click', (e) => { e.preventDefault(); toggleMenu(); input.focus(); });
+  if (!window.__MARKS_SEARCH_PICKER_INIT__){
+    window.__MARKS_SEARCH_PICKER_INIT__ = true;
+    const _btn = document.getElementById('marksSearchBtn'); if (_btn) _btn.addEventListener('click', (e) => { e.preventDefault(); toggleMenu(); input.focus(); });
     if (clear){
       clear.addEventListener('click', (e) => {
         e.preventDefault();
