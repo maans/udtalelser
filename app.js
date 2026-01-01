@@ -2378,8 +2378,12 @@ $('preview').textContent = buildStatement(st, getSettings());
     };
 
     function renderTick(unilogin, key, on){
-      return `<td class="cb"><button type="button" class="markbtn tickbox ${on?'on':''}" data-u="${escapeAttr(unilogin)}" data-k="${escapeAttr(key)}" aria-pressed="${on?'true':'false'}"><span class="check">✓</span></button></td>`;
+      const pressed = on ? 'true' : 'false';
+      const cls = 'tickbox' + (on ? ' on' : '');
+      // data-u/data-k bruges af click-handleren på marks-tabellen
+      return `<td class="cb"><button type="button" class="${cls}" data-u="${escapeHtml(unilogin)}" data-k="${escapeHtml(key)}" aria-pressed="${pressed}"><span class="check">✓</span></button></td>`;
     }
+
 
     if (type === 'sang') {
       const marks = getMarks(KEYS.marksSang);
@@ -3005,6 +3009,7 @@ if (document.getElementById('btnDownloadElevraad')) {
         const k = el.getAttribute('data-k');
         if (!u || !k) return;
         const type = (state.marksType || 'sang');
+        const storageKey = (type === 'gym') ? KEYS.marksGym : (type === 'elevraad' ? KEYS.marksElev : KEYS.marksSang);
         const marks = getMarks(storageKey);
         marks[u] = marks[u] || {};
 
@@ -3039,6 +3044,7 @@ if (document.getElementById('btnDownloadElevraad')) {
         const k = btn.getAttribute('data-k');
         if (!u || !k) return;
         const type = (state.marksType || 'sang');
+        const storageKey = (type === 'gym') ? KEYS.marksGym : (type === 'elevraad' ? KEYS.marksElev : KEYS.marksSang);
         const marks = getMarks(storageKey);
         marks[u] = marks[u] || {};
 
@@ -3066,6 +3072,7 @@ if (document.getElementById('btnDownloadElevraad')) {
       btnExport.__wired = true;
       btnExport.addEventListener('click', () => {
         const type = (state.marksType || 'sang');
+        const storageKey = (type === 'gym') ? KEYS.marksGym : (type === 'elevraad' ? KEYS.marksElev : KEYS.marksSang);
         const studs = getStudents() || [];
         if (!studs.length) { alert('Upload elevliste først.'); return; }
         const marks = getMarks(storageKey) || {};
