@@ -1143,26 +1143,6 @@ function initMarksSearchPicker(){
   function toggleMenu(){
     if (menu.hidden) openMenu(); else closeMenu();
   }
-
-
-  // Init listeners once
-  if (!window.__MARKS_SEARCH_PICKER_INIT__){
-    window.__MARKS_SEARCH_PICKER_INIT__ = true;
-    const _btn = document.getElementById('marksSearchBtn'); if (_btn) _btn.addEventListener('click', (e) => { e.preventDefault(); toggleMenu(); input.focus(); });
-    if (clear){
-      clear.addEventListener('click', (e) => {
-        e.preventDefault();
-        input.value = '';
-        const s2 = getSettings();
-        s2.me = '';
-        s2.meResolved = '';
-        s2.meResolvedConfirmed = '';
-        setSettings(s2);
-        renderStatus();
-        closeMenu();
-        input.focus();
-      });
-    }
     input.addEventListener('focus', () => openMenu());
     input.addEventListener('input', () => { if (menu.hidden) openMenu(); else renderMenu(); });
 
