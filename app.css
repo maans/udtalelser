@@ -541,9 +541,3 @@ td.cb { width: 56px; text-align: center; }
 .markBtn .empty { font-size: 14px; line-height: 1; opacity: .25; }
 .markBtn[aria-pressed="true"] .empty { opacity: 0; }
 
-
-
-/* Tick buttons (replace checkboxes) */
-.tickbox{ display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border:1px solid var(--bd); border-radius:8px; background:transparent; color:transparent; cursor:pointer; user-select:none; }
-.tickbox.on{ background:var(--acc); border-color:var(--acc); color:#fff; }
-.tickbox:focus{ outline:2px solid var(--acc); outline-offset:2px; }

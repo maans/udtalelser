@@ -21,10 +21,10 @@
 	// Backwards-compat alias (older builds referenced KEY_MARKS_TYPE directly)
 	const KEY_MARKS_TYPE = KEYS.marksType;
 
-    // NOTE: No hardcoded teacher directory in v1.0 (privacy). Teachers/identity are derived from imported students.csv
-  const TEACHER_ALIAS_MAP = {};
+  const TEACHER_ALIAS_MAP = {}; // v1.0: no hardcoded teacher directory (persondata-safe)
 
-let SNIPPETS = {
+
+  let SNIPPETS = {
     sang: {
       "S1": {
         "title": "Sang – niveau 1",
@@ -89,8 +89,10 @@ let SNIPPETS = {
 
   // Backwards compatibility: some code paths still reference DEFAULT_ALIAS_MAP.
   // Keep it as an alias of TEACHER_ALIAS_MAP.
-    const DEFAULT_ALIAS_MAP = {};
-const SNIPPETS_DEFAULT = JSON.parse(JSON.stringify(SNIPPETS));
+  const DEFAULT_ALIAS_MAP = {}; // v1.0: no defaults
+
+
+    const SNIPPETS_DEFAULT = JSON.parse(JSON.stringify(SNIPPETS));
 
 const DEFAULT_SCHOOL_TEXT =
 `På Himmerlands Ungdomsskole arbejder vi med både faglighed, fællesskab og personlig udvikling.
@@ -318,12 +320,13 @@ function exportLocalBackup() {
 function getMyKStudents() {
   const s = getSettings();
   const studs = getStudents();
-  const meIni = (((s.me || "") + "").trim()).toUpperCase();
-  if (!studs.length || !meIni) return [];
+  const meResolvedConfirmed = ((s.meResolvedConfirmed || '') + '').trim();
+  const meResolvedRaw = resolveTeacherName(((s.me || '') + '').trim()) || (((s.me || '') + '').trim());
+  const meNorm = normalizeName(meResolvedConfirmed || meResolvedRaw);
+  if (!studs.length || !meNorm) return [];
   return sortedStudents(studs)
-    .filter(st => getStudentKInitials(st,1) === meIni || getStudentKInitials(st,2) === meIni);
+    .filter(st => normalizeName(st.kontaktlaerer1) === meNorm || normalizeName(st.kontaktlaerer2) === meNorm);
 }
-
 
 // --- Print: force single-student print to always fit on ONE A4 page by scaling down.
 // Strategy: compute available content height (A4 minus margins = 261mm) in px,
@@ -736,26 +739,48 @@ function getAllTeacherNamesFromStudents() {
 }
 
 function resolveTeacherMatch(raw) {
+  const s = getSettings();
   const input = (raw ?? "").toString().trim();
   if (!input) return { raw: "", resolved: "" };
-  // In v1.0 we do not resolve to full names. We treat input as either initials or a free-form name.
+
+  // Merge alias maps, but let DEFAULT_ALIAS_MAP win to avoid stale/wrong mappings in localStorage.
+  const aliasMap = { ...(s && s.aliasMap ? s.aliasMap : {}), ...DEFAULT_ALIAS_MAP };
+  const key = normalizeName(input).replace(/\s+/g, "");
+  if (aliasMap && aliasMap[key]) {
+    return { raw: input, resolved: aliasMap[key] };
+  }
+
+  const all = getAllTeacherNamesFromStudents();
+  const nIn = normalizeName(input);
+  const exact = all.find(n => normalizeName(n) === nIn);
+  if (exact) return { raw: input, resolved: exact };
+
+  // Partial match: allow "Måns" -> "Måns Patrik Mårtensson" etc.
+  const partial = all.filter(n => normalizeName(n).includes(nIn));
+  if (partial.length === 1) return { raw: input, resolved: partial[0] };
+
   return { raw: input, resolved: input };
 }
 
+function resolveTeacherName(raw) {
+  return resolveTeacherMatch(raw).resolved;
+}
 
-function resolveTeacherName(raw) { return ((raw ?? "") + "").trim(); }
 function toInitials(raw) {
-  const s = ((raw||"")+"").trim();
+  // v1.0: generic initials, no name-based special cases (persondata-safe)
+  const s = (raw ?? "").toString().trim();
   if (!s) return "";
   const up = s.toUpperCase();
-  // If it already looks like initials (1-4 letters), keep it.
+
+  // If it already looks like initials (1–4 letters), keep it
   if (/^[A-ZÆØÅ]{1,4}$/.test(up)) return up;
-  // Otherwise derive: first letter of first word + first letter of last word.
+
+  // Otherwise: first letter of first word + first letter of last word
   const parts = up.split(/[^A-ZÆØÅ]+/).filter(Boolean);
   if (!parts.length) return "";
-  const a = parts[0][0] || "";
-  const b = parts[parts.length-1][0] || "";
-  return (a + b).toUpperCase();
+  const first = parts[0][0] || "";
+  const last = parts[parts.length - 1][0] || "";
+  return (first + last).toUpperCase();
 }
 
 
@@ -772,27 +797,16 @@ function reverseResolveTeacherInitials(nameOrInitials) {
 }
 
 function groupKeyFromTeachers(k1Raw, k2Raw) {
-    const a = toInitials(k1Raw);
-  const b = toInitials(k2Raw);
-const parts = [a,b].filter(Boolean).sort((x,y)=>x.localeCompare(y,'da'));
+  const a = toInitials(resolveTeacherName(k1Raw) || k1Raw);
+  const b = toInitials(resolveTeacherName(k2Raw) || k2Raw);
+  const parts = [a,b].filter(Boolean).sort((x,y)=>x.localeCompare(y,'da'));
   return parts.length ? parts.join('/') : '—';
 }
-
-function getStudentKInitials(st, which){
-  if (!st) return '';
-  if (which === 1) {
-    const ov = ((st.kontaktlaerer1_initialer||'')+'').trim().toUpperCase();
-    return ov || toInitials(st.kontaktlaerer1||'');
-  }
-  const ov = ((st.kontaktlaerer2_initialer||'')+'').trim().toUpperCase();
-  return ov || toInitials(st.kontaktlaerer2||'');
-}
-
 
 function buildKGroups(students) {
   const groups = new Map();
   for (const st of students) {
-        const key = groupKeyFromTeachers(getStudentKInitials(st,1), getStudentKInitials(st,2));
+    const key = groupKeyFromTeachers(st.kontaktlaerer1||'', st.kontaktlaerer2||'');
     if (!groups.has(key)) groups.set(key, {key, students: []});
     groups.get(key).students.push(st);
   }
@@ -826,159 +840,66 @@ function computeMissingKTeacher(students) {
 }
 
 function updateTeacherDatalist() {
-  const input = document.getElementById("meInput");
-  const menu  = document.getElementById("teacherPickerMenu");
-  const btn   = document.getElementById("teacherPickerBtn");
-  const wrap  = document.getElementById("teacherPicker");
-  const clear = document.getElementById("meInputClear");
+  // v1.0: Identitet-listen bygges udelukkende ud fra elevlisten (initialer), ingen hardcodede lærere.
+  const input = document.getElementById('meInput');
+  const menu  = document.getElementById('teacherPickerMenu');
+  const btn   = document.getElementById('teacherPickerBtn');
+  const wrap  = document.getElementById('teacherPicker');
+  const clear = document.getElementById('meInputClear');
   if (!input || !menu || !btn || !wrap) return;
 
   const studs = getStudents();
-  const hasStudents = Array.isArray(studs) && studs.length > 0;
-
-  // Disable if no students imported yet
-  input.disabled = !hasStudents;
-  btn.disabled = !hasStudents;
-  if (!hasStudents) {
-    input.value = "";
-    input.placeholder = "Indlæs elevliste først";
-    menu.innerHTML = "";
+  if (!studs.length) {
+    input.value = '';
+    input.disabled = true;
+    btn.disabled = true;
+    if (clear) clear.hidden = true;
+    menu.innerHTML = `<div class="pickerEmpty">Indlæs elevliste først (students.csv).</div>`;
+    wrap.classList.remove('open');
     return;
   }
-  input.placeholder = "fx AB, MTP";
 
-  // Build unique teacher initials from students
+  input.disabled = false;
+  btn.disabled = false;
+
   const set = new Set();
   for (const st of studs) {
-    const a = getStudentKInitials(st,1);
-    const b = getStudentKInitials(st,2);
+    const a = (st.kontaktlaerer1 || '').toString().trim().toUpperCase();
+    const b = (st.kontaktlaerer2 || '').toString().trim().toUpperCase();
     if (a) set.add(a);
     if (b) set.add(b);
   }
-  const items = Array.from(set).sort((x,y)=> x.localeCompare(y, "da"));
+  const items = Array.from(set).sort((x,y)=>x.localeCompare(y,'da'));
 
-  // Render menu
-  const render = (filter="") => {
-    const f = (filter||"").trim().toUpperCase();
-    const filtered = !f ? items : items.filter(x => x.includes(f));
-    menu.innerHTML = filtered.map(code => `<div class="pickerItem" role="option" data-value="${escapeAttr(code)}">${escapeHtml(code)}</div>`).join("") || `<div class="pickerEmpty">Ingen match</div>`;
-  };
-
-  render("");
-
-  // Open/close
-  const open = () => { wrap.classList.add("open"); render(input.value); };
-  const close = () => { wrap.classList.remove("open"); };
-
-  btn.onclick = (e) => { e.preventDefault(); wrap.classList.contains("open") ? close() : open(); input.focus(); };
-  input.oninput = () => { if (!wrap.classList.contains("open")) open(); else render(input.value); };
-
-  menu.onclick = (e) => {
-    const el = e.target.closest("[data-value]");
-    if (!el) return;
-    const val = (el.getAttribute("data-value")||"").toUpperCase();
-    input.value = val;
-    const s = getSettings();
-    s.me = val;
-    s.meResolvedConfirmed = "";
-    lsSet(KEYS.settings, s);
-    close();
-    renderAll();
-  };
-
-  // Clear button
-  if (clear) {
-    clear.onclick = (e) => {
-      e.preventDefault();
-      input.value = "";
-      const s = getSettings();
-      s.me = "";
-      s.meResolvedConfirmed = "";
-      lsSet(KEYS.settings, s);
-      close();
-      renderAll();
-    };
-  }
-
-  // Close on outside click
-  document.addEventListener("click", (e) => {
-    if (!wrap.contains(e.target)) close();
-  }, { capture: true });
-}
-
-
-// ---------- Elev-søgning i Eksport (custom dropdown, ikke native <datalist>) ----------
-function initMarksSearchPicker(){
-  const input = document.getElementById('marksSearch');
-  const menu  = document.getElementById('marksSearchMenu');
-  const btn   = document.getElementById('marksSearchBtn');
-  const wrap  = document.getElementById('marksSearchPicker');
-  const clear = document.getElementById('marksSearchClear');
-  if (!input || !menu || !btn || !wrap) return;
-  if (wrap.dataset.pickerInit === '1') return;
-  wrap.dataset.pickerInit = '1';
-
-  let activeIndex = -1;
-
-  function getOptions(){
-    const studs = sortedStudents(getStudents());
-    return studs.map(st => {
-      const name = `${st.fornavn||''} ${st.efternavn||''}`.trim();
-      return { name, uni: st.unilogin || '' };
-    }).filter(o => o.name);
-  }
+  let activeIndex = 0;
 
   function setActive(idx){
     const opts = Array.from(menu.querySelectorAll('[role="option"]'));
-    if (!opts.length){ activeIndex = -1; return; }
-    if (idx < 0) idx = 0;
-    if (idx >= opts.length) idx = opts.length - 1;
-    activeIndex = idx;
-    opts.forEach((el,i)=> el.classList.toggle('active', i===activeIndex));
+    if (!opts.length) return;
+    activeIndex = Math.max(0, Math.min(idx, opts.length-1));
+    opts.forEach((el,i)=>el.classList.toggle('active', i===activeIndex));
     const el = opts[activeIndex];
     if (el) el.scrollIntoView({ block: 'nearest' });
   }
 
   function renderMenu(){
-    const raw = (input.value || '').toString();
-    const q = normalizeName(raw).trim();
-    const all = getOptions();
-
-    let filtered = all;
-    if (q){
-      filtered = all.filter(o => normalizeName(o.name).includes(q));
-    }
-
-    filtered = filtered.slice(0, 12);
-
+    const q = (input.value || '').toString().trim().toUpperCase();
+    const filtered = !q ? items : items.filter(x => x.includes(q));
     menu.innerHTML = '';
     if (!filtered.length){
-      const empty = document.createElement('div');
-      empty.className = 'tpEmpty muted small';
-      empty.textContent = 'Ingen match…';
-      menu.appendChild(empty);
-      activeIndex = -1;
+      menu.innerHTML = `<div class="pickerEmpty">Ingen match</div>`;
       return;
     }
-
-    filtered.forEach((o) => {
+    filtered.slice(0, 24).forEach((code, i) => {
       const row = document.createElement('div');
       row.className = 'tpRow';
       row.setAttribute('role','option');
-      row._item = o;
-      const left = document.createElement('div');
-      left.className = 'tpLeft';
-      left.textContent = o.name;
-      const right = document.createElement('div');
-      right.className = 'tpRight';
-      right.textContent = '';
-      row.appendChild(left);
-      row.appendChild(right);
+      row.dataset.value = code;
+      row.textContent = code;
       row.addEventListener('mousedown', (e) => {
         e.preventDefault();
-        input.value = o.name;
+        commit(code);
         closeMenu();
-        renderMarksTable();
       });
       menu.appendChild(row);
     });
@@ -986,220 +907,63 @@ function initMarksSearchPicker(){
   }
 
   function openMenu(){
-    if (!menu.hidden) return;
+    if (!wrap.classList.contains('open')) wrap.classList.add('open');
     renderMenu();
-    menu.hidden = false;
   }
   function closeMenu(){
-    if (menu.hidden) return;
-    menu.hidden = true;
-  }
-  function toggleMenu(){
-    if (menu.hidden) openMenu(); else closeMenu();
+    wrap.classList.remove('open');
   }
 
-  btn.addEventListener('click', (e) => { e.preventDefault(); toggleMenu(); input.focus(); });
-  input.addEventListener('focus', () => openMenu());
-  input.addEventListener('input', () => { if (menu.hidden) openMenu(); else renderMenu(); renderMarksTable(); });
-  document.addEventListener('click', (e) => { if (!wrap.contains(e.target)) closeMenu(); });
+  function commit(code){
+    const ini = (code || '').toString().trim().toUpperCase();
+    const s2 = getSettings();
+    s2.me = ini;
+    // keep aliasMap if user already has it in storage, but we do not ship defaults
+    setSettings(s2);
+    input.value = ini;
+    renderStatus();
+    if (clear) clear.hidden = !ini;
+    try { state.viewMode = 'K'; setTab('k'); } catch(_) {}
+  }
 
-  if (clear){
-    clear.addEventListener('click', (e)=>{
+  // Button / clear
+  btn.onclick = (e) => { e.preventDefault(); wrap.classList.contains('open') ? closeMenu() : openMenu(); input.focus(); };
+  input.onfocus = () => openMenu();
+  input.oninput = () => { if (!wrap.classList.contains('open')) openMenu(); else renderMenu(); };
+
+  if (clear) {
+    clear.onclick = (e) => {
       e.preventDefault();
+      const s2 = getSettings(); s2.me = ''; setSettings(s2);
       input.value = '';
+      clear.hidden = true;
       closeMenu();
-      input.focus();
-      renderMarksTable();
-    });
+      renderStatus();
+    };
+    clear.hidden = !(getSettings().me || '').trim();
   }
 
-  input.addEventListener('keydown', (e)=>{
-    if (e.key === 'Escape'){
-      closeMenu();
+  document.addEventListener('click', (e) => {
+    if (!wrap.contains(e.target)) closeMenu();
+  });
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { closeMenu(); return; }
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      if (!wrap.classList.contains('open')) openMenu();
+      e.preventDefault();
+      setActive(activeIndex + (e.key === 'ArrowDown' ? 1 : -1));
       return;
     }
-    if (e.key === 'ArrowDown' || e.key === 'ArrowUp'){
-      if (menu.hidden) openMenu();
-      e.preventDefault();
-      const delta = (e.key === 'ArrowDown') ? 1 : -1;
-      setActive(activeIndex < 0 ? 0 : activeIndex + delta);
-      return;
-    }
-    if (e.key === 'Enter'){
-      e.preventDefault();
-      if (!menu.hidden && activeIndex >= 0){
-        const opts = Array.from(menu.querySelectorAll('[role="option"]'));
-        const el = opts[activeIndex];
-        if (el && el._item){
-          input.value = el._item.name;
-          closeMenu();
-          renderMarksTable();
-          return;
-        }
+    if (e.key === 'Enter') {
+      const el = menu.querySelectorAll('[role="option"]')[activeIndex];
+      if (el && el.dataset.value) {
+        e.preventDefault();
+        commit(el.dataset.value);
+        closeMenu();
       }
-      // If nothing selected, keep current query (no tab jump)
-      closeMenu();
-      renderMarksTable();
     }
   });
-}
-
-
-  function itemMatches(it, q){
-    // Autocomplete behavior: match from the *start* of alias codes or name-words.
-    // This feels closer to native autocomplete than a broad "contains" search.
-    if (!q) return true;
-    const nq = normalizeName(q).replace(/\s+/g,'');
-    if (!nq) return true;
-
-    const code = normalizeName(it.code || '').replace(/\s+/g,'');
-    const name = normalizeName(it.name || '');
-
-    // 1) Alias code prefix (e.g. "M" -> "MM")
-    if (code && code.startsWith(nq)) return true;
-
-    // 2) Word-start in name (e.g. "m" -> "Måns ...")
-    const words = name.split(/\s+/).filter(Boolean);
-    if (words.some(w => w.startsWith(nq))) return true;
-
-    // 3) Initialism prefix (e.g. "mm" -> "Måns Mårtensson")
-    const initials = words.map(w => (w[0] || '')).join('');
-    if (initials && initials.startsWith(nq)) return true;
-
-    return false;
-  }
-
-  function renderMenu(){
-    const q = (input.value || '').trim();
-    const items = allItems.filter(it => itemMatches(it, q)).slice(0, 120);
-    currentMatches = items;
-    menu.innerHTML = '';
-    if (!items.length){
-      const empty = document.createElement('div');
-      empty.className = 'tpItem';
-      empty.style.opacity = '.75';
-      empty.style.cursor = 'default';
-      empty.textContent = 'Ingen match – skriv fx initialer eller et navn…';
-      menu.appendChild(empty);
-      return;
-    }
-    for (const it of items){
-      const row = document.createElement('div');
-      row.className = 'tpItem';
-      row.setAttribute('role','option');
-      row._item = it;
-      const left = document.createElement('div');
-      left.className = 'tpLeft';
-      const right = document.createElement('div');
-      right.className = 'tpRight';
-
-      if (it.kind === 'alias'){
-        left.textContent = it.code;
-        right.textContent = it.name ? `(${it.name})` : '';
-        row.dataset.value = it.code;
-      } else {
-        left.textContent = it.name;
-        right.textContent = '';
-        row.dataset.value = it.name;
-      }
-
-      row.appendChild(left);
-      row.appendChild(right);
-
-      row.addEventListener('mousedown', (e) => {
-        // mousedown so selection happens before blur
-        e.preventDefault();
-        input.value = row.dataset.value || '';
-        // Commit selection immediately
-        const rawSel = (input.value || '').toString().trim();
-        const match = resolveTeacherMatch(rawSel);
-        const ini = toInitials(match.resolved || rawSel);
-        const s2 = getSettings();
-        s2.me = ini;
-        s2.meResolved = match.resolved;
-        s2.meResolvedConfirmed = match.resolved;
-        setSettings(s2);
-        input.value = ini;
-        renderStatus();
-        try { state.viewMode = 'K'; setTab('k'); } catch(_) {}
-
-        closeMenu();
-      });
-
-      menu.appendChild(row);
-    }
-    setActive(0);
-  }
-
-  function openMenu(){
-    if (!menu.hidden) return;
-    renderMenu();
-    menu.hidden = false;
-  }
-  function closeMenu(){
-    if (menu.hidden) return;
-    menu.hidden = true;
-  }
-  function toggleMenu(){
-    if (menu.hidden) openMenu(); else closeMenu();
-  }
-    input.addEventListener('focus', () => openMenu());
-    input.addEventListener('input', () => { if (menu.hidden) openMenu(); else renderMenu(); });
-
-    document.addEventListener('click', (e) => {
-      if (!wrap.contains(e.target)) closeMenu();
-    });
-    // ESC/ENTER
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') { closeMenu(); return; }
-
-      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-        if (menu.hidden) openMenu();
-        e.preventDefault();
-        const delta = (e.key === 'ArrowDown') ? 1 : -1;
-        setActive(activeIndex < 0 ? 0 : activeIndex + delta);
-        return;
-      }
-
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        if (!menu.hidden && activeIndex >= 0) {
-          const opts = Array.from(menu.querySelectorAll('[role="option"]'));
-          const el = opts[activeIndex];
-          if (el && el._item) {
-            // choose highlighted item
-            const it = el._item;
-            closeMenu();
-            const rawName = (it.kind === 'alias') ? it.code : it.name;
-            const match = resolveTeacherMatch(rawName);
-            const ini = toInitials(match.resolved || rawName);
-            const s2 = getSettings();
-            s2.me = ini;
-            s2.meResolved = match.resolved;
-            s2.meResolvedConfirmed = match.resolved;
-            setSettings(s2);
-            input.value = ini;
-            renderStatus();
-            try { state.viewMode = 'K'; setTab('k'); } catch(_) {}
-            return;
-          }
-        }
-
-        closeMenu();
-        const raw = (input.value || '').toString().trim();
-        if (!raw) return;
-        const match = resolveTeacherMatch(raw);
-        const ini = toInitials(match.resolved || raw);
-        const s2 = getSettings();
-        s2.me = ini;                    // always store initials as the primary identity
-        s2.meResolved = match.resolved; // keep resolved full name for reference
-        s2.meResolvedConfirmed = match.resolved;
-        setSettings(s2);
-        input.value = ini;
-        renderStatus();
-        try { state.viewMode = 'K'; setTab('k'); } catch(_) {}
-      }
-    });
 }
 
 
@@ -1377,10 +1141,28 @@ function defaultSettings() {
   function getStudents(){ const s = lsGet(KEYS.students, []); window.__ALL_STUDENTS__ = s || []; return s; }
   
 function rebuildAliasMapFromStudents(studs){
-  // No-op in v1.0 (no alias maps stored; identity is derived from students.csv initials)
-  return;
+  const s = getSettings();
+  const alias = { ...(s.aliasMap || {}) };
+  const add = (ini, full) => {
+    if (!ini || !full) return;
+    const k = (ini||'').toString().trim().toLowerCase();
+    if (k) alias[k] = full;
+    const nk = normalizeName(full).replace(/\s+/g,'');
+    if (nk) alias[nk] = full;
+  };
+  (studs || []).forEach(st => {
+    const t1 = (st && st.kontaktlaerer1) ? (st.kontaktlaerer1+'').trim() : '';
+    const t2 = (st && st.kontaktlaerer2) ? (st.kontaktlaerer2+'').trim() : '';
+    [t1,t2].filter(Boolean).forEach(t => {
+      if (/^[A-ZÆØÅ]{1,4}(\/[A-ZÆØÅ]{1,4})?$/.test(t)) {
+        add(t, t); // initials-only (fallback)
+      } else {
+        add(toInitials(t), t);
+      }
+    });
+  });
+  setSettings({ ...s, aliasMap: alias });
 }
-
 
 function setStudents(studs){ lsSet(KEYS.students, studs); rebuildAliasMapFromStudents(studs); window.__ALL_STUDENTS__ = studs || []; rebuildAliasMapFromStudents(studs); }
   function getMarks(kindKey){ return lsGet(kindKey, {}); }
@@ -1622,9 +1404,9 @@ function setStudents(studs){ lsSet(KEYS.students, studs); rebuildAliasMapFromStu
     const klasse = get('klasse');
     const ini1 = (get('ini1') || '').trim();
     const ini2 = (get('ini2') || '').trim();
-    const k1 = ini1 ? ini1.toUpperCase() : resolveTeacherName(get('kontakt1'));
-    const k2 = ini2 ? ini2.toUpperCase() : resolveTeacherName(get('kontakt2'));
-    return { fornavn, efternavn, unilogin, koen, klasse, kontaktlaerer1: k1, kontaktlaerer2: k2, kontaktlaerer1_initialer, kontaktlaerer2_initialer };
+    const k1 = ini1 ? ini1.toUpperCase() : toInitials(get('kontakt1'));
+    const k2 = ini2 ? ini2.toUpperCase() : toInitials(get('kontakt2'));
+    return { fornavn, efternavn, unilogin, koen, klasse, kontaktlaerer1: k1, kontaktlaerer2: k2 };
   }
 
   // ---------- UI rendering ----------
@@ -2456,14 +2238,12 @@ $('preview').textContent = buildStatement(st, getSettings());
       return groupKeyFromTeachers(a, b);
     };
 
-    function renderRowTickbox(unilogin, key, checked){
-      const pressed = checked ? "true" : "false";
-      const cls = checked ? "tickbox on" : "tickbox";
-      return `<td class="cb"><button type="button" class="${cls}" aria-pressed="${pressed}" data-uni="${escapeAttr(unilogin)}" data-key="${escapeAttr(key)}" aria-label="${escapeAttr(key)}">✓</button></td>`;
+    function renderRowCheckbox(unilogin, key, checked){
+      return `<td class="cb"><input type="checkbox" data-uni="${escapeAttr(unilogin)}" data-key="${escapeAttr(key)}" ${checked?'checked':''} aria-label="${escapeAttr(key)}" /></td>`;
     }
 
-    function bindTickboxes(storeKey){
-      wrap.querySelectorAll('button.tickbox[data-uni]').forEach(cb=>{
+    function bindCheckboxes(storeKey){
+      wrap.querySelectorAll('input[type="checkbox"][data-uni]').forEach(cb=>{
         cb.onchange = ()=>{
           const uni = cb.dataset.uni;
           const key = cb.dataset.key;
@@ -2497,13 +2277,13 @@ $('preview').textContent = buildStatement(st, getSettings());
                 <td>${escapeHtml(full)}</td>
                 <td class="muted small">${escapeHtml(kgrpLabel(st))}</td>
                 <td class="muted small">${escapeHtml(st.klasse||'')}</td>
-                ${cols.map(c => renderRowTickbox(st.unilogin, c, !!m[c])).join('')}
+                ${cols.map(c => renderRowCheckbox(st.unilogin, c, !!m[c])).join('')}
               </tr>`;
             }).join('')}
           </tbody>
         </table>
       `;
-      bindTickboxes(KEYS.marksSang);
+      bindCheckboxes(KEYS.marksSang);
       return;
     }
 
@@ -2528,13 +2308,13 @@ $('preview').textContent = buildStatement(st, getSettings());
                 <td>${escapeHtml(full)}</td>
                 <td class="muted small">${escapeHtml(kgrpLabel(st))}</td>
                 <td class="muted small">${escapeHtml(st.klasse||'')}</td>
-                ${cols.map(c => renderRowTickbox(st.unilogin, c, !!m[c])).join('')}
+                ${cols.map(c => renderRowCheckbox(st.unilogin, c, !!m[c])).join('')}
               </tr>`;
             }).join('')}
           </tbody>
         </table>
       `;
-      bindTickboxes(KEYS.marksGym);
+      bindCheckboxes(KEYS.marksGym);
       return;
     }
 
@@ -2559,13 +2339,13 @@ $('preview').textContent = buildStatement(st, getSettings());
               <td>${escapeHtml(full)}</td>
               <td class="muted small">${escapeHtml(kgrpLabel(st))}</td>
               <td class="muted small">${escapeHtml(st.klasse||'')}</td>
-              ${cols.map(c => renderRowTickbox(st.unilogin, c, !!m[c])).join('')}
+              ${cols.map(c => renderRowCheckbox(st.unilogin, c, !!m[c])).join('')}
             </tr>`;
           }).join('')}
         </tbody>
       </table>
     `;
-    bindTickboxes(KEYS.marksElevraad);
+    bindCheckboxes(KEYS.marksElevraad);
 }
 
   async function importMarksFile(e, kind) {

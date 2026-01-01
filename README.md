@@ -1,41 +1,60 @@
 # Udtalelser v1.0
 
-En statisk (serverløs) browser-app til kontaktlærere og faglærere på HU, der samler udtalelser, skabeloner og “flueben” lokalt i browseren (localStorage).
+En lille, statisk browser-app til at skrive elevudtalelser.
 
-## Sådan bruger du appen (kort)
+- **Ingen server**. Kører som ren HTML/CSS/JS (GitHub Pages eller lokalt).
+- **Gemmer lokalt** i browserens `localStorage` (pr. enhed/browser).
+- Importér en elevliste (`students.csv`) og skriv udtalelser / markeringer / print.
 
-1. Åbn appen (GitHub Pages).
-2. Gå til **Indstillinger → Import** og indlæs din elevliste (**students.csv**).
-3. Gå til **Indstillinger → Generelt** og vælg/skriv dine initialer (eller navn).
-4. Brug fanen **K-elever** til at skrive udtalelser og fanen **Redigér** til fuld visning/print.
-5. Brug **Backup (download)** som sikkerhed, og **Importér backup** til at samle flere læreres arbejde i én browser uden at overskrive udfyldte felter.
+## Start
 
-## Krav til elevliste (students.csv)
+### Lokalt
+Åbn `index.html` i en moderne browser.
 
-CSV’en skal mindst indeholde disse kolonner (header-navne er fleksible – appen genkender flere varianter):
+### GitHub Pages
+Publicér repoet som GitHub Pages og åbn siden.
 
-- **Fornavn**
-- **Efternavn**
-- **Klasse**
-- (valgfri) **UniLogin**
-- (valgfri men anbefalet) **Kontaktlærer1** og **Kontaktlærer2**
+## Import af elevliste (students.csv)
 
-### Valgfri “initial-override”
-Hvis enkelte kontaktlærernavne ikke følger standardreglen (første bogstav i fornavn + første bogstav i efternavn), kan du tilføje:
+Appen forventer en CSV med overskrifter. Separator kan typisk være `;` eller `,` (appens import forsøger at håndtere begge).
 
-- **Initialer for k-lærer1**
-- **Initialer for k-lærer2**
+### Primære kolonner (anbefalet)
+- Fornavn
+- Efternavn
+- Unilogin (valgfri men anbefalet)
+- Køn (valgfri)
+- Klasse
+- Kontaktlærer1
+- Kontaktlærer2
 
-Hvis felterne er tomme, bruger appen standardreglen (med få indbyggede undtagelser, kun hvis navnene faktisk forekommer i CSV’en).
+### Valgfri kolonner (for initialer)
+- Initialer for k-lærer1
+- Initialer for k-lærer2
 
-## Demo
-Repo’et kan indeholde en demo-fil med opdigtede data:
+**Regel:**
+- Hvis *Initialer for k-lærerX* er udfyldt → bruges direkte (trim + uppercase).
+- Hvis tom → appen udleder initialer generisk fra kontaktlærer-navnet (første bogstav i første og sidste ord).
 
-- `demo_students.csv`
+> Appen viser og bruger kontaktlærere som **initialer** i UI (persondata-sikkert).
 
-Den kan indlæses i **Indstillinger → Import** for at prøve appen uden rigtige elevdata.
+### Uni‑C variant (accepteret)
+Appen forsøger også at genkende disse (case‑insensitivt):
+- Klasse, Fornavn, Efternavn, Uni‑C brugernavn
+- Relationer‑Kontaktlærer‑Navn
+- Relationer‑Anden kontaktlærer‑Navn
+- (valgfri) Initialer for k‑lærer1 / k‑lærer2
 
-## Teknisk
-- Ingen server, ingen login.
-- Alt gemmes lokalt i browseren.
-- Backup/Import er JSON-baseret og fletter sikkert (udfyldte felter bevares).
+## Demo-data
+
+Repoet indeholder `demo_students.csv` med **152 fiktive elever** fordelt på **8 K‑grupper** (2 kontaktlærere pr. gruppe).
+Alle navne og kontaktlærere er opdigtede.
+
+## Backup / import / flet
+
+Backup eksporteres som en fil, du kan gemme lokalt. Når du importerer en backup igen, **fletter** appen data:
+- udfyldte felter i din nuværende browser overskrives ikke af tomme felter fra backup
+- formålet er at kunne samle arbejde fra flere maskiner uden at miste tekst
+
+## Notes
+
+- Fordi `localStorage` er lokalt, skal man lave backup ved skift af enhed/browser.
