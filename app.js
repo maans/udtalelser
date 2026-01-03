@@ -1,3 +1,11 @@
+function resolveFullName(row) {
+  const full = row.fullName || row.fuldtNavn || row.navn || row.kontaktlaerer || row.kontaktlaererNavn;
+  if (full && String(full).trim()) return String(full).trim();
+  const fn = row.fornavn || row.firstName || "";
+  const en = row.efternavn || row.lastName || "";
+  return `${fn} ${en}`.trim();
+}
+
 /* Udtalelser v1.0 – statisk GitHub Pages app (ingen libs)
    localStorage prefix: udt_
 */
@@ -98,7 +106,7 @@ const DEFAULT_SCHOOL_TEXT =
 `På Himmerlands Ungdomsskole arbejder vi med både faglighed, fællesskab og personlig udvikling.
 Udtalelsen er skrevet med udgangspunkt i elevens hverdag og deltagelse gennem skoleåret.`;
 
-  const DEFAULT_TEMPLATE = "Udtalelse vedrørende {{ELEV_FULDE_NAVN}}\n\n{{ELEV_FORNAVN}} {{ELEV_EFTERNAVN}} har været elev på Himmerlands Ungdomsskole i perioden fra {{PERIODE_FRA}} til {{PERIODE_TIL}} i {{ELEV_KLASSE}}.\n\nHimmerlands Ungdomsskole er en traditionsrig efterskole, som prioriterer fællesskabet og faglig fordybelse højt. Elevernes hverdag er præget af frie rammer og mange muligheder. Vi møder eleverne med tillid, positive forventninger og faglige udfordringer. I løbet af et efterskoleår på Himmerlands Ungdomsskole er oplevelserne mange og udfordringerne ligeså. Det gælder i hverdagens almindelige undervisning, som fordeler sig over boglige fag, fællesfag og profilfag. Det gælder også alle de dage, hvor hverdagen ændres til fordel for temauger, studieture mm. \n\n{{ELEV_UDVIKLING_AFSNIT}}\n\nSom en del af et efterskoleår på Himmerlands Ungdomsskole deltager eleverne ugentligt i fællessang og fællesgymnastik. Begge fag udgør en del af efterskolelivet, hvor eleverne oplever nye sider af sig selv, flytter grænser og oplever, at deres bidrag til fællesskabet har betydning. I løbet af året optræder eleverne med fælleskor og gymnastikopvisninger.\n\n{{SANG_GYM_AFSNIT}}\n\nPå en efterskole er der mange praktiske opgaver.\n\n{{PRAKTISK_AFSNIT}}\n\n{{ELEV_FORNAVN}} har på Himmerlands Ungdomsskole været en del af en kontaktgruppe på {{KONTAKTGRUPPE_ANTAL}} elever. I kontaktgruppen kender vi {{HAM_HENDE}} som {{KONTAKTGRUPPE_BESKRIVELSE}}.\n\nVi har været rigtig glade for at have {{ELEV_FORNAVN}} som elev på skolen og ønsker held og lykke fremover.\n\n{{KONTAKTLÆRER_1_NAVN}} & {{KONTAKTLÆRER_2_NAVN}}\n\nKontaktlærere\n\n{{FORSTANDER_NAVN}}\n\nForstander";
+  const DEFAULT_TEMPLATE = "Udtalelse vedrørende {{ELEV_FULDE_NAVN}}\\n\\n{{ELEV_FORNAVN}} {{ELEV_EFTERNAVN}} har været elev på Himmerlands Ungdomsskole i perioden fra {{PERIODE_FRA}} til {{PERIODE_TIL}} i {{ELEV_KLASSE}}.\\n\\nHimmerlands Ungdomsskole er en traditionsrig efterskole, som prioriterer fællesskabet og faglig fordybelse højt. Elevernes hverdag er præget af frie rammer og mange muligheder. Vi møder eleverne med tillid, positive forventninger og faglige udfordringer. I løbet af et efterskoleår på Himmerlands Ungdomsskole er oplevelserne mange og udfordringerne ligeså. Det gælder i hverdagens almindelige undervisning, som fordeler sig over boglige fag, fællesfag og profilfag. Det gælder også alle de dage, hvor hverdagen ændres til fordel for temauger, studieture mm. \\n\\n{{ELEV_UDVIKLING_AFSNIT}}\n\n{{ELEVRAAD_AFSNIT}}\n\n{{ROLLE_AFSNIT}}\n\\n\\nSom en del af et efterskoleår på Himmerlands Ungdomsskole deltager eleverne ugentligt i fællessang og fællesgymnastik. Begge fag udgør en del af efterskolelivet, hvor eleverne oplever nye sider af sig selv, flytter grænser og oplever, at deres bidrag til fællesskabet har betydning. I løbet af året optræder eleverne med fælleskor og gymnastikopvisninger.\\n\\n{{SANG_GYM_AFSNIT}}\\n\\nPå en efterskole er der mange praktiske opgaver.\\n\\n{{PRAKTISK_AFSNIT}}\\n\\n{{ELEV_FORNAVN}} har på Himmerlands Ungdomsskole været en del af en kontaktgruppe på {{KONTAKTGRUPPE_ANTAL}} elever. I kontaktgruppen kender vi {{HAM_HENDE}} som {{KONTAKTGRUPPE_BESKRIVELSE}}.\\n\\nVi har været rigtig glade for at have {{ELEV_FORNAVN}} som elev på skolen og ønsker {{HAM_HENDE}} held og lykke fremover.\\n\\n{{KONTAKTLÆRER_1_NAVN}} & {{KONTAKTLÆRER_2_NAVN}}\\n\\nKontaktlærere\\n\\n{{FORSTANDER_NAVN}}\\n\\nForstander";
 
   // ---------- storage ----------
   function lsGet(key, fallback) {
@@ -141,6 +149,24 @@ const REMOTE_OVERRIDE_FILES = {
 };
 let REMOTE_OVERRIDES = { sang: null, gym: null, elevraad: null, templates: null };
 
+// Meta flags: used to avoid overwriting deliberate local edits when refreshing overrides.
+// If a user edits templates/snippets locally, we should not auto-overwrite on tab changes.
+const META_KEYS = {
+  templatesDirty: 'udt_templatesDirty_v1',
+  snippetsDirty: 'udt_snippetsDirty_v1',
+  remoteOverridesFetchedAt: 'udt_remoteOverridesFetchedAt_v1',
+};
+
+function isTemplatesDirty(){ return !!lsGet(META_KEYS.templatesDirty, false); }
+function setTemplatesDirty(v){ lsSet(META_KEYS.templatesDirty, !!v); }
+function hasTemplatesDirtyMeta(){ try { return localStorage.getItem(META_KEYS.templatesDirty) !== null; } catch(_) { return true; } }
+function isSnippetsDirty(){ return !!lsGet(META_KEYS.snippetsDirty, false); }
+function setSnippetsDirty(v){ lsSet(META_KEYS.snippetsDirty, !!v); }
+
+function stampOverridesFetched(){ lsSet(META_KEYS.remoteOverridesFetchedAt, Date.now()); }
+function overridesFetchedAt(){ return lsGet(META_KEYS.remoteOverridesFetchedAt, 0) || 0; }
+
+
 function cacheBust(url){
   const v = Date.now();
   return url + (url.includes('?') ? '&' : '?') + 'v=' + v;
@@ -160,6 +186,31 @@ function unwrapOverridePack(pack){
   if (pack.payload) return pack.payload;
   return pack;
 }
+
+// Convert JSON-escaped newlines (\n) into real newlines so templates render correctly.
+// This makes overrides robust whether they store real newlines or \n sequences.
+function normalizeOverrideText(s){
+  if (typeof s !== 'string') return s;
+  // If the string contains literal "\n", turn it into a newline.
+  // Also handle "\r\n" -> "\n" -> newline.
+  return s
+    .replace(/\\r\\n/g, "\n")
+    .replace(/\\n/g, "\n")
+    .replace(/\r\n/g, "\n");
+}
+function normalizeOverrideDeep(obj){
+  if (!obj) return obj;
+  if (typeof obj === 'string') return normalizeOverrideText(obj);
+  if (Array.isArray(obj)) return obj.map(normalizeOverrideDeep);
+  if (typeof obj === 'object') {
+    const out = {};
+    Object.keys(obj).forEach(k => { out[k] = normalizeOverrideDeep(obj[k]); });
+    return out;
+  }
+  return obj;
+}
+
+
 async function loadRemoteOverrides(){
   const [sang, gym, elevraad, templates] = await Promise.all([
     fetchJsonIfExists(REMOTE_OVERRIDE_FILES.sang),
@@ -167,12 +218,19 @@ async function loadRemoteOverrides(){
     fetchJsonIfExists(REMOTE_OVERRIDE_FILES.elevraad),
     fetchJsonIfExists(REMOTE_OVERRIDE_FILES.templates),
   ]);
+  // NOTE: templates_override.json is a packed object: { templates: { schoolText, template, ... } }
+  // We want the inner "templates" object to be the merge target.
+  const tplPack = unwrapOverridePack(templates);
+  const tplObj = (tplPack && tplPack.templates) ? tplPack.templates : tplPack;
+  const tplObjNorm = normalizeOverrideDeep(tplObj);
+
   REMOTE_OVERRIDES = {
-    sang: unwrapOverridePack(sang),
-    gym: unwrapOverridePack(gym),
-    elevraad: unwrapOverridePack(elevraad),
-    templates: unwrapOverridePack(templates),
+    sang: normalizeOverrideDeep(unwrapOverridePack(sang)),
+    gym: normalizeOverrideDeep(unwrapOverridePack(gym)),
+    elevraad: normalizeOverrideDeep(unwrapOverridePack(elevraad)),
+    templates: tplObjNorm,
   };
+  stampOverridesFetched();
 }
 
 
@@ -196,6 +254,19 @@ function getSnippetDraft() {
 }
 function setSnippetDraft(o) {
   lsSet(SNIPPETS_DRAFT_KEY, o || {});
+}
+
+function clearLocalSnippetScope(scope){
+  const d = getSnippetDraft();
+  const i = getSnippetImported();
+  if (scope && typeof scope === 'string') {
+    delete d[scope];
+    delete i[scope];
+  }
+  setSnippetDraft(d);
+  setSnippetImported(i);
+  // If nothing local remains, allow auto-refresh again
+  if (Object.keys(d).length === 0 && Object.keys(i).length === 0) setSnippetsDirty(false);
 }
 function applySnippetOverrides() {
   const remote = REMOTE_OVERRIDES || {};
@@ -357,7 +428,120 @@ function applyOnePagePrintScale() {
   }
 }
 
-function printAllKStudents() {
+
+function openPrintWindowForStudents(students, settings, title) {
+  const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }[c]));
+
+  const list = sortedStudents(Array.isArray(students) ? students : []);
+  const pagesHtml = list.map(st => {
+    const txt = buildStatement(st, settings);
+    return `
+      <div class="page">
+        <div class="content">
+          <pre class="statement">${escapeHtml(txt)}</pre>
+        </div>
+      </div>`;
+  }).join('');
+
+  const docTitle = escapeHtml(title || 'Print');
+
+  const html = `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>${docTitle}</title>
+  <style>
+    @page { size: A4; margin: 0; }
+    html, body { margin: 0; padding: 0; background: #fff; }
+    .page {
+      width: 210mm;
+      height: 297mm;
+      padding: 12mm 14mm;
+      box-sizing: border-box;
+      page-break-after: always;
+      overflow: hidden;
+      --s: 1;
+    }
+    .content { width: 100%; height: 100%; overflow: hidden; }
+    .statement {
+      margin: 0;
+      white-space: pre-wrap;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      font-size: 12pt;
+      line-height: 1.45;
+      transform: scale(var(--s));
+      transform-origin: top left;
+    }
+  </style>
+</head>
+<body>
+${pagesHtml}
+<script>
+(function(){
+  function fitAll(){
+    const pages = document.querySelectorAll('.page');
+    pages.forEach(p => {
+      const c = p.querySelector('.statement');
+      if(!c) return;
+
+      // Reset
+      p.style.setProperty('--s', 1);
+      c.style.width = '';
+
+      const availH = p.clientHeight;
+      const availW = p.clientWidth;
+      let neededH = c.scrollHeight;
+      let neededW = c.scrollWidth;
+
+      let s = Math.min(1, availH / Math.max(1, neededH), availW / Math.max(1, neededW));
+
+      // If we scale down, widen the element proportionally to preserve line wrapping
+      // and re-check height.
+      if (s < 1) {
+        c.style.width = (100 / s) + '%';
+        neededH = c.scrollHeight;
+        neededW = c.scrollWidth;
+        s = Math.min(s, availH / Math.max(1, neededH), availW / Math.max(1, neededW));
+      }
+
+      p.style.setProperty('--s', s.toFixed(4));
+    });
+  }
+
+  window.addEventListener('load', () => {
+    fitAll();
+    // A tiny delay helps after font rasterization
+    setTimeout(fitAll, 50);
+    setTimeout(() => { try { window.focus(); window.print(); } catch(e) {} }, 120);
+  });
+})();
+</script>
+</body>
+</html>`;
+
+  const win = window.open('', '_blank');
+  if (!win) {
+    alert('Kunne ikke åbne print-vindue (pop-up blokeret).');
+    return;
+  }
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
+}
+
+async function printAllKStudents() {
+  // Keep overrides fresh for printing unless the user is actively editing templates.
+  try {
+    await loadRemoteOverrides();
+    applyTemplatesFromOverridesToLocal({ preserveLocks: true });
+  } catch (_) {}
+
   const studs = getStudents();
   const kGroups = buildKGroups(studs);
 
@@ -375,70 +559,19 @@ function printAllKStudents() {
     );
     return;
   }
-  // Build a dedicated print window with page breaks between students
-  const title = isAll ? 'Udtalelser v1.0 – print K-gruppe' : 'Udtalelser v1.0 – print K-elever';
-  // One-page-per-student, always fit by scaling down if needed.
-  // Printable area: A4 minus @page margins = 178mm x 261mm.
-  const styles = `
-    <style>
-      @page { size: A4; margin: 18mm 16mm; }
-      body{ font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; color:#000; background:#fff; }
-      .entry{ page-break-after: always; }
-      .page{ width: 178mm; height: 261mm; overflow:hidden; position:relative; }
-      pre.content{
-        white-space: pre-wrap;
-        font: 11pt/1.45 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-        margin:0;
-        transform: scale(var(--s, 1));
-        transform-origin: top left;
-        width: calc(100% / var(--s, 1));
-      }
-    </style>
-  `;
-  const body = list.map(st => {
-    const txt = buildStatement(st, getSettings());
-    return `
-      <section class="entry">
-        <div class="page"><pre class="content">${escapeHtml(txt)}</pre></div>
-      </section>
-    `;
-  }).join('');
 
-  const w = window.open('', '_blank');
-  if (!w) {
-    alert('Pop-up blev blokeret. Tillad pop-ups for at printe alle.');
-    return;
-  }
-  w.document.open();
-  w.document.write(`<!doctype html><html lang="da"><head><meta charset="utf-8"><title>${title}</title>${styles}</head><body>${body}
-    <script>
-      (function(){
-        function fitAll(){
-          const pages = Array.from(document.querySelectorAll('.page'));
-          pages.forEach(p=>{
-            const c = p.querySelector('.content');
-            if(!c) return;
-            // Reset
-            p.style.setProperty('--s','1');
-            // Measure at scale=1
-            const avail = p.clientHeight;
-            const needed = c.scrollHeight;
-            let s = 1;
-            if (needed > avail && avail > 0) s = Math.max(0.10, Math.min(1, avail / needed));
-            p.style.setProperty('--s', String(s));
-          });
-        }
-        window.addEventListener('load', fitAll);
-        window.addEventListener('beforeprint', fitAll);
-      })();
-    </script>
-  </body></html>`);
-  w.document.close();
-  // Let the browser lay out the document before printing
-  setTimeout(()=>{ try{ w.focus(); w.print(); }catch(e){} }, 250);
+  const title = isAll ? 'Udtalelser v1.0 – print K-gruppe' : 'Udtalelser v1.0 – print K-elever';
+  const sorted = sortedStudents(list);
+  openPrintWindowForStudents(sorted, getSettings(), title);
 }
 
-function printAllKGroups() {
+async function printAllKGroups() {
+  // Keep overrides fresh for printing unless the user is actively editing templates.
+  try {
+    await loadRemoteOverrides();
+    applyTemplatesFromOverridesToLocal({ preserveLocks: true });
+  } catch(_) {}
+
   const studs = getStudents();
   if (!studs.length) {
     alert('Der er ingen elevliste indlæst endnu.');
@@ -676,6 +809,11 @@ function importOverridePackage(expectedScope, obj) {
     if (p.elevraad) overrides.elevraad = p.elevraad;
   }
 
+  // Mark local snippet edits so auto-refresh does not overwrite them.
+  if (obj.scope === 'all' || obj.scope === 'sang' || obj.scope === 'gym' || obj.scope === 'elevraad') {
+    setSnippetsDirty(true);
+  }
+
   if (expectedScope === 'templates' || obj.scope === 'templates' || obj.scope === 'all') {
     // Templates er ikke snippets-overrides, men indstillinger/templates.
     if (p.templates) {
@@ -683,15 +821,17 @@ function importOverridePackage(expectedScope, obj) {
       const tImp = lsGet(KEYS.templatesImported, {});
       if (typeof p.templates.schoolText === 'string') tImp.schoolText = p.templates.schoolText;
       if (typeof p.templates.template === 'string') tImp.template = p.templates.template;
+      if (typeof p.templates.forstanderName === 'string') tImp.forstanderName = p.templates.forstanderName;
+      // Backwards compatibility
+      if (typeof p.templates.forstanderNavn === 'string') tImp.forstanderName = p.templates.forstanderNavn;
       lsSet(KEYS.templatesImported, tImp);
 
-const s = getSettings();
-      if (typeof p.templates.forstanderNavn === 'string') s.forstanderName = p.templates.forstanderNavn;
-      setSettings(s);
+      setTemplatesDirty(true);
     }
   }
 
   setSnippetImported(overrides);
+  setSnippetsDirty(true);
   applySnippetOverrides();
 }
 
@@ -948,12 +1088,14 @@ function updateTeacherDatalist() {
     if (!wrap.contains(e.target)) closeMenu();
   });
 
-  input.addEventListener('keydown', (e) => {
+
+  const handlePickerKeydown = (e) => {
+    // Arrow/Enter should work even if fokus ender på dropdown-knappen eller menuen.
     if (e.key === 'Escape') { closeMenu(); return; }
-    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    if ((e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Down' || e.key === 'Up') || (e.keyCode === 40 || e.keyCode === 38)) {
       if (!wrap.classList.contains('open')) openMenu();
       e.preventDefault();
-      setActive(activeIndex + (e.key === 'ArrowDown' ? 1 : -1));
+      setActive(activeIndex + ((e.key === 'ArrowDown' || e.key === 'Down' || e.keyCode === 40) ? 1 : -1));
       return;
     }
     if (e.key === 'Enter') {
@@ -964,7 +1106,11 @@ function updateTeacherDatalist() {
         closeMenu();
       }
     }
-  });
+  };
+  input.addEventListener('keydown', handlePickerKeydown, true);
+  btn.addEventListener('keydown', handlePickerKeydown, true);
+  menu.addEventListener('keydown', handlePickerKeydown, true);
+  wrap.addEventListener('keydown', handlePickerKeydown, true);
 }
 
 
@@ -1173,7 +1319,32 @@ const on = (id, ev, fn, opts) => { const el = document.getElementById(id); if (e
     const body = rows.map(r => headers.map(h => esc(r[h])).join(',')).join('\n');
     return head + '\n' + body + '\n';
   }
-  function downloadText(filename, text) {
+  
+// --- Marks export helpers (human-friendly file names) ---
+function _dateStampYYYYMMDD() {
+  const d = new Date();
+  const yyyy = String(d.getFullYear());
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+function marksExportLabel(type) {
+  if (type === 'sang') return 'Sangkarakterer';
+  if (type === 'gym')  return 'Gymnastikkarakterer & roller';
+  if (type === 'elevraad') return 'Elevrådsrepræsentanter';
+  return 'Markeringer';
+}
+function marksExportFilename(type) {
+  const stamp = _dateStampYYYYMMDD();
+  // Keep filenames ASCII-friendly for Windows/Drive etc.
+  if (type === 'sang') return `Sangkarakterer_${stamp}.csv`;
+  if (type === 'gym')  return `Gymnastikkarakterer_og_roller_Fanebaerer_Redskabshold_DGI-instruktoer_${stamp}.csv`;
+  if (type === 'elevraad') return `Elevraadsrepraesentanter_${stamp}.csv`;
+  return `Markeringer_${stamp}.csv`;
+}
+// ---------------------------------------------------------
+
+function downloadText(filename, text) {
     const blob = new Blob([text], {type:'text/csv;charset=utf-8'});
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -1240,8 +1411,103 @@ function defaultSettings() {
   // Back-compat: older code calls saveState()
   function saveState(){ saveUIStateFrom(state); }
   function getTemplates(){ return Object.assign(defaultTemplates(), (REMOTE_OVERRIDES.templates && (REMOTE_OVERRIDES.templates.templates || REMOTE_OVERRIDES.templates)) || {}, lsGet(KEYS.templatesImported, {}), lsGet(KEYS.templates, {})); }
+
+function getRemoteTemplatesOnly(){
+  return (REMOTE_OVERRIDES && REMOTE_OVERRIDES.templates) ? (REMOTE_OVERRIDES.templates.templates || REMOTE_OVERRIDES.templates) : null;
+}
+
+function normalizeGender(value) {
+  const s = String(value ?? '').trim().toLowerCase();
+  if (!s) return '';
+  // Common Danish + English variants
+  if (['m', 'mand', 'dreng', 'male', 'boy', 'han'].includes(s)) return 'm';
+  if (['k', 'kvinde', 'pige', 'female', 'girl', 'hun', 'f', 'w'].includes(s)) return 'k';
+  // Heuristics
+  if (s.startsWith('m')) return 'm';
+  if (s.startsWith('k')) return 'k';
+  if (s.startsWith('f')) return 'k';
+  return '';
+}
+
+
+function applyRemoteTemplatesToLocal(opts){
+  opts = opts || {};
+  const remote = getRemoteTemplatesOnly();
+  if(!remote) return false;
+
+  const curLocal = lsGet(KEYS.templates, {});
+  const curT = getTemplates();
+  const locks = {
+    schoolTextLocked: curT.schoolTextLocked,
+    templateLocked: curT.templateLocked,
+    forstanderNameLocked: curT.forstanderNameLocked,
+  };
+
+  const nextLocal = Object.assign({}, curLocal);
+  // Copy only known template fields from remote (preserve other local keys)
+  ['schoolText','template','forstanderName'].forEach(k => {
+    if(remote[k] != null) nextLocal[k] = remote[k];
+  });
+  if(opts && opts.preserveLocks !== false){
+    Object.assign(nextLocal, locks);
+  }
+
+  // Clear any imported templates (leader pack) when syncing from authoritative overrides
+  lsDel(KEYS.templatesImported);
+  lsSet(KEYS.templates, nextLocal);
+  setTemplatesDirty(false);
+  return true;
+}
+
+function clearLocalTemplates(){
+  lsDel(KEYS.templatesImported);
+  lsDel(KEYS.templates);
+  setTemplatesDirty(false);
+}
+
+function applyTemplatesFromOverridesToLocal(opts={}){
+  const { preserveLocks = true, force = false } = opts;
+  // Safety: never overwrite user edits unless explicitly forced.
+  if(!force && isTemplatesDirty()) return false;
+  const remoteT = getRemoteTemplatesOnly();
+  if(!remoteT) return false;
+
+  const localNow = lsGet(KEYS.templates, {});
+  const next = {};
+
+  // Bring over override-controlled fields
+  ['forstanderName','schoolText','template'].forEach(k=>{
+    if(remoteT[k] !== undefined) next[k] = remoteT[k];
+  });
+
+  // Preserve lock flags (so “leder” can lock text fields without being overwritten)
+  if(preserveLocks){
+    ['forstanderNameLocked','schoolTextLocked','templateLocked'].forEach(k=>{
+      if(localNow[k] !== undefined) next[k] = localNow[k];
+    });
+  }
+
+  // Write into localStorage so the app works consistently offline (after first load)
+  lsSet(KEYS.templates, next);
+  setTemplatesDirty(false);
+  return true;
+}
+
+async function refreshOverridesAndApplyTemplatesIfSafe(force=false){
+  if(isTemplatesDirty()) return false;
+  await loadRemoteOverrides();
+  return applyTemplatesFromOverridesToLocal({ preserveLocks: true });
+}
   function setTemplates(t){ lsSet(KEYS.templates, t); }
   function getStudents(){ const s = lsGet(KEYS.students, []); window.__ALL_STUDENTS__ = s || []; return s; }
+
+  function getSelectedStudent(){
+    const u = state.selectedUnilogin;
+    if(!u) return null;
+    const studs = getStudents() || [];
+    return (studs || []).find(s => s && s.unilogin === u) || null;
+  }
+
   
 function rebuildAliasMapFromStudents(studs){
   const s = getSettings();
@@ -1367,13 +1633,44 @@ function setStudents(studs){ lsSet(KEYS.students, studs); rebuildAliasMapFromStu
     }
 
     const roleTexts = [];
-    Object.keys(SNIPPETS.roller).forEach(code => {
-      if (marksGym[code]) roleTexts.push(snippetTextByGender(SNIPPETS.roller[code], student.koen));
-    });
-    let rolleAfsnit = roleTexts.filter(Boolean).join('\n\n');
+const rolesObj = (SNIPPETS && SNIPPETS.roller) ? SNIPPETS.roller : {};
+const roleCodes = Object.keys(rolesObj);
 
-    let elevraadAfsnit = '';
-    if (marksER.elevraad) elevraadAfsnit = snippetTextByGender(SNIPPETS.elevraad.YES, student.koen);
+// ny model: array af valgte roller gemt som marksER.gym_roles
+// Roller kommer normalt fra gymnastik-faglærerens marks (marksGym).
+// Vi har dog set ældre / blandede backups, hvor gym_roles kan ligge andre steder.
+// Derfor: prøv marksGym først, fallback til marksER.
+const selectedArr =
+  (marksGym && Array.isArray(marksGym.gym_roles)) ? marksGym.gym_roles
+  : (marksER && Array.isArray(marksER.gym_roles)) ? marksER.gym_roles
+  : [];
+const selected = new Set(selectedArr.map(s => String(s || '').trim()).filter(Boolean));
+
+roleCodes.forEach(code => {
+  const isOn =
+    selected.has(code) ||               // ny måde
+    (marksGym && marksGym[code] === true); // fallback (hvis gamle booleans findes)
+
+  if (isOn && rolesObj[code]) {
+    roleTexts.push(snippetTextByGender(rolesObj[code], student.koen));
+  }
+});
+
+let rolleAfsnit = roleTexts.filter(Boolean).join('\n\n');
+
+   let elevraadAfsnit = "";
+const erObj = (SNIPPETS && SNIPPETS.elevraad) ? SNIPPETS.elevraad : {};
+const erKeys = Object.keys(erObj);
+
+// ny model: valgt variant gemt som marksER.elevraad_variant
+const chosen =
+  (marksER && typeof marksER.elevraad_variant === "string" && marksER.elevraad_variant.trim())
+    ? marksER.elevraad_variant.trim()
+    : ((marksER && marksER.elevraad && erKeys[0]) ? erKeys[0] : "");
+
+if (chosen && erObj[chosen]) {
+  elevraadAfsnit = snippetTextByGender(erObj[chosen], student.koen);
+}
 
     const fullName = `${student.fornavn} ${student.efternavn}`.trim();
     const firstName = callName(student.fornavn);
@@ -1451,10 +1748,22 @@ function setStudents(studs){ lsSet(KEYS.students, studs); rebuildAliasMapFromStu
       "GYM_SNIPPET": gymAfsnit,
       "ELEVRAAD_SNIPPET": elevraadAfsnit,
       "ROLLE_SNIPPETS": rolleAfsnit,
-      "SANG_GYM_AFSNIT": [sangAfsnit, gymAfsnit, elevraadAfsnit, rolleAfsnit].filter(Boolean).join('\n\n')
+      "ELEVRAAD_AFSNIT": (elevraadAfsnit || ""),
+      "ROLLE_AFSNIT": (rolleAfsnit || ""),
+      "MARKS_AFSNIT": [sangAfsnit, gymAfsnit, elevraadAfsnit, rolleAfsnit].filter(Boolean).join('\n\n'),
+
+      "SANG_GYM_AFSNIT": ""
     };
 
     let out = tpls.template || DEFAULT_TEMPLATE;
+    // If the active template has separate placeholders for elevråd/roller,
+    // keep SANG_GYM_AFSNIT limited to sang+gym to avoid duplicates.
+    const hasElevraadSlot = (out.indexOf("{{ELEVRAAD_AFSNIT}}") !== -1);
+    const hasRolleSlot = (out.indexOf("{{ROLLE_AFSNIT}}") !== -1);
+    placeholderMap.SANG_GYM_AFSNIT = [sangAfsnit, gymAfsnit]
+      .concat((!hasElevraadSlot ? [elevraadAfsnit] : []))
+      .concat((!hasRolleSlot ? [rolleAfsnit] : []))
+      .filter(Boolean).join('\n\n');
     out = applyPlaceholders(out, placeholderMap);
     return cleanSpacing(out);
   }
@@ -1504,8 +1813,8 @@ function setStudents(studs){ lsSet(KEYS.students, studs); rebuildAliasMapFromStu
 
     const efternavn = efternavnRaw;
     const unilogin = get('unilogin') || (normalizeName((fornavn + ' ' + efternavn)).replace(/\s/g, '') + '_missing');
-    const koen = get('koen');
-    const klasse = get('klasse');
+    const koen = normalizeGender(get('koen'));
+const klasse = get('klasse');
     const ini1 = (get('ini1') || '').trim();
     const ini2 = (get('ini2') || '').trim();
     const k1 = ini1 ? ini1.toUpperCase() : toInitials(get('kontakt1'));
@@ -2541,7 +2850,14 @@ $('preview').textContent = buildStatement(st, getSettings());
   function wireEvents() {
     on('tab-k','click', () => { if (state.tab === 'k') { state.viewMode = (state.viewMode === 'ALL') ? 'K' : 'ALL'; renderStatus(); renderKList(); updateTabLabels(); } else { setTab('k'); } });
     // Redigér-tab er skjult når ingen elev er valgt, men vær robust hvis nogen alligevel klikker.
-    on('tab-edit','click', () => setTab('edit'));
+  on('tab-edit','click', async () => {
+    // Ensure latest overrides are loaded and applied (unless the user has local edits)
+    await loadRemoteOverrides();
+    applyTemplatesFromOverridesToLocal({ force: false, preserveLocks: true });
+    // Snippets are applied in-memory; clearLocalSnippetScope is not used here.
+    applySnippetOverrides();
+    setTab('edit');
+  });
     on('tab-set','click', () => setTab('set'));
 
     // Indstillinger: subtabs
@@ -2574,7 +2890,77 @@ $('preview').textContent = buildStatement(st, getSettings());
       location.reload();
     });
 
-    on('btnToggleForstander','click', () => {
+
+async function loadDemoStudentsCsv() {
+  const candidates = [
+    'demo_students.csv',
+    '/demo_students.csv',
+    '../demo_students.csv'
+  ];
+
+  let text = null;
+  let usedUrl = null;
+
+  for (const url of candidates) {
+    try {
+      const r = await fetch(url, { cache: 'no-store' });
+      if (r && r.ok) { text = await r.text(); usedUrl = url; break; }
+    } catch (e) {}
+  }
+
+  if (!text) throw new Error('Kunne ikke hente demo_students.csv (prøvede: ' + candidates.join(', ') + ')');
+
+  const parsed = parseCsv(text);
+  const map = mapStudentHeaders(parsed.headers);
+  const required = ['fornavn','efternavn','klasse'];
+  if (!required.every(r => map[r])) {
+    alert('Kunne ikke finde de nødvendige kolonner (fornavn, efternavn, klasse) i demo_students.csv.');
+    return;
+  }
+
+  const students = parsed.rows.map(r => normalizeStudentRow(r, map));
+  setStudents(students);
+
+  renderSettings(); renderStatus();
+  if (state.tab === 'k') renderKList();
+  if (state.tab === 'edit') renderEdit();
+
+  // Navigate to settings -> Generelt (vælg K-lærer)
+  try {
+    setTab('set');
+    const btnGen = document.getElementById('settingsTab-general');
+    if (btnGen) btnGen.click();
+    const me = document.getElementById('meInput');
+    if (me) me.focus();
+  } catch (_) {}
+
+  console.log('Demo indlæst fra:', usedUrl);
+}
+
+
+on('btnLoadDemo','click', async () => {
+  const ok = confirm('Indlæs demo? Dette rydder ALLE lokale data og kan ikke fortrydes.');
+  if (!ok) return;
+
+  // Wipe all app local data, then load demo CSV directly (no page reload)
+  try {
+    lsDelPrefix(LS_PREFIX);
+    await loadDemoStudentsCsv();
+
+    // After import, bring user to Generelt (like normal import flow)
+    try {
+      setTab('set');
+      const btnGen = document.getElementById('settingsTab-general');
+      if (btnGen) btnGen.click();
+      const me = document.getElementById('meInput');
+      if (me) me.focus();
+    } catch (_) {}
+  } catch (e) {
+    console.error(e);
+    alert('Kunne ikke indlæse demo_students.csv. Se console for detaljer.');
+  }
+});
+on('btnToggleForstander','click', () => {
       const s = getSettings();
       s.forstanderLocked = !s.forstanderLocked;
       setSettings(s);
@@ -2611,16 +2997,19 @@ on('schoolYearEnd','input', () => {
       renderSettings();
     });
     on('btnRestoreSchoolText','click', () => {
-      const t = getTemplates();
-      t.schoolText = DEFAULT_SCHOOL_TEXT;
-      setTemplates(t);
-      renderSettings();
-      if (state.tab === 'edit') renderEdit();
+      // "Opdater" = hent nyeste overrides og læg dem i localStorage (med mindre brugeren har lokale edits)
+      (async () => {
+        await loadRemoteOverrides();
+        applyTemplatesFromOverridesToLocal({ force: true, preserveLocks: true });
+        renderSettings();
+        if (state.tab === 'edit') renderEdit();
+      })();
     });
     on('schoolText','input', () => {
       const t = getTemplates();
       t.schoolText = $('schoolText').value;
       setTemplates(t);
+      setTemplatesDirty(true);
       if (state.tab === 'edit') renderEdit();
     });
 
@@ -2631,22 +3020,24 @@ on('schoolYearEnd','input', () => {
       renderSettings();
     });
     on('btnRestoreTemplate','click', () => {
-      const t = getTemplates();
-      t.template = DEFAULT_TEMPLATE;
-      setTemplates(t);
-      renderSettings();
-      if (state.tab === 'edit') renderEdit();
+      (async () => {
+        await loadRemoteOverrides();
+        applyTemplatesFromOverridesToLocal({ force: true, preserveLocks: true });
+        renderSettings();
+        if (state.tab === 'edit') renderEdit();
+      })();
     });
     on('templateText','input', () => {
       const t = getTemplates();
       t.template = $('templateText').value;
       setTemplates(t);
+      setTemplatesDirty(true);
       if (state.tab === 'edit') renderEdit();
     });
 
     // Del / importér skabeloner (leder)
-    if (document.getElementById('btnDownloadTemplates')) {
-      on('btnDownloadTemplates','click', () => {
+    if (document.getElementById('btnExportTemplates')) {
+      on('btnExportTemplates','click', () => {
         const pkg = buildOverridePackage('templates');
         downloadJson('templates_override.json', pkg);
       });
@@ -2701,12 +3092,12 @@ if (document.getElementById('btnDownloadSang')) {
     e.target.value = '';
     });
   }
-  on('btnRestoreSang','click', () => {
-    const o = getSnippetDraft();
-    delete o.sang;
-    setSnippetDraft(o);
+  on('btnRestoreSang','click', async () => {
+    await loadRemoteOverrides();
+    clearLocalSnippetScope('sang');
     applySnippetOverrides();
     renderSettings();
+    if (state.tab === 'edit') renderEdit();
   });
 }
 
@@ -2727,12 +3118,12 @@ if (document.getElementById('btnDownloadGym')) {
     e.target.value = '';
     });
   }
-  on('btnRestoreGymSnippets','click', () => {
-    const o = getSnippetDraft();
-    delete o.gym;
-    setSnippetDraft(o);
+  on('btnRestoreGymSnippets','click', async () => {
+    await loadRemoteOverrides();
+    clearLocalSnippetScope('gym');
     applySnippetOverrides();
     renderSettings();
+    if (state.tab === 'edit') renderEdit();
   });
 
   on('btnAddRole','click', () => {
@@ -2787,12 +3178,12 @@ if (document.getElementById('btnDownloadElevraad')) {
     e.target.value = '';
     });
   }
-  on('btnRestoreElevraad','click', () => {
-    const o = getSnippetDraft();
-    delete o.elevraad;
-    setSnippetDraft(o);
+  on('btnRestoreElevraad','click', async () => {
+    await loadRemoteOverrides();
+    clearLocalSnippetScope('elevraad');
     applySnippetOverrides();
     renderSettings();
+    if (state.tab === 'edit') renderEdit();
   });
 }
 
@@ -2967,11 +3358,19 @@ if (document.getElementById('btnDownloadElevraad')) {
       renderEdit();
     });
 
-    on('btnPrint','click', () => {
-      // Ensure the statement always fits on ONE A4 page (scale down if needed)
-      try { applyOnePagePrintScale(); } catch(_) {}
-      // Give the browser a tick to apply CSS variable before print dialog
-      setTimeout(()=>{ try{ window.print(); } catch(_) {} }, 0);
+    on('btnPrint','click', async () => {
+      // Keep overrides fresh for printing unless the user is actively editing templates.
+      try {
+        await loadRemoteOverrides();
+        applyTemplatesFromOverridesToLocal({ preserveLocks: true });
+      } catch(_) {}
+
+      const st = getSelectedStudent();
+      if (!st) return;
+
+      const settings = getSettings();
+      const title = (`Udtalelse - ${(st.fornavn || '').trim()} ${(st.efternavn || '').trim()}`).trim() || 'Udtalelse';
+      openPrintWindowForStudents([st], settings, title);
     });
   
     // --- Faglærer-markeringer (Eksport) ---
@@ -3070,7 +3469,14 @@ if (document.getElementById('btnDownloadElevraad')) {
 
     // Eksportér CSV
     const btnExport = document.getElementById('btnExportMarksCSV');
-    if (btnExport && !btnExport.__wired) {
+  // Update button text/tooltip every render
+  if (btnExport) {
+    const t = (state.marksType || 'sang');
+    btnExport.textContent = `Eksportér ${marksExportLabel(t)}`;
+    btnExport.title = `Downloader: ${marksExportFilename(t)}`;
+  }
+
+  if (btnExport && !btnExport.__wired) {
       btnExport.__wired = true;
       btnExport.addEventListener('click', () => {
         const type = (state.marksType || 'sang');
@@ -3132,6 +3538,14 @@ if (document.getElementById('btnDownloadElevraad')) {
 }
 
   async function init() {
+
+// Demo: load demo_students.csv if requested (after wipe)
+try {
+} catch (e) {
+  console.error(e);
+  alert('Kunne ikke indlæse demo_students.csv. Se console for detaljer.');
+}
+
     wireEvents();
 
     // Print scaling (single-student print)
@@ -3143,9 +3557,18 @@ if (document.getElementById('btnDownloadElevraad')) {
       });
     }
 
+    // Meta-safety: older versions could have templates stored in localStorage
+    // without tracking whether the user edited them. If that's the case, we
+    // assume "edited" to avoid auto-overwriting.
+    const hadTemplatesBefore = localStorage.getItem(KEYS.templates) !== null;
+    const hadTemplatesDirtyMeta = hasTemplatesDirtyMeta();
+
     await loadRemoteOverrides();
     if (!localStorage.getItem(KEYS.settings)) setSettings(defaultSettings());
     if (!localStorage.getItem(KEYS.templates)) setTemplates(defaultTemplates());
+    if (!hadTemplatesDirtyMeta) setTemplatesDirty(hadTemplatesBefore);
+    // Keep overrides authoritative unless the user has explicitly edited templates locally.
+    applyTemplatesFromOverridesToLocal({ preserveLocks: true, force: false });
     applySnippetOverrides();
 
     const s = getSettings();
@@ -3207,16 +3630,236 @@ if (document.getElementById('btnDownloadElevraad')) {
     });
 
     // Start: hvis elever eller initialer mangler, start i Import
+    // Start-fane-logik:
+    // - Ingen elevliste → Hjælp
+    // - Elevliste findes → K-elever
     const hasStudents = getStudents().length > 0;
-    const hasMe = String(getSettings().me || "").trim().length > 0;
-    if (!hasStudents || !hasMe) {
+    if (!hasStudents) {
       setTab("set");
-      setSettingsSubtab("data");
+      setSettingsSubtab("help");
     } else {
       setTab("k");
     }
     renderAll();
 }
-
-  init();
+  init().catch(console.error);
 })();
+(function teacherPickerKeyboardNavigation() {
+  const input = document.getElementById("meInput");
+  const picker = document.getElementById("teacherPicker");
+
+  if (!input || !picker) {
+    console.warn("TeacherPicker: input eller picker ikke fundet");
+    return;
+  }
+
+  let index = -1;
+
+  function getOptions() {
+    return Array.from(
+      picker.querySelectorAll("[data-value], .option, div, li")
+    ).filter(el => el !== input && el.textContent.trim() !== "");
+  }
+
+  function highlight(i) {
+    const options = getOptions();
+    options.forEach((el, idx) => {
+      el.classList.toggle("active", idx === i);
+      el.style.background = idx === i ? "rgba(255,255,255,0.08)" : "";
+    });
+
+    if (options[i]) {
+      options[i].scrollIntoView({ block: "nearest" });
+    }
+  }
+
+  input.addEventListener("keydown", e => {
+    const options = getOptions();
+    if (!options.length) return;
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      index = (index + 1) % options.length;
+      highlight(index);
+    }
+
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      index = (index - 1 + options.length) % options.length;
+      highlight(index);
+    }
+
+    if (e.key === "Enter" && index >= 0) {
+      e.preventDefault();
+      options[index].click();
+      index = -1;
+    }
+
+    if (e.key === "Escape") {
+      index = -1;
+      highlight(-1);
+    }
+  });
+
+  input.addEventListener("focus", () => {
+    index = -1;
+  });
+})();
+
+function updateCsvButton(count) {
+  const btn = document.getElementById('btnImportStudents');
+  if (!btn) return;
+  btn.classList.add('success');
+  btn.textContent = `Elevliste indlæst: ${count} elever`;
+  btn.title = 'Klik for at indlæse en ny CSV og overskrive den nuværende elevliste';
+}
+
+
+/* === EXPORT / IMPORT SKABELONER === */
+function exportTemplates() {
+  const data = {
+    forstanderNavn,
+    standardTekst,
+    udtalelsesSkabelon
+  };
+
+  const blob = new Blob(
+    [JSON.stringify(data, null, 2)],
+    { type: "application/json" }
+  );
+
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "udtalelses-skabeloner.json";
+  a.click();
+}
+
+function handleImportTemplates(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      forstanderNavn = data.forstanderNavn ?? "";
+      standardTekst = data.standardTekst ?? "";
+      udtalelsesSkabelon = data.udtalelsesSkabelon ?? "";
+      saveToLocalStorage();
+      renderAll();
+      setTemplatesImportedState();
+    } catch (e) {
+      alert("Ugyldig skabelon-fil");
+    }
+  };
+  reader.readAsText(file);
+}
+
+
+document.addEventListener("DOMContentLoaded", () => {
+  const exportBtn = document.getElementById("exportTemplatesBtn");
+  if (exportBtn) exportBtn.addEventListener("click", exportTemplates);
+
+  const importBtn = document.getElementById("importTemplatesBtn");
+  const importInput = document.getElementById("importTemplatesInput");
+
+  if (importBtn && importInput) {
+    importBtn.addEventListener("click", () => importInput.click());
+    importInput.addEventListener("change", e => {
+      if (e.target.files[0]) handleImportTemplates(e.target.files[0]);
+    });
+  }
+});
+
+
+function setTemplatesImportedState() {
+  const btn = document.getElementById("importTemplatesBtn");
+  if (!btn) return;
+  btn.classList.add("btn-imported");
+  btn.textContent = "Skabeloner importeret";
+  btn.title = "Klik for at overskrive skabeloner ved ny import";
+}
+
+
+
+document.addEventListener("click", (e) => {
+  const t = e.target;
+  if (!t || !t.textContent) return;
+
+  const label = t.textContent.trim();
+
+  if (label === "Download skabeloner") {
+    exportTemplates();
+  }
+
+  if (label === "Importér skabeloner") {
+    let input = document.getElementById("importTemplatesInput");
+    if (!input) {
+      input = document.createElement("input");
+      input.type = "file";
+      input.accept = ".json";
+      input.id = "importTemplatesInput";
+      input.style.display = "none";
+      document.body.appendChild(input);
+      input.addEventListener("change", ev => {
+        if (ev.target.files[0]) handleImportTemplates(ev.target.files[0]);
+      });
+    }
+    input.click();
+  }
+});
+
+
+document.addEventListener("DOMContentLoaded", () => {
+  const exportBtn = document.getElementById("btnExportTemplates");
+  if (exportBtn) {
+    exportBtn.addEventListener("click", exportTemplates);
+  }
+
+  let importBtn = document.getElementById("btnImportTemplates");
+  let importInput = document.getElementById("importTemplatesInput");
+
+  if (!importInput) {
+    importInput = document.createElement("input");
+    importInput.type = "file";
+    importInput.accept = ".json";
+    importInput.id = "importTemplatesInput";
+    importInput.hidden = true;
+    document.body.appendChild(importInput);
+  }
+
+  if (importBtn) {
+    importBtn.addEventListener("click", () => importInput.click());
+  }
+
+  importInput.addEventListener("change", e => {
+    if (e.target.files[0]) {
+      handleImportTemplates(e.target.files[0]);
+      importBtn?.classList.add("btn-imported");
+      importBtn.textContent = "Skabeloner importeret";
+      importBtn.title = "Klik for at overskrive skabeloner ved ny import";
+    }
+  });
+});
+
+/* === v1.0.2: K-lærer dropdown uses SAME logic as Find-elev ===
+   This does NOT modify the Find-elev implementation.
+   It simply reuses the initializer with a different data source.
+*/
+document.addEventListener("DOMContentLoaded", () => {
+  if (typeof initFindElevDropdown !== "function") return;
+
+  const kInput = document.getElementById("kLaererInitialerInput");
+  const kList  = document.getElementById("kLaererDropdown");
+
+  if (!kInput || !kList) return;
+
+  // Data adapter: reuse same dropdown logic
+  initFindElevDropdown({
+    input: kInput,
+    list: kList,
+    getItems: () => window.kLaerereInitialer || [],
+    onSelect: (item) => {
+      if (typeof setAktivKontaktlaerer === "function") {
+        setAktivKontaktlaerer(item);
+      }
+    }
+  });
+});

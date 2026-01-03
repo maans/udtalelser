@@ -1,0 +1,7 @@
+PATCH v1.2 (oven på UdtalelserV2_patch_singleprint_sort_keyboard)
+
+Fixes:
+- Udtalelses-skabelon (#templateText) gjort større via app.css
+- Faglærer-felter (både titler og tekster) er låst som standard
+- Blyant-ikoner virker: toggler lås for feltet i samme .field
+- Ingen ændringer i print, elevdata, CSV, sortering, keyboard

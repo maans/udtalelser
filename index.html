@@ -168,33 +168,45 @@
           </div>
         </div>
       </div>
+
+      <div class="card">
+        <div class="cardTitle">Avanceret</div>
+        <details class="fold" style="margin-top:.2rem">
+          <summary>Vis avancerede muligheder</summary>
+          <div style="margin-top:.6rem">
+            <button class="btn danger" id="btnReset" type="button">🔴 Nulstil app (slet alle lokale data)</button>
+            <div class="muted small" style="margin:.5rem 0 0 0; line-height:1.45">
+              Sletter alle elever, udtalelser, indstillinger og tekster i denne browser.<br/>
+              Handlingen kan ikke fortrydes.
+            </div>
+          </div>
+        </details>
+      </div>
+
     </div>
   </div>
 
   <!-- DATA -->
   <div class="settingsSubtab" data-subtab="data" id="settingsSubtab-data">
-    <div class="card">
-      <div class="callout no-print" style="margin-top:.6rem">
-        <div class="cardSubTitle" style="margin:0 0 .4rem 0">Importér / gendan backup</div>
-        <div class="muted small" style="margin-bottom:.6rem">
-          Vælg en backup-JSON (din egen eller en kollegas). Appen <b>fletter sikkert</b> indholdet ind, så du ikke mister dit eget arbejde.
-          (Hvis der er overlap, udfyldes kun tomme felter.)
-        </div>
-        <div class="row gap wrap">
-          <label class="btn" for="backupFileInput" title="Vælg backupfil">⬆️ Importér backup</label>
-          <input type="file" id="backupFileInput" accept="application/json" style="display:none" />
-        </div>
-      </div>
-      <button class="btn danger" id="btnReset" type="button">⚠️ Ryd alle lokale data (denne browser)</button>
-      <div class="muted small" style="margin:.5rem 0 1rem 0">
-        Sletter alle nøgler der starter med <code>udt_</code> og genstarter appen.
+    
+<div class="card">
+      <div class="cardTitle">Importér data</div>
+
+      <div class="muted small" style="margin:.2rem 0 .8rem 0; line-height:1.45">
+        Du kan enten indlæse en backup (JSON) eller indlæse elevlisten (CSV). Hvis du importerer backup, flettes indholdet ind, så du ikke mister dit eget arbejde.
       </div>
 
-      <div class="cardSubTitle">Elevliste (CSV) – skal indlæses først</div>
+      <div class="row gap wrap" style="margin-bottom:.6rem">
+        <label class="btn" for="backupFileInput" title="Vælg backupfil">⬆️ Importér backup</label>
+        <input type="file" id="backupFileInput" accept="application/json" style="display:none" />
+
+        <label class="btn" for="studentsFile" title="Vælg elevliste">⬆️ Indlæs elevliste (CSV)</label>
+        <input accept=".csv,.txt" id="studentsFile" type="file" style="display:none"/>
+      </div>
+
       <div class="row between" style="gap:1rem; align-items:flex-start; flex-wrap:wrap;">
         <div style="min-width:260px; flex: 1 1 360px;">
-          <input accept=".csv,.txt" id="studentsFile" type="file"/>
-          <div class="muted small" id="studentsStatus" style="margin-top:.35rem"></div>
+          <div class="muted small" id="studentsStatus" style="margin-top:.15rem"></div>
         </div>
         <div id="studentsWarn" class="warnBox" style="display:none; flex: 0 1 360px;"></div>
       </div>
@@ -202,7 +214,17 @@
       <details class="fold no-print" style="margin-top:.8rem">
         <summary>Accepterede kolonner (eksempler)</summary>
         <div class="muted small">
-          <div><b>Primært:</b> Fornavn, Efternavn, Unilogin, Køn, Kontaktlærer1, Kontaktlærer2, Klasse</div>
+          <div><b>Demo / standard-elevliste:</b> Fornavn, Efternavn, Unilogin, Køn, Klasse, Kontaktlærer1, Kontaktlærer2, Initialer for k-lærer1, Initialer for k-lærer2</div>
+
+          <div style="margin-top:.35rem"><b>Kontaktlærere og initialer:</b></div>
+          <ul style="margin:.25rem 0 0 1.1rem">
+            <li>I <i>Kontaktlærer1</i> og <i>Kontaktlærer2</i> kan du skrive kontaktlærerens navn (fx “Gert Hansen”).</li>
+            <li>Hvis der ikke er angivet initialer, danner appen dem automatisk (fx Gert Hansen → GH).</li>
+            <li>Hvis du vil bruge andre initialer, udfyld <i>Initialer for k-lærer1</i> / <i>Initialer for k-lærer2</i> (fx GTH). Disse overstyrer de automatiske initialer.</li>
+            <li>Kontaktlærer 2 og/eller initialer kan være tomme. Tomme felter ignoreres.</li>
+          </ul>
+
+          <div style="margin-top:.35rem"><em>Appen matcher kolonner robust (store/små bogstaver er ligegyldige, mellemrum trimmes, og kendte varianter accepteres).</em></div>
           <div><b>Uni-C:</b> Klasse, Fornavn, Efternavn, Uni-C brugernavn, Relationer-Kontaktlærer-Navn, Relationer-Anden kontaktlærer-Navn</div>
           <div>Appen mapper kolonner robust (case-insensitivt, trim, accepter Unilogin/Uni-C brugernavn).</div>
         </div>
@@ -468,15 +490,26 @@
         </ol>
       </details>
 
-      <details class="fold">
+      
+<details class="fold">
+  <summary>Demo</summary>
+  <div class="muted small" style="margin-top:.6rem; line-height:1.45">
+    <p><b>Indlæs demo-elevliste</b></p>
+    <p>Denne knap rydder <b>alle lokale data</b> (elever, udtalelser, indstillinger, tekster) og indlæser <code>demo_students.csv</code>.</p>
+    <p><b>Advarsel:</b> Handlingen kan ikke fortrydes. Tag evt. en <i>Backup (download)</i> først.</p>
+    <button class="btn warn" id="btnLoadDemo" type="button">Indlæs demo (overskriv alt)</button>
+  </div>
+</details>
+
+<details class="fold">
         <summary>FAQ</summary>
         <div class="muted small" style="margin-top:.6rem; line-height:1.45">
-          <p><b>Er der en server?</b><br/>Nej. Alt ligger lokalt i browseren.</p>
-          <p><b>Er det GDPR-sikkert?</b><br/>Ja – ingen data forlader computeren.</p>
-          <p><b>Kan flere lærere arbejde på samme elever?</b><br/>Ja. Status på elevkort kan vise hvem der sidst har redigeret.</p>
-          <p><b>Hvad hvis browseren crasher?</b><br/>Data gemmes løbende. Backup anbefales.</p>
-          <p><b>Skal man bruge skabelontekst?</b><br/>Nej. Den er kun en hjælp.</p>
-        </div>
+          <p><b>Er der en server?</b><br/>Nej. Alt gemmes lokalt i din browser. Der sendes ingen data nogen steder.</p>
+          <p><b>Er det GDPR-sikkert?</b><br/>Ja. Ingen elevdata forlader computeren.</p>
+          <p><b>Kan flere lærere arbejde på de samme elever?</b><br/>Ja. Hvis du importerer en kollegas backup, kan appen vise, hvem der sidst har redigeret en elev.</p>
+          <p><b>Hvad hvis browseren crasher?</b><br/>Data gemmes løbende i browseren. Det anbefales at tage backup jævnligt.</p>
+          <p><b>Skal man printe direkte fra appen?</b><br/>Nej. Klik Print, luk printdialogen, og kopiér teksten over i skolens Word- eller Docs-skabelon. Print og underskriv dér.</p>
+</div>
       </details>
 
       <div class="helpTip">
@@ -493,5 +526,6 @@
 <!-- (K-lærer) – custom dropdown bygges i app.js -->
 
 <script src="app.js"></script>
+<input type="file" id="importTemplatesInput" accept=".json" hidden>
 </body>
 </html>

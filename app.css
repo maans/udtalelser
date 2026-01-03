@@ -346,11 +346,15 @@ tr:hover td{background: rgba(255,255,255,.02)}
 .markbtn:hover { background: rgba(255,255,255,0.07); }
 .markbtn .check { opacity: 0.0; transform: translateY(-0.5px); }
 .markbtn.on {
-  border-color: rgba(120, 220, 255, 0.55);
-  background: rgba(120, 220, 255, 0.14);
-  box-shadow: 0 0 0 2px rgba(120, 220, 255, 0.10) inset;
+  border-color: rgba(255, 255, 255, 0.65);
+  background: rgba(255, 255, 255, 0.20);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.12) inset, 0 0 10px rgba(255, 255, 255, 0.12);
 }
-.markbtn.on .check { opacity: 1.0; }
+.markbtn.on .check {
+  color: rgba(255, 255, 255, 0.98);
+  text-shadow: 0 0 6px rgba(255, 255, 255, 0.35);
+}
+
 .markbtn.clear {
   background: rgba(255,255,255,0.02);
   opacity: 0.9;
@@ -601,4 +605,30 @@ td.cb { width: 56px; text-align: center; }
 .tickbox.on .check,
 .tickbox[aria-pressed="true"] .check{
   color: #fff;
+}
+
+/* --- Patch: make single-student print button compact (do not stretch full row) --- */
+#btnPrint {
+  width: auto;
+  max-width: 220px;
+  white-space: nowrap;
+}
+
+button.success{background:#2e7d32;border-color:#2e7d32;color:#fff}
+
+
+/* Imported template visual state */
+.btn-imported {
+  background: #1f7a3f !important;
+  border-color: #1f7a3f !important;
+  color: #fff !important;
+}
+
+
+/* === HIDE MATCH INFO (safe, cosmetic only) ===
+   Skjuler kun debug/status-teksten.
+   Bjælke, knapper og tællere påvirkes IKKE.
+*/
+.match-info {
+  display: none;
 }
