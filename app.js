@@ -689,12 +689,21 @@ function openPrintWindowForStudents(students, settings, title) {
       transform: scale(var(--s));
       transform-origin: top left;
     }
-  </style>
+  
+    /* iOS/iPadOS Safari: disable scaling transforms to avoid alternating blank pages */
+    @supports (-webkit-touch-callout: none) {
+      .page { --s: 1 !important; }
+      .content { transform: none !important; }
+    }
+</style>
 </head>
 <body>
 ${pagesHtml}
 <script>
 (function(){
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
+  // iOS/iPadOS Safari often prints every-other blank page when content is scaled/transformed.
+  const disableScale = isIOS;
   function fitAll(){
     const pages = document.querySelectorAll('.page');
     pages.forEach(p => {
@@ -726,7 +735,7 @@ ${pagesHtml}
   }
 
   window.addEventListener('load', () => {
-    fitAll();
+    if(!disableScale) fitAll();
     // A tiny delay helps after font rasterization
     setTimeout(fitAll, 50);
     setTimeout(() => { try { window.focus(); window.print(); } catch(e) {} }, 120);
