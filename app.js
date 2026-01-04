@@ -1865,6 +1865,27 @@ if (chosen && erObj[chosen]) {
 
     const kontakt = [student.kontaktlaerer1, student.kontaktlaerer2].filter(x => (x||'').trim()).join(' / ');
 
+    // Kontaktgruppe-antal skal være antal elever i den *aktive* K-lærers kontaktgruppe.
+    // Brug aldrig "alle elever" som fallback her, da det giver forkerte tal i udtalelser.
+    function computeActiveContactGroupCount() {
+      try {
+        const studsAll = (window.__ALL_STUDENTS__ && Array.isArray(window.__ALL_STUDENTS__)) ? window.__ALL_STUDENTS__ : [];
+        if (!studsAll.length) return '';
+        const meRaw = (settings.meResolved || settings.me || '').toString();
+        const meNorm = normalizeName(meRaw);
+        if (!meNorm) return '';
+        const cnt = studsAll.filter(st =>
+          normalizeName(toInitials(st.kontaktlaerer1_ini || '')) === meNorm ||
+          normalizeName(toInitials(st.kontaktlaerer2_ini || '')) === meNorm
+        ).length;
+        return String(cnt);
+      } catch (e) {
+        return '';
+      }
+    }
+
+    const activeContactGroupCount = computeActiveContactGroupCount() || String(settings.contactGroupCount || '');
+
     const placeholderMap = {
       "ELEV_NAVN": fullName,
       "ELEV_FORNAVN": firstName,
@@ -1899,7 +1920,7 @@ if (chosen && erObj[chosen]) {
 "ELEV_UDVIKLING_FRI": (free.elevudvikling || ''),
 "PRAKTISK_FRI": (free.praktisk || ''),
 "KGRUPPE_FRI": (free.kgruppe || ''),
-"KONTAKTGRUPPE_ANTAL": String(settings.contactGroupCount || (window.__ALL_STUDENTS__ ? window.__ALL_STUDENTS__.length : "") || ''),
+"KONTAKTGRUPPE_ANTAL": activeContactGroupCount,
 "KONTAKTGRUPPE_BESKRIVELSE": (free.kgruppe || SNIPPETS.kontaktgruppeDefault || ''),
 "KONTAKTLAERER_1_NAVN": ((student.kontaktlaerer1 || '') + '').trim(),
 "KONTAKTLAERER_2_NAVN": ((student.kontaktlaerer2 || '') + '').trim(),
@@ -2176,11 +2197,23 @@ function updateTabLabels(){
   const kBtn = $('tab-k');
   if(!kBtn) return;
   const span = kBtn.querySelector('span');
-  const title = (state.viewMode === 'ALL') ? 'Alle K-grupper' : 'K-elever';
-  if (span) span.textContent = title;
-  kBtn.title = title;
+
+  // Tab label (kort) og stor titel (mere informativ)
+  const tabTitle = (state.viewMode === 'ALL') ? 'Alle K-grupper' : 'K-elever';
+  if (span) span.textContent = tabTitle;
+  kBtn.title = tabTitle;
+
   const h = $('kTitle');
-  if (h) h.textContent = title;
+  if (h) {
+    if (state.viewMode === 'ALL') {
+      h.textContent = 'Alle K-grupper';
+    } else {
+      const s = getSettings();
+      const meRaw = ((s.me || '') + '').trim();
+      const meIni = toInitials(meRaw);
+      h.textContent = meIni ? `${meIni}'s K-elever` : 'K-elever';
+    }
+  }
 }
 
 
@@ -2510,8 +2543,11 @@ try {
     btnPrint.textContent = `🖨️ Print ${key} · K-gruppe ${gi+1}/${totalGroups}`;
     btnPrint.title = 'Udskriv den aktive K-gruppe som én samlet udskrift';
   } else {
-    btnPrint.textContent = '🖨️ Print dine K-elever';
-    btnPrint.title = 'Udskriv dine K-elever som én samlet udskrift';
+	    const sNow = getSettings();
+	    const meIniNow = toInitials(((sNow.meResolvedConfirmed || sNow.meResolved || sNow.me || '') + '').trim()) || '—';
+	    const visibleCount = (typeof getVisibleKElevIds === 'function') ? (getVisibleKElevIds().length || 0) : 0;
+	    btnPrint.textContent = `🖨️ Print ${meIniNow}'s ${visibleCount} K-elever`;
+	    btnPrint.title = 'Udskriv dine K-elever som én samlet udskrift';
   }
   if (btnPrint.parentElement !== titleActions) titleActions.appendChild(btnPrint);
 } catch(_) {}
@@ -2780,6 +2816,16 @@ function formatTime(ts) {
     const navRow = $('editNavRow');
     const pill = $('editStudentPill');
     const bPrev = $('btnPrevStudent'); const bNext = $('btnNextStudent');
+    const editHeaderInfo = $('editHeaderInfo');
+    if (editHeaderInfo) {
+      const s = getSettings();
+      const fullName = ((s.meFullName || '') + '').trim();
+      const meResolvedConfirmed = ((s.meResolvedConfirmed || '') + '').trim();
+      const meRaw = ((s.me || '') + '').trim();
+      const meIni = toInitials(meRaw);
+      const who = (fullName || meResolvedConfirmed || meIni || meRaw || '—');
+      editHeaderInfo.textContent = who ? `✏️ ${who}` : '✏️ —';
+    }
 
     if (!studs.length) {
       if (navRow) navRow.style.display = 'none';
@@ -2817,6 +2863,14 @@ function formatTime(ts) {
     if (navRow) navRow.style.display = '';
     if (hint) hint.innerHTML = '';
     const full = `${st.fornavn} ${st.efternavn}`.trim();
+
+	    // Update "Print elev" button label to include the active student's first name.
+	    const btnPrintOne = $('btnPrint');
+	    if (btnPrintOne) {
+	      const fn = (st.fornavn || '').trim();
+	      btnPrintOne.textContent = fn ? `🖨️ Print ${fn}` : '🖨️ Print elev';
+	      btnPrintOne.title = fn ? `Udskriv udtalelsen for ${fn}` : 'Udskriv udtalelsen for den aktive elev';
+	    }
     // Move the full active student name into the nav row center (bigger), to free vertical space.
     if (pill) { pill.style.display = 'none'; }
     const centerSlot = navRow ? navRow.querySelector('.navSlot.center') : null;
@@ -3287,6 +3341,7 @@ $('preview').textContent = buildStatement(st, getSettings());
   // ---------- events ----------
   function wireEvents() {
     on('tab-k','click', () => { if (state.tab === 'k') { state.viewMode = (state.viewMode === 'ALL') ? 'K' : 'ALL'; renderStatus(); renderKList(); updateTabLabels(); } else { setTab('k'); } });
+    on('kTitleBtn','click', () => { state.viewMode = (state.viewMode === 'ALL') ? 'K' : 'ALL'; updateTabLabels(); renderStatus(); renderKList(); });
     // Redigér-tab er skjult når ingen elev er valgt, men vær robust hvis nogen alligevel klikker.
   on('tab-edit','click', async () => {
     // Ensure latest overrides are loaded and applied (unless the user has local edits)

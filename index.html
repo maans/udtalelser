@@ -31,7 +31,7 @@
 <section class="view" id="view-k">
 <div class="viewHeader">
         <div class="viewTitleRow">
-          <h1 id="kTitle">K-elever</h1>
+          <button class="h1btn" id="kTitleBtn" type="button" title="Skift visning: K-elever ↔ Alle K-grupper"><h1 id="kTitle">K-elever</h1></button>
           <div id="kTitleActions" class="titleCenter no-print">
             <button class="btn small no-print" id="btnPrintAllK" type="button" title="Print alle dine K-elever som én samlet udskrift">🖨️ Print dine K-elever</button>
           </div>
@@ -61,9 +61,12 @@
 <section class="view" id="view-edit">
 <div class="viewHeader no-print">
 <div class="viewTitleRow">
-  <h1>Redigér</h1>
-  <div class="pill muted" id="autosavePill"></div>
-  <button class="btn no-print" id="btnPrint">🖨️ Print elev</button>
+  <div class="titleLeft"><h1>Redigér</h1></div>
+  <div class="titleCenter no-print" id="editTitleCenter">
+    <div class="pill muted" id="autosavePill"></div>
+    <button class="btn no-print" id="btnPrint">🖨️ Print elev</button>
+  </div>
+  <div class="titleRight no-print"><div class="muted small" id="editHeaderInfo"></div></div>
 </div>
 <div class="row gap wrap">
   <div class="pill" id="editStudentPill">Ingen elev valgt</div>
