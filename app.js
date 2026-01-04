@@ -663,7 +663,8 @@ function openPrintWindowForStudents(students, settings, title) {
     "'": '&#39;'
   }[c]));
 
-  const list = sortedStudents(Array.isArray(students) ? students : []);
+  const opts = arguments.length > 3 ? (arguments[3] || {}) : {};
+  const list = opts.preserveOrder ? (Array.isArray(students) ? students : []) : sortedStudents(Array.isArray(students) ? students : []);
 
   // Header date (month + year) should match 'Dato måned/år (auto)' from Indstillinger → Periode
   let headerDateText = '';
@@ -863,13 +864,45 @@ async function printAllKGroups() {
     alert('Der er ingen elevliste indlæst endnu.');
     return;
   }
-  const kGroups = buildKGroups(studs);
-  const all = [];
 
-  // Flatten i gruppe-rækkefølge (stabilt og forudsigeligt)
-  kGroups.forEach(g => {
-    (g.students || []).forEach(st => all.push(st));
+  const kGroups = buildKGroups(studs);
+
+// Sortering i 2 niveauer:
+// 1) K-grupper efter K-lærer1 (initialer) – derefter K-lærer2 – derefter nøgle
+// 2) Elever i hver gruppe alfabetisk efter fornavn (da-DK)
+const coll = new Intl.Collator('da', { sensitivity: 'base' });
+
+kGroups.sort((g1, g2) => {
+  const a0 = (g1.students && g1.students[0]) ? g1.students[0] : {};
+  const b0 = (g2.students && g2.students[0]) ? g2.students[0] : {};
+  const aK1 = toInitials(a0.kontaktlaerer1_ini || '');
+  const bK1 = toInitials(b0.kontaktlaerer1_ini || '');
+  const c1 = coll.compare(aK1, bK1);
+  if (c1) return c1;
+
+  const aK2 = toInitials(a0.kontaktlaerer2_ini || '');
+  const bK2 = toInitials(b0.kontaktlaerer2_ini || '');
+  const c2 = coll.compare(aK2, bK2);
+  if (c2) return c2;
+
+  return coll.compare(String(g1.key || ''), String(g2.key || ''));
+});
+
+for (const g of kGroups) {
+  (g.students || []).sort((x, y) => {
+    const c = coll.compare((x.fornavn || '').trim(), (y.fornavn || '').trim());
+    if (c) return c;
+    // tie-break: efternavn
+    return coll.compare((x.efternavn || '').trim(), (y.efternavn || '').trim());
   });
+}
+
+const all = [];
+
+// Flatten i gruppe-rækkefølge (stabilt og forudsigeligt)
+kGroups.forEach(g => {
+  (g.students || []).forEach(s => all.push(s));
+});
 
   if (!all.length) {
     alert('Der var ingen elever i K-grupperne at printe.');
@@ -877,50 +910,36 @@ async function printAllKGroups() {
   }
 
   const title = 'Udtalelser v1.0 – print alle K-grupper';
-  const styles = `
-    <style>
-      @page { size: A4; margin: 18mm 16mm; }
-      body{ font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; color:#000; background:#fff; }
-      .entry{ page-break-after: always; }
-      .page{ width: 178mm; height: 261mm; overflow:hidden; position:relative; }
-      pre.content{
-        white-space: pre-wrap;
-        font: 11pt/1.45 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-        margin:0;
-        transform: scale(var(--s, 1));
-        transform-origin: top left;
-        width: calc(100% / var(--s, 1));
-      }
-    </style>
-  `;
-  const body = all.map(st => {
-    const txt = buildStatement(st, getSettings());
-    return `
-      <section class="entry">
-        <div class="page"><pre class="content">${escapeHtml(txt)}</pre></div>
-      </section>
-    `;
-  }).join('');
+  // Brug samme printmotor som enkelt-elev / k-gruppe, så header (logo + dato) altid kommer med.
+  // preserveOrder=true så vi ikke mister gruppe-ordenen ved intern sortering.
+  openPrintWindowForStudents(all, getSettings(), title, { preserveOrder: true });
+}
 
-  const w = window.open('', '_blank');
-  if (!w) {
-    alert('Pop-up blev blokeret. Tillad pop-ups for at printe.');
+async function printAllStudents() {
+  // Keep overrides fresh for printing unless the user is actively editing templates.
+  try {
+    await loadRemoteOverrides();
+    applyTemplatesFromOverridesToLocal({ preserveLocks: true });
+  } catch(_) {}
+
+  const studs = getStudents();
+  if (!studs.length) {
+    alert('Der er ingen elevliste indlæst endnu.');
     return;
   }
-  w.document.open();
-  w.document.write(`<!doctype html><html lang="da"><head><meta charset="utf-8"><title>${title}</title>${styles}</head><body>${body}
-    <script>
-      (function(){
-        window.addEventListener('load', () => {
-          setTimeout(() => { try { window.focus(); window.print(); } catch(e) {} }, 250);
-        });
-window.addEventListener('beforeprint', fitAll);
-      })();
-    </script>
-  </body></html>`);
-  w.document.close();
-  setTimeout(()=>{ try{ w.focus(); w.print(); }catch(e){} }, 250);
+
+  const coll = new Intl.Collator('da', { sensitivity: 'base' });
+  const all = studs.slice().sort((a, b) => {
+    const c = coll.compare((a.fornavn || '').trim(), (b.fornavn || '').trim());
+    if (c) return c;
+    return coll.compare((a.efternavn || '').trim(), (b.efternavn || '').trim());
+  });
+
+  const title = 'Udtalelser v1.0 – print alle elever';
+  openPrintWindowForStudents(all, getSettings(), title, { preserveOrder: true });
 }
+
+
 
 function importLocalBackup(file) {
   if (!file) return;
@@ -4699,7 +4718,11 @@ try {
     const btnPrintAllK = $("btnPrintAllK");
     if (btnPrintAllK) btnPrintAllK.addEventListener("click", printAllKStudents);
 
-    // Indstillinger → Eksport: Print alle K-grupper (alle elever)
+        // Indstillinger → Eksport: Print alle elever (alfabetisk efter fornavn)
+    const btnPrintAllStudents = $("btnPrintAllStudents");
+    if (btnPrintAllStudents) btnPrintAllStudents.addEventListener("click", printAllStudents);
+
+// Indstillinger → Eksport: Print alle K-grupper (alle elever)
     const btnPrintAllGroups = $("btnPrintAllGroups");
     if (btnPrintAllGroups) btnPrintAllGroups.addEventListener("click", printAllKGroups);
 
