@@ -29,6 +29,11 @@ function resolveFullName(row) {
     textPrefix: LS_PREFIX + 'text_' // + unilogin
   };
 
+  // Post-import hint used to avoid landing on an empty K-elever view when a backup
+  // doesn't contain a chosen K-lærer.
+  // Stored as JSON: { showInfo: true, suggestedIni?: "AB" }
+  const KEY_POST_IMPORT_TEACHER_HINT = LS_PREFIX + 'post_import_teacher_hint';
+
 	// Backwards-compat alias used by some older event handlers
 	// Backwards-compat alias (older builds referenced KEY_MARKS_TYPE directly)
 	const KEY_MARKS_TYPE = KEYS.marksType;
@@ -660,6 +665,14 @@ function importLocalBackup(file) {
       if (!obj || typeof obj !== 'object' || !obj.data) throw new Error('Ugyldig backupfil.');
       const prefix = obj.prefix || LS_PREFIX;
 
+      // Helper: try to extract teacher initials from filename (AB-backup.json, EB_backup_2026.json, ...)
+      const guessIniFromFilename = (name) => {
+        const base = String(name || '').trim();
+        if (!base) return '';
+        const m = base.match(/^\s*([A-Za-zÆØÅæøå]{1,4})[\-_]/);
+        return m ? String(m[1] || '').toUpperCase() : '';
+      };
+
       // SAFE IMPORT (merge) so you can import colleagues' backups without losing your own work.
       // Policy:
       // - We never delete existing data.
@@ -669,12 +682,43 @@ function importLocalBackup(file) {
       let mergedText = 0, addedText = 0, skippedText = 0;
       let addedOther = 0, skippedOther = 0;
 
+      // Special-case: "aktiv K-lærer" is allowed to be restored from backup if it is missing locally.
+      // We still avoid clobbering other colleague settings.
+      let restoredTeacher = false;
+      const tryRestoreTeacherFromIncomingSettings = (incomingRaw) => {
+        try {
+          const inc = JSON.parse(String(incomingRaw || '{}')) || {};
+          const incomingMe = ((inc.me || inc.activeTeacher || '') + '').trim();
+          if (!incomingMe) return false;
+          const cur = getSettings();
+          const curMe = ((cur.me || '') + '').trim();
+          if (curMe) return false; // don't override an already chosen teacher
+          cur.me = incomingMe.toUpperCase();
+          cur.meResolved = cur.me;
+          cur.meResolvedConfirmed = cur.me;
+          if ((inc.meFullName || '') && !cur.meFullName) cur.meFullName = String(inc.meFullName || '').trim();
+          setSettings(cur);
+          return true;
+        } catch (_) {
+          return false;
+        }
+      };
+
+      // Clear any previous post-import hint before we start.
+      try { localStorage.removeItem(KEY_POST_IMPORT_TEACHER_HINT); } catch (_) {}
+
       Object.entries(obj.data).forEach(([k, v]) => {
         if (typeof k !== 'string' || !k.startsWith(prefix)) return;
         const incomingRaw = String(v ?? '');
 
-        // Never import colleague settings over your own.
-        if (k === KEYS.settings) { skippedOther++; return; }
+        // Settings: keep safe-by-default, but allow restoring missing K-lærer identity.
+        if (k === KEYS.settings) {
+          if (tryRestoreTeacherFromIncomingSettings(incomingRaw)) {
+            restoredTeacher = true;
+          }
+          skippedOther++;
+          return;
+        }
 
         if (k.startsWith(textKeyPrefix)) {
           const existingRaw = localStorage.getItem(k);
@@ -727,6 +771,23 @@ function importLocalBackup(file) {
         `Andet: +${addedOther} nye nøgler, ${skippedOther} uændret\n\n` +
         `Tip: Import af kollegers backup udfylder primært tomme felter – det overskriver ikke din tekst.`
       );
+
+      // Post-import navigation rules:
+      // - If we have an active teacher after import: go directly to K-elever (normal/fast case)
+      // - Otherwise: go to Indstillinger → Generelt and show a small info text.
+      //   If the filename looks like "AB-backup.json", prefill "AB" and open the dropdown.
+      try {
+        const meNow = ((getSettings().me || '') + '').trim();
+        if (!meNow) {
+          const suggested = guessIniFromFilename(file && file.name);
+          const hint = { showInfo: true };
+          if (suggested) hint.suggestedIni = suggested;
+          localStorage.setItem(KEY_POST_IMPORT_TEACHER_HINT, JSON.stringify(hint));
+        } else {
+          localStorage.removeItem(KEY_POST_IMPORT_TEACHER_HINT);
+        }
+      } catch (_) {}
+
       location.reload();
     } catch (err) {
       alert(err?.message || 'Kunne ikke indlæse backup.');
@@ -1203,6 +1264,10 @@ function updateTeacherDatalist() {
     // Gem fulde navn separat (bruges kun til visning i UI)
     s2.meFullName = (it && it.full) ? (it.full + '').trim() : '';
     setSettings(s2);
+
+    // If we came here right after a backup import that lacked a chosen teacher,
+    // this selection completes the flow.
+    try { localStorage.removeItem(KEY_POST_IMPORT_TEACHER_HINT); } catch (_) {}
 
     input.value = ini; // feltet holdes kort; listen viser fulde navne
     if (clear) clear.hidden = false;
@@ -2411,6 +2476,15 @@ function renderSettings() {
     $('btnToggleForstander').textContent = s.forstanderLocked ? '✏️' : '🔒';
 
     $('meInput').value = s.me || '';
+
+    // Discreet guidance when a teacher hasn't been chosen yet (e.g. right after importing a backup)
+    try {
+      const info = document.getElementById('teacherInfoAfterImport');
+      if (info) {
+        const hasTeacher = ((s.me || '') + '').trim();
+        info.style.display = hasTeacher ? 'none' : 'block';
+      }
+    } catch (_) {}
     $('schoolYearEnd').value = s.schoolYearEnd || '';
 
     const p = computePeriod(s.schoolYearEnd);
@@ -2520,6 +2594,42 @@ function renderSnippetsEditor() {
 function escapeHtml(s) {
   return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+
+
+// ---------- Teacher shortcut (header) ----------
+function goToGeneralSettingsForTeacher(){
+  try {
+    setTab('set');
+    setSettingsSubtab('general');
+  } catch(_) {}
+  // Focus K-lærer input; focus opens the picker menu (input.onfocus -> openMenu)
+  setTimeout(() => {
+    const input = document.getElementById('meInput');
+    if (input) input.focus();
+  }, 0);
+}
+
+function renderTeacherShortcutButton(hostEl, who){
+  if (!hostEl) return;
+  const title = "Skift K-lærer (Indstillinger → Generelt)";
+  const label = (who || '—') + '';
+  hostEl.classList.add('teacherRightHost');
+  if (hostEl.parentElement) hostEl.parentElement.classList.add('teacherRightWrap');
+  hostEl.innerHTML = '';
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'teacherShortcutBtn';
+  btn.title = title;
+  btn.setAttribute('aria-label', title);
+  btn.innerHTML = `<span class="teacherShortcutIcon">✏️</span><span class="teacherShortcutName">${escapeHtml(label)}</span>`;
+  btn.addEventListener('click', (e) => {
+    e.preventDefault();
+    goToGeneralSettingsForTeacher();
+  });
+  hostEl.appendChild(btn);
+}
+// ----------------------------------------------
+
 
 function commitSnippetsFromUI(scope) {
   const overrides = getSnippetImported();
@@ -2818,7 +2928,7 @@ const prog = mineList.reduce((acc, st) => {
       const ini = ((meResolvedConfirmed || meRaw || '') + '').trim();
       const who = (fullName || ini || '—');
       // Mindre dobbeltinfo: kun blyant + navn/initialer
-      kHeaderInfo.textContent = who ? `✏️ ${who}` : '✏️ —';
+      renderTeacherShortcutButton(kHeaderInfo, who);
     }
 
     if (kList) {
@@ -2994,7 +3104,7 @@ function formatTime(ts) {
       const meRaw = ((s.me || '') + '').trim();
       const meIni = toInitials(meRaw);
       const who = (fullName || meResolvedConfirmed || meIni || meRaw || '—');
-      editHeaderInfo.textContent = who ? `✏️ ${who}` : '✏️ —';
+      renderTeacherShortcutButton(editHeaderInfo, who);
     }
 
     if (!studs.length) {
@@ -4340,18 +4450,53 @@ try {
       e.target.value = "";
     });
 
-    // Start: hvis elever eller initialer mangler, start i Import
     // Start-fane-logik:
-    // - Ingen elevliste → Hjælp
-    // - Elevliste findes → K-elever
+    // - Ingen elevliste → Indstillinger → Hjælp
+    // - Elevliste + valgt K-lærer → K-elever
+    // - Elevliste + ingen K-lærer → Indstillinger → Generelt (ingen tom K-elever-visning)
     const hasStudents = getStudents().length > 0;
+    const meNow = ((getSettings().me || '') + '').trim();
+    let postImportHint = null;
+    try { postImportHint = JSON.parse(localStorage.getItem(KEY_POST_IMPORT_TEACHER_HINT) || 'null'); } catch (_) { postImportHint = null; }
+
     if (!hasStudents) {
-      setTab("set");
-      setSettingsSubtab("help");
+      setTab('set');
+      setSettingsSubtab('help');
+    } else if (meNow) {
+      setTab('k');
     } else {
-      setTab("k");
+      setTab('set');
+      setSettingsSubtab('general');
     }
+
     renderAll();
+
+    // After render: if a backup import requested a teacher selection, show a discreet hint,
+    // optionally prefill initials from filename, and open the dropdown.
+    if (hasStudents && !meNow) {
+      try {
+        const infoEl = document.getElementById('teacherInfoAfterImport');
+        if (infoEl) infoEl.style.display = 'block';
+      } catch (_) {}
+
+      if (postImportHint && postImportHint.suggestedIni) {
+        const ini = String(postImportHint.suggestedIni || '').trim().toUpperCase();
+        if (ini) {
+          const meInput = document.getElementById('meInput');
+          if (meInput) {
+            meInput.value = ini;
+            // Trigger filtering without committing (commit happens on click/ENTER)
+            try { meInput.dispatchEvent(new Event('input', { bubbles: true })); } catch (_) {}
+          }
+        }
+      }
+
+      // Focus will open the picker (input.onfocus opens the menu)
+      try {
+        const meInput = document.getElementById('meInput');
+        if (meInput) meInput.focus();
+      } catch (_) {}
+    }
 }
   init().catch(console.error);
 })();
