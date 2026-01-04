@@ -184,6 +184,36 @@
         </div>
       </div>
 
+      <div class="card" id="importStatsCard">
+        <div class="cardTitle">Vurderinger importeret (faglærer-CSV)</div>
+        <div class="muted small" id="importStatsHint" style="margin-top:.35rem; line-height:1.45">
+          Viser om der er importeret vurderinger til eleverne i den aktive K-gruppe.
+        </div>
+
+        <div class="importStatsGrid" style="margin-top:.8rem">
+          <div class="importStatRow">
+            <div class="importStatLabel"><span class="importDot" id="dotSang" aria-hidden="true"></span>Sang</div>
+            <div class="importStatValue"><span id="importStatsSang">–</span><span class="importStatMiss muted" id="importMissSang"></span></div>
+            <button class="btn tiny" id="btnToggleMissingSang" type="button">Vis manglende</button>
+          </div>
+          <div class="importStatMissing muted small" id="importMissingSang" style="display:none"></div>
+
+          <div class="importStatRow">
+            <div class="importStatLabel"><span class="importDot" id="dotGym" aria-hidden="true"></span>Gymnastik</div>
+            <div class="importStatValue"><span id="importStatsGym">–</span><span class="importStatMiss muted" id="importMissGym"></span></div>
+            <button class="btn tiny" id="btnToggleMissingGym" type="button">Vis manglende</button>
+          </div>
+          <div class="importStatMissing muted small" id="importMissingGym" style="display:none"></div>
+
+          <div class="importStatRow">
+            <div class="importStatLabel"><span class="importDot" id="dotER" aria-hidden="true"></span>Elevråd</div>
+            <div class="importStatValue"><span id="importStatsElevraad">–</span><span class="importStatMiss muted" id="importMissER"></span></div>
+            <div class="importStatRight" id="importERMarked">Ingen markeret</div>
+          </div>
+          <div class="importStatMissing muted small" id="importMissingElevraad" style="display:none"></div>
+        </div>
+      </div>
+
     </div>
   </div>
 

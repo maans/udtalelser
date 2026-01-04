@@ -576,6 +576,21 @@ tr:hover td{background: rgba(255,255,255,.02)}
 .warnBox{border:1px solid rgba(255,165,0,.45); background:rgba(255,165,0,.08); padding:.6rem .75rem; border-radius:12px; font-size:.9rem; color:var(--text);} 
 .warnBox b{color:var(--text);} 
 
+/* Import-status (faglærer-vurderinger) */
+.importStatsGrid{display:block}
+.importStatRow{display:flex; align-items:center; gap:.6rem; padding:.35rem 0}
+.importStatLabel{min-width:110px; font-weight:700; display:flex; align-items:center; gap:.5rem}
+.importStatValue{min-width:110px; font-variant-numeric: tabular-nums; color:var(--text); display:flex; align-items:baseline; gap:.45rem}
+.importStatMiss{font-size:.85em; opacity:.75}
+.importDot{width:10px; height:10px; border-radius:999px; background:rgba(255,255,255,.18); box-shadow:0 0 0 2px rgba(0,0,0,.25) inset}
+.importDot.ok{background:rgba(120,255,170,.85)}
+.importDot.warn{background:rgba(255,210,120,.9)}
+.importDot.bad{background:rgba(255,120,120,.9)}
+.importStatMissing{margin:0 0 .35rem 0; padding-left:110px}
+@media (max-width: 900px){
+  .importStatMissing{padding-left:0}
+}
+
 
 .titleCenter{justify-self:center;}
 .titleRight{justify-self:end; display:flex; align-items:center; gap:.5rem;}
