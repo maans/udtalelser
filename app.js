@@ -12,7 +12,8 @@ function resolveFullName(row) {
 (() => {
   'use strict';
 
-  // Used for cache-busting verification in the UI.
+  const PRINT_HEADER_LOGO_DATAURL = 'data:image/png;base64,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';
+// Used for cache-busting verification in the UI.
   // If a browser still shows an older build id, it's caching an old app.js.
   const BUILD_ID = '';
 
@@ -313,11 +314,10 @@ function resolveFullName(row) {
 
     const SNIPPETS_DEFAULT = JSON.parse(JSON.stringify(SNIPPETS));
 
-const DEFAULT_SCHOOL_TEXT =
-`På Himmerlands Ungdomsskole arbejder vi med både faglighed, fællesskab og personlig udvikling.
+const DEFAULT_SCHOOL_TEXT = `På Himmerlands Ungdomsskole arbejder vi med både faglighed, fællesskab og personlig udvikling.
 Udtalelsen er skrevet med udgangspunkt i elevens hverdag og deltagelse gennem skoleåret.`;
 
-  const DEFAULT_TEMPLATE = "Udtalelse vedrørende {{ELEV_FULDE_NAVN}}\\n\\n{{ELEV_FORNAVN}} {{ELEV_EFTERNAVN}} har været elev på Himmerlands Ungdomsskole i perioden fra {{PERIODE_FRA}} til {{PERIODE_TIL}} i {{ELEV_KLASSE}}.\\n\\nHimmerlands Ungdomsskole er en traditionsrig efterskole, som prioriterer fællesskabet og faglig fordybelse højt. Elevernes hverdag er præget af frie rammer og mange muligheder. Vi møder eleverne med tillid, positive forventninger og faglige udfordringer. I løbet af et efterskoleår på Himmerlands Ungdomsskole er oplevelserne mange og udfordringerne ligeså. Det gælder i hverdagens almindelige undervisning, som fordeler sig over boglige fag, fællesfag og profilfag. Det gælder også alle de dage, hvor hverdagen ændres til fordel for temauger, studieture mm. \\n\\n{{ELEV_UDVIKLING_AFSNIT}}\n\n{{ELEVRAAD_AFSNIT}}\n\n{{ROLLE_AFSNIT}}\n\\n\\nSom en del af et efterskoleår på Himmerlands Ungdomsskole deltager eleverne ugentligt i fællessang og fællesgymnastik. Begge fag udgør en del af efterskolelivet, hvor eleverne oplever nye sider af sig selv, flytter grænser og oplever, at deres bidrag til fællesskabet har betydning. I løbet af året optræder eleverne med fælleskor og gymnastikopvisninger.\\n\\n{{SANG_GYM_AFSNIT}}\\n\\nPå en efterskole er der mange praktiske opgaver.\\n\\n{{PRAKTISK_AFSNIT}}\\n\\n{{ELEV_FORNAVN}} har på Himmerlands Ungdomsskole været en del af en kontaktgruppe på {{KONTAKTGRUPPE_ANTAL}} elever. I kontaktgruppen kender vi {{HAM_HENDE}} som {{KONTAKTGRUPPE_BESKRIVELSE}}.\\n\\nVi har været rigtig glade for at have {{ELEV_FORNAVN}} som elev på skolen og ønsker {{HAM_HENDE}} held og lykke fremover.\\n\\n{{KONTAKTLÆRER_1_NAVN}} & {{KONTAKTLÆRER_2_NAVN}}\\n\\nKontaktlærere\\n\\n{{FORSTANDER_NAVN}}\\n\\nForstander";
+  const DEFAULT_TEMPLATE = "Udtalelse vedrørende {{ELEV_FULDE_NAVN}}\n\n{{ELEV_FORNAVN}} {{ELEV_EFTERNAVN}} har været elev på Himmerlands Ungdomsskole i perioden fra {{PERIODE_FRA}} til {{PERIODE_TIL}} i {{ELEV_KLASSE}}.\n\nHimmerlands Ungdomsskole er en traditionsrig efterskole, som prioriterer fællesskabet og faglig fordybelse højt. Elevernes hverdag er præget af frie rammer og mange muligheder. Vi møder eleverne med tillid, positive forventninger og faglige udfordringer. I løbet af et efterskoleår på Himmerlands Ungdomsskole er oplevelserne mange og udfordringerne ligeså. Det gælder i hverdagens almindelige undervisning, som fordeler sig over boglige fag, fællesfag og profilfag. Det gælder også alle de dage, hvor hverdagen ændres til fordel for temauger, studieture mm. \n\n{{ELEV_UDVIKLING_AFSNIT}}\n{{ELEVRAAD_AFSNIT}}\n{{ROLLE_AFSNIT}}\n\nSom en del af et efterskoleår på Himmerlands Ungdomsskole deltager eleverne ugentligt i fællessang og fællesgymnastik. Begge fag udgør en del af efterskolelivet, hvor eleverne oplever nye sider af sig selv, flytter grænser og oplever, at deres bidrag til fællesskabet har betydning. I løbet af året optræder eleverne med fælleskor og gymnastikopvisninger.\n{{SANG_GYM_AFSNIT}}\n\nPå en efterskole er der mange praktiske opgaver. {{PRAKTISK_AFSNIT}}\n{{ELEV_FORNAVN}} har på Himmerlands Ungdomsskole været en del af en kontaktgruppe på {{KONTAKTGRUPPE_ANTAL}} elever. I kontaktgruppen kender vi {{HAM_HENDE}} som {{KONTAKTGRUPPE_BESKRIVELSE}}.\n\nVi har været rigtig glade for at have {{ELEV_FORNAVN}} som elev på skolen og ønsker {{HAM_HENDE}} held og lykke fremover.\n\n\n\n{{KONTAKTLÆRER_1_NAVN}} & {{KONTAKTLÆRER_2_NAVN}}     {{FORSTANDER_NAVN}}\nKontaktlærere                                                           Forstander\n";
 
   // ---------- storage ----------
   function lsGet(key, fallback) {
@@ -619,6 +619,20 @@ function applyOnePagePrintScale() {
   document.documentElement.style.setProperty('--printScale', '1');
   // Only relevant when preview has content
   const txt = (preview.textContent || '').trim();
+
+  // Title extraction (first line) — no regex
+  const rawPrint = String(txt || '').replaceAll('\r', '');
+  const nl = rawPrint.indexOf('\n');
+  let titleLine = '';
+  let bodyText = rawPrint;
+  if (nl >= 0) {
+    titleLine = rawPrint.slice(0, nl).trim();
+    bodyText = rawPrint.slice(nl + 1);
+    while (bodyText.startsWith('\n')) bodyText = bodyText.slice(1);
+  } else {
+    titleLine = rawPrint.trim();
+    bodyText = '';
+  }
   if (!txt) return;
 
   // Create a mm-to-px probe (hidden)
@@ -650,12 +664,42 @@ function openPrintWindowForStudents(students, settings, title) {
   }[c]));
 
   const list = sortedStudents(Array.isArray(students) ? students : []);
+
+  // Header date (month + year) should match 'Dato måned/år (auto)' from Indstillinger → Periode
+  let headerDateText = '';
+  try {
+    if (typeof computePeriod === 'function') {
+      const p = computePeriod(settings && settings.schoolYearEnd);
+      headerDateText = (p && p.dateMonthYear) ? String(p.dateMonthYear) : '';
+    }
+  } catch(e) {}
+  if (!headerDateText) {
+    const _d = new Date();
+    const _monthYear = _d.toLocaleDateString('da-DK', { month: 'long', year: 'numeric' });
+    headerDateText = _monthYear ? (_monthYear.charAt(0).toUpperCase() + _monthYear.slice(1)) : '';
+  }
   const pagesHtml = list.map(st => {
     const txt = buildStatement(st, settings);
+    // Title extraction (first line) — no regex
+    const rawPrint = String(txt || '').replaceAll('\r', '');
+    const nl = rawPrint.indexOf('\n');
+    let titleLine = '';
+    let bodyText = rawPrint;
+    if (nl >= 0) {
+      titleLine = rawPrint.slice(0, nl).trim();
+      bodyText = rawPrint.slice(nl + 1);
+      while (bodyText.startsWith('\n')) bodyText = bodyText.slice(1);
+    } else {
+      titleLine = rawPrint.trim();
+      bodyText = '';
+    }
     return `
       <div class="page">
         <div class="content">
-          <pre class="statement">${escapeHtml(txt)}</pre>
+          <div class="printHeaderTop"><div class="printHeaderDate">${escapeHtml(headerDateText)}</div></div>
+          <div class="printHeaderLogo"><img src="${PRINT_HEADER_LOGO_DATAURL}" alt="Himmerlands Ungdomsskole" /></div>
+          <div class="printTitle">${escapeHtml(titleLine)}</div>
+          <pre class="statement">${escapeHtml(bodyText)}</pre>
         </div>
       </div>`;
   }).join('');
@@ -668,25 +712,20 @@ function openPrintWindowForStudents(students, settings, title) {
   <meta charset="utf-8">
   <title>${docTitle}</title>
   <style>
-    @page { size: A4; margin: 0; }
+    @page { size: A4; margin: 12mm 14mm; }
     html, body { margin: 0; padding: 0; background: #fff; }
-    .page {
-      width: 210mm;
-      height: 297mm;
-      padding: 12mm 14mm;
-      box-sizing: border-box;
+    .page{
       page-break-after: always;
-      overflow: hidden;
-      --s: 1;
     }
-    .content { width: 100%; height: 100%; overflow: hidden; }
+    .content{ width: 100%; }
     .statement {
       margin: 0;
       white-space: pre-wrap;
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-      font-size: 12pt;
+      font-family: Arial, sans-serif;
+      font-size: 10.5pt;
+      font-size: 10.5pt;
       line-height: 1.45;
-      transform: scale(var(--s));
+      transform: none;
       transform-origin: top left;
     }
   
@@ -695,6 +734,67 @@ function openPrintWindowForStudents(students, settings, title) {
       .page { --s: 1 !important; }
       .statement { transform: none !important; width: auto !important; }
     }
+
+    /* Header logo */
+    .printHeader{
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      margin: 0mm 0 6mm 0;
+    }
+    .printTitle{
+      text-align: center;
+      font-family: Arial, sans-serif;
+      font-size: 12pt;
+      font-weight: 700;
+      margin: 0 0 6mm 0;
+    }
+
+    .printHeader img{
+      height: 22mm;
+      width: auto;
+      display:block;
+    }
+
+
+    /* Header: date (top-right) + logo (center) */
+    .printHeaderTop{
+      display:flex;
+      justify-content:flex-end;
+      align-items:flex-start;
+      margin: 2mm 0 0 0;
+      font-size: 10pt;
+      color: #222;
+    }
+    .printHeaderDate{ white-space: nowrap; }
+    .printHeaderLogo{
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      margin: 8mm 0 8mm 0;
+    }
+    .printHeaderLogo img{
+      height: 22mm;
+      width: auto;
+      display:block;
+    }
+
+
+    .page:last-child{
+      break-after: auto;
+      page-break-after: auto;
+    }
+    .content{
+      height: 100%;
+      overflow: hidden;
+      position: relative;
+    }
+    pre.statement{
+      white-space: pre-wrap;
+      margin: 0;
+      overflow: hidden;
+    }
+
 </style>
 </head>
 <body>
@@ -702,45 +802,9 @@ ${pagesHtml}
 <script>
 (function(){
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
-  // iOS/iPadOS Safari often prints every-other blank page when content is scaled/transformed.
-  const disableScale = isIOS;
-  function fitAll(){
-    const pages = document.querySelectorAll('.page');
-    pages.forEach(p => {
-      const c = p.querySelector('.statement');
-      if(!c) return;
-
-      // Reset
-      p.style.setProperty('--s', 1);
-      c.style.width = '';
-
-      const availH = p.clientHeight;
-      const availW = p.clientWidth;
-      let neededH = c.scrollHeight;
-      let neededW = c.scrollWidth;
-
-      let s = Math.min(1, availH / Math.max(1, neededH), availW / Math.max(1, neededW));
-
-      // If we scale down, widen the element proportionally to preserve line wrapping
-      // and re-check height.
-      if (s < 1) {
-        c.style.width = (100 / s) + '%';
-        neededH = c.scrollHeight;
-        neededW = c.scrollWidth;
-        s = Math.min(s, availH / Math.max(1, neededH), availW / Math.max(1, neededW));
-      }
-
-      p.style.setProperty('--s', s.toFixed(4));
-    });
-  }
-
   window.addEventListener('load', () => {
-    if(!disableScale) {
-      fitAll();
-      // A tiny delay helps after font rasterization
-      setTimeout(fitAll, 50);
-    }
-    setTimeout(() => { try { window.focus(); window.print(); } catch(e) {} }, 120);
+    // Give fonts/images a moment, then open print dialog.
+    setTimeout(() => { try { window.focus(); window.print(); } catch(e) {} }, 250);
   });
 })();
 </script>
@@ -847,21 +911,10 @@ async function printAllKGroups() {
   w.document.write(`<!doctype html><html lang="da"><head><meta charset="utf-8"><title>${title}</title>${styles}</head><body>${body}
     <script>
       (function(){
-        function fitAll(){
-          const pages = Array.from(document.querySelectorAll('.page'));
-          pages.forEach(p=>{
-            const c = p.querySelector('.content');
-            if(!c) return;
-            p.style.setProperty('--s','1');
-            const avail = p.clientHeight;
-            const needed = c.scrollHeight;
-            let s = 1;
-            if (needed > avail && avail > 0) s = Math.max(0.10, Math.min(1, avail / needed));
-            p.style.setProperty('--s', String(s));
-          });
-        }
-        window.addEventListener('load', fitAll);
-        window.addEventListener('beforeprint', fitAll);
+        window.addEventListener('load', () => {
+          setTimeout(() => { try { window.focus(); window.print(); } catch(e) {} }, 250);
+        });
+window.addEventListener('beforeprint', fitAll);
       })();
     </script>
   </body></html>`);
