@@ -823,3 +823,31 @@ button.success{background:#2e7d32;border-color:#2e7d32;color:#fff}
 .teacherShortcutBtn:hover{background:rgba(255,255,255,0.06);}
 .teacherShortcutBtn:active{transform:translateY(1px);}
 .teacherShortcutName{white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:360px;}
+
+
+/* ---------- Multi-tab lock banner ---------- */
+.udt-lock-banner{
+  display:none;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:10px 14px;
+  margin:0;
+  border-bottom:1px solid var(--border);
+  background: rgba(255, 196, 0, 0.10);
+}
+.udt-lock-text{
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+}
+.udt-lock-sub{
+  color: var(--muted);
+  font-size: 13px;
+}
+body.udt-readonly .udt-lock-banner{
+  display:flex;
+}
+body.udt-readonly main.app{
+  filter: saturate(0.85);
+}

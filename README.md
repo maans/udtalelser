@@ -4,7 +4,7 @@ En lille, statisk browser-app til at skrive elevudtalelser.
 
 - **Ingen server**. Kører som ren HTML/CSS/JS (GitHub Pages eller lokalt).
 - **Gemmer lokalt** i browserens `localStorage` (pr. enhed/browser).
-- Importér en elevliste (`students.csv`) og skriv udtalelser / markeringer / print.
+- Importér en elevliste (CSV) og skriv udtalelser / markeringer / print.
 
 ## Start
 
@@ -14,46 +14,47 @@ En lille, statisk browser-app til at skrive elevudtalelser.
 ### GitHub Pages
 Publicér repoet som GitHub Pages og åbn siden.
 
-## Import af elevliste (students.csv)
+## Data & import (overblik)
 
-Appen forventer en CSV med overskrifter. Separator kan typisk være `;` eller `,` (appens import forsøger at håndtere begge).
+Typisk arbejdsgang:
 
-### Primære kolonner (anbefalet)
-- Fornavn
-- Efternavn
-- Unilogin (valgfri men anbefalet)
-- Køn (valgfri)
-- Klasse
-- Kontaktlærer1
-- Kontaktlærer2
+1. **Indlæs elevliste (CSV)** (eller brug demo-data).
+2. Sæt dine **initialer / K‑lærer** i *Indstillinger → Generelt*.
+3. Arbejd i fanerne:
+   - **K-elever**: overblik, søgning, markeringer, print
+   - **Redigér**: skabeloner/tekster (med låst redigering hvor relevant)
+   - **Indstillinger**: identitet, import/backup og generelle valg
 
-### Valgfri kolonner (for initialer)
-- Initialer for k-lærer1
-- Initialer for k-lærer2
-
-**Regel:**
-- Hvis *Initialer for k-lærerX* er udfyldt → bruges direkte (trim + uppercase).
-- Hvis tom → appen udleder initialer generisk fra kontaktlærer-navnet (første bogstav i første og sidste ord).
-
-> Appen viser og bruger kontaktlærere som **initialer** i UI (persondata-sikkert).
-
-### Uni‑C variant (accepteret)
-Appen forsøger også at genkende disse (case‑insensitivt):
-- Klasse, Fornavn, Efternavn, Uni‑C brugernavn
-- Relationer‑Kontaktlærer‑Navn
-- Relationer‑Anden kontaktlærer‑Navn
-- (valgfri) Initialer for k‑lærer1 / k‑lærer2
+Tip: I headeren kan du klikke på **✏️ + K‑lærerens fulde navn** for hurtigt at gå til *Indstillinger → Generelt* og skifte K‑lærer.
 
 ## Demo-data
 
-Repoet indeholder `demo_students.csv` med **152 fiktive elever** fordelt på **8 K‑grupper** (2 kontaktlærere pr. gruppe).
+Repoet indeholder `demo_students.csv` med **fiktive elever** fordelt på K‑grupper.
 Alle navne og kontaktlærere er opdigtede.
 
 ## Backup / import / flet
 
-Backup eksporteres som en fil, du kan gemme lokalt. Når du importerer en backup igen, **fletter** appen data:
+Backup eksporteres som en fil, du kan gemme lokalt.
+
+Når du importerer en backup igen, **fletter** appen data:
+
 - udfyldte felter i din nuværende browser overskrives ikke af tomme felter fra backup
 - formålet er at kunne samle arbejde fra flere maskiner uden at miste tekst
+- backup kan deles med kolleger uden at “nulstille” deres lokale data
+
+### Import-adfærd (K-lærer)
+
+- Hvis backuppen indeholder aktiv K‑lærer, gendannes den, og appen går direkte til **K‑elever**.
+- Hvis backuppen mangler aktiv K‑lærer, går appen til **Indstillinger → Generelt** og beder dig vælge K‑lærer.
+- Hvis filnavnet starter med fx `AB-...` eller `EB_...`, bruges det som **prefill** (genvej), men du skal stadig bekræfte valget.
+
+## Multi-fane: “tab-lås” (single-writer)
+
+For at undgå konflikter i `localStorage` kan kun **én** browser-fane skrive ad gangen:
+
+- Første fane der åbnes får redigering.
+- Andre faner går i **visning-tilstand** og får et banner: *“Appen er åben i en anden fane”*.
+- I banneret kan man trykke **“Overtag redigering”** (fx hvis den anden fane er lukket eller frosset).
 
 ## Notes
 

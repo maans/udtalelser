@@ -17,6 +17,208 @@ function resolveFullName(row) {
   const BUILD_ID = '';
 
   const LS_PREFIX = 'udt_';
+
+
+  /* ---------- Multi-tab single-writer lock ----------
+     Goal: Only one tab can write to localStorage at a time.
+     - First tab gets edit access.
+     - Other tabs become view-only and see a banner.
+     - They can click "Overtag redigering" to take over.
+  */
+  const TAB_ID_KEY = LS_PREFIX + 'tab_id';
+  const LOCK_KEY   = LS_PREFIX + 'tab_lock';
+  const LOCK_TTL_MS = 8000;      // lock considered stale after this
+  const HEARTBEAT_MS = 2000;     // owner refresh interval
+
+  const getTabId = () => {
+    try{
+      const fromSession = sessionStorage.getItem(TAB_ID_KEY);
+      if (fromSession) return fromSession;
+      const id = Math.random().toString(16).slice(2) + '-' + Date.now().toString(16);
+      sessionStorage.setItem(TAB_ID_KEY, id);
+      return id;
+    }catch(_){
+      return 'tab-' + Date.now();
+    }
+  };
+  const TAB_ID = getTabId();
+
+  let isWriterTab = false;
+  let heartbeatTimer = null;
+
+  const readLock = () => {
+    try{
+      const raw = localStorage.getItem(LOCK_KEY);
+      if (!raw) return null;
+      const obj = JSON.parse(raw);
+      if (!obj || typeof obj !== 'object') return null;
+      return { id: String(obj.id||''), ts: Number(obj.ts||0) };
+    }catch(_){ return null; }
+  };
+
+  const writeLock = (force = false) => {
+    // force=true used by "Overtag redigering"
+    try{
+      const current = readLock();
+      const stale = !current || (Date.now() - current.ts) > LOCK_TTL_MS;
+      if (force || !current || stale || current.id === TAB_ID){
+        localStorage.setItem(LOCK_KEY, JSON.stringify({ id: TAB_ID, ts: Date.now() }));
+        return true;
+      }
+    }catch(_){}
+    return false;
+  };
+
+  // Patch localStorage writes so non-writer tabs cannot persist changes.
+  const _lsSetItem = Storage.prototype.setItem;
+  const _lsRemoveItem = Storage.prototype.removeItem;
+  const _lsClear = Storage.prototype.clear;
+
+  Storage.prototype.setItem = function(k, v){
+    if (!isWriterTab && String(k) !== LOCK_KEY) return;
+    return _lsSetItem.call(this, k, v);
+  };
+  Storage.prototype.removeItem = function(k){
+    if (!isWriterTab && String(k) !== LOCK_KEY) return;
+    return _lsRemoveItem.call(this, k);
+  };
+  Storage.prototype.clear = function(){
+    if (!isWriterTab) return;
+    return _lsClear.call(this);
+  };
+
+  const ensureLockBanner = () => {
+    let el = document.getElementById('udtTabLockBanner');
+    if (el) return el;
+    el = document.createElement('div');
+    el.id = 'udtTabLockBanner';
+    el.className = 'udt-lock-banner no-print';
+    el.innerHTML = `
+      <div class="udt-lock-text">
+        <strong>Appen er åben i en anden fane</strong>
+        <span class="udt-lock-sub">Denne fane er i visning-tilstand.</span>
+      </div>
+      <button type="button" class="btn small" id="udtTakeoverBtn" title="Overtag redigering (hvis den anden fane er lukket eller du vil overtage)">
+        Overtag redigering
+      </button>
+    `.trim();
+
+    const header = document.querySelector('header.topbar');
+    if (header && header.parentNode){
+      header.parentNode.insertBefore(el, header.nextSibling);
+    }else{
+      document.body.insertBefore(el, document.body.firstChild);
+    }
+
+    el.querySelector('#udtTakeoverBtn')?.addEventListener('click', () => {
+      // Take over lock, then sync latest state from localStorage before enabling edits
+      writeLock(true);
+      evaluateTabLock(true);
+      try { syncFromLocalStorageAndRender(); } catch(_) {}
+    });
+
+    return el;
+  };
+
+  const setControlsDisabled = (disabled) => {
+    // Disable form controls in view-only tabs to avoid "false edits"
+    const ctrls = document.querySelectorAll('main.app input, main.app textarea, main.app select');
+    ctrls.forEach(ctrl => {
+      const prev = ctrl.getAttribute('data-udt-prev-disabled');
+      if (disabled){
+        if (prev === null) ctrl.setAttribute('data-udt-prev-disabled', ctrl.disabled ? '1' : '0');
+        ctrl.disabled = true;
+      }else{
+        if (prev !== null){
+          ctrl.disabled = (prev === '1');
+          ctrl.removeAttribute('data-udt-prev-disabled');
+        }
+      }
+    });
+  };
+
+  const applyWriterState = (writer) => {
+    const was = isWriterTab;
+    isWriterTab = !!writer;
+
+    // Banner
+    const banner = ensureLockBanner();
+    banner.style.display = isWriterTab ? 'none' : 'flex';
+
+    // Disable / enable controls
+    document.body.classList.toggle('udt-readonly', !isWriterTab);
+    setControlsDisabled(!isWriterTab);
+
+    // Heartbeat
+    if (isWriterTab){
+      if (!heartbeatTimer){
+        heartbeatTimer = setInterval(() => {
+          try{ localStorage.setItem(LOCK_KEY, JSON.stringify({ id: TAB_ID, ts: Date.now() })); }catch(_){}
+        }, HEARTBEAT_MS);
+      }
+    }else{
+      if (heartbeatTimer){
+        clearInterval(heartbeatTimer);
+        heartbeatTimer = null;
+      }
+    }
+
+    // If we just became writer, also refresh to re-enable UI states correctly
+    if (!was && isWriterTab){
+      try{ setTimeout(() => setControlsDisabled(false), 0); }catch(_){}
+    }
+  };
+
+
+  const syncFromLocalStorageAndRender = () => {
+    // Ensure any derived/cached structures are rebuilt from latest localStorage,
+    // then re-render UI. This avoids stale in-memory state after "Overtag redigering".
+    try { rebuildAliasMapFromStudents(getStudents()); } catch(_) {}
+    try { renderAll(); } catch(_) {}
+  };
+
+  const evaluateTabLock = (fromTakeover = false) => {
+    const lock = readLock();
+    const stale = !lock || (Date.now() - lock.ts) > LOCK_TTL_MS;
+
+    if (!lock || stale || lock.id === TAB_ID){
+      // Acquire / refresh
+      const ok = writeLock(fromTakeover);
+      applyWriterState(!!ok);
+      return;
+    }
+    // Someone else owns it
+    applyWriterState(false);
+  };
+
+  // Listen for other tabs: lock changes + data changes
+  window.addEventListener('storage', (e) => {
+    if (!e || !e.key) return;
+    const k = String(e.key);
+
+    if (k === LOCK_KEY){
+      evaluateTabLock(false);
+      return;
+    }
+
+    // Keep view-only tabs in sync with latest data written by the writer tab
+    if (!isWriterTab && k.startsWith(LS_PREFIX)){
+      try { syncFromLocalStorageAndRender(); } catch(_) {}
+    }
+  });
+// Acquire lock ASAP (before first render)
+  evaluateTabLock(false);
+
+  // Release lock on close (best-effort)
+  window.addEventListener('beforeunload', () => {
+    try{
+      const lock = readLock();
+      if (lock && lock.id === TAB_ID) localStorage.removeItem(LOCK_KEY);
+    }catch(_){}
+  });
+
+  /* ---------- end tab lock ---------- */
+
   const KEYS = {
     settings: LS_PREFIX + 'settings',
     students:  LS_PREFIX + 'students',
