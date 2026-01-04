@@ -851,3 +851,34 @@ body.udt-readonly .udt-lock-banner{
 body.udt-readonly main.app{
   filter: saturate(0.85);
 }
+
+
+/* === iOS / Safari print fix (prevents every-other blank page) === */
+@media print {
+  html, body {
+    height: auto !important;
+    min-height: 0 !important;
+  }
+
+  .app, .container, .main, .screen, .pageWrap, .printWrap {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+
+  .printWrap, .printRoot, .printContainer {
+    transform: none !important;
+  }
+
+  .printPage {
+    break-after: page;
+    page-break-after: always;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .printPage:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+}
