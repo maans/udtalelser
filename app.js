@@ -12,6 +12,10 @@ function resolveFullName(row) {
 (() => {
   'use strict';
 
+  // Used for cache-busting verification in the UI.
+  // If a browser still shows an older build id, it's caching an old app.js.
+  const BUILD_ID = '';
+
   const LS_PREFIX = 'udt_';
   const KEYS = {
     settings: LS_PREFIX + 'settings',
@@ -841,6 +845,14 @@ function importOverridePackage(expectedScope, obj) {
   return input
     .toString()
     .trim()
+    // Handle common mojibake when a UTF-8 CSV has been decoded as latin1/Win-1252
+    // (e.g. "KontaktlÃ¦rer" instead of "Kontaktlærer").
+    .replace(/Ã¦/g, 'æ')
+    .replace(/Ã¸/g, 'ø')
+    .replace(/Ã¥/g, 'å')
+    .replace(/Ã†/g, 'Æ')
+    .replace(/Ã˜/g, 'Ø')
+    .replace(/Ã…/g, 'Å')
     .toLowerCase()
     .replace(/\./g, " ")
     // Danish letters are not decomposed by NFD, so transliterate explicitly
@@ -922,6 +934,28 @@ function toInitials(raw) {
   return (first + last).toUpperCase();
 }
 
+function cleanInitials(raw){
+  // CSV'er og brugere kan skrive initialer med tegn som punktum, mellemrum osv.
+  // Vi stripper alt andet end bogstaver og accepterer 1–4 bogstaver som "gyldige" initialer.
+  const s = (raw ?? '').toString().trim().toUpperCase();
+  const cleaned = s.replace(/[^A-ZÆØÅ]+/g, '');
+  return cleaned;
+}
+
+function isValidInitials(raw){
+  const cleaned = cleanInitials(raw);
+  return /^[A-ZÆØÅ]{1,4}$/.test(cleaned);
+}
+
+function normalizedInitials(overrideRaw, fullNameRaw){
+  // Rules (per "Accepterede kolonner"):
+  // - If Initialer for k-lærer1/2 is provided AND looks like real initials (1-4 letters), use it.
+  // - Otherwise auto-generate from the full name.
+  const o = (overrideRaw ?? '').toString().trim();
+  if (isValidInitials(o)) return cleanInitials(o);
+  return toInitials(fullNameRaw);
+}
+
 
 function reverseResolveTeacherInitials(nameOrInitials) {
   // Try to map full name -> initials based on known alias map (if present in settings).
@@ -979,13 +1013,17 @@ function computeMissingKTeacher(students) {
 }
 
 function updateTeacherDatalist() {
-  // v1.0: Identitet-listen bygges udelukkende ud fra elevlisten (initialer), ingen hardcodede lærere.
+  // K-lærer-pickeren bygges primært ud fra elevlisten:
+  // - Initialer findes i kontaktlærer1/2_ini
+  // - Fulde navne (hvis til stede) findes i kontaktlærer1/2
+  // Derudover kan brugerens aliasMap supplere med fulde navne.
   const input = document.getElementById('meInput');
   const menu  = document.getElementById('teacherPickerMenu');
   const btn   = document.getElementById('teacherPickerBtn');
   const wrap  = document.getElementById('teacherPicker');
   const clear = document.getElementById('meInputClear');
   if (!input || !menu || !btn || !wrap) return;
+  try { menu.tabIndex = -1; } catch(_) {}
 
   const studs = getStudents();
   if (!studs.length) {
@@ -995,22 +1033,82 @@ function updateTeacherDatalist() {
     if (clear) clear.hidden = true;
     menu.innerHTML = `<div class="pickerEmpty">Indlæs elevliste først (students.csv).</div>`;
     wrap.classList.remove('open');
+    menu.hidden = true;
     return;
   }
 
   input.disabled = false;
   btn.disabled = false;
 
-  const set = new Set();
+  // Build initials -> full name map (prefer names seen in students.csv)
+  const nameByIni = new Map();          // ini -> bestName
+  const freqByIni = new Map();          // ini -> Map(name->count)
+  const bump = (ini, full) => {
+    const I = (ini || '').toString().trim().toUpperCase();
+    const F = (full || '').toString().trim();
+    if (!I) return;
+    if (!freqByIni.has(I)) freqByIni.set(I, new Map());
+    if (F) {
+      const m = freqByIni.get(I);
+      m.set(F, (m.get(F) || 0) + 1);
+    }
+  };
+
   for (const st of studs) {
-    const a = (st.kontaktlaerer1_ini || '').toString().trim().toUpperCase();
-    const b = (st.kontaktlaerer2_ini || '').toString().trim().toUpperCase();
-    if (a) set.add(a);
-    if (b) set.add(b);
+    // Vær defensiv: hvis der ligger ældre/fejl-importerede values i localStorage,
+    // så genberegner vi initialer ud fra fulde navne, med mindre der ligger en
+    // gyldig override (1-4 bogstaver).
+    bump(normalizedInitials(st.kontaktlaerer1_ini, st.kontaktlaerer1), st.kontaktlaerer1);
+    bump(normalizedInitials(st.kontaktlaerer2_ini, st.kontaktlaerer2), st.kontaktlaerer2);
   }
-  const items = Array.from(set).sort((x,y)=>x.localeCompare(y,'da'));
+
+  // Choose most frequent name per initials
+  for (const [ini, m] of freqByIni.entries()) {
+    let best = '';
+    let bestN = 0;
+    for (const [nm, n] of m.entries()) {
+      if (n > bestN) { bestN = n; best = nm; }
+    }
+    if (best) nameByIni.set(ini, best);
+  }
+
+  // Merge aliasMap (ini -> full name)
+  try {
+    const s = getSettings();
+    const alias = { ...(s.aliasMap || {}), ...(DEFAULT_ALIAS_MAP || {}) };
+    Object.keys(alias || {}).forEach(k => {
+      const I = (k || '').toString().trim().toUpperCase();
+      const F = (alias[k] || '').toString().trim();
+      // aliasMap indeholder også navne-keys (fx "andreasbechpedersen").
+      // I pickeren vil vi KUN bruge rigtige initialer (1-4 bogstaver).
+      if (!I || !F) return;
+      if (!isValidInitials(I)) return;
+      if (!nameByIni.has(I)) nameByIni.set(I, F);
+    });
+  } catch(_) {}
+
+  // Build items
+  const coll = new Intl.Collator('da', { sensitivity: 'base' });
+  const allInitials = Array.from(new Set([
+    ...Array.from(freqByIni.keys()),
+    ...Array.from(nameByIni.keys())
+  ])).sort((a,b)=>coll.compare(a,b));
+
+  const items = allInitials.map(ini => {
+    const full = nameByIni.get(ini) || '';
+    const first = (full.split(/\s+/).filter(Boolean)[0] || '').toLowerCase();
+    const last  = (full.split(/\s+/).filter(Boolean).slice(-1)[0] || '').toLowerCase();
+    return {
+      ini,
+      full,
+      first,
+      last,
+      label: full ? `${ini} (${full})` : ini
+    };
+  });
 
   let activeIndex = 0;
+  let filteredItems = items.slice();
 
   function setActive(idx){
     const opts = Array.from(menu.querySelectorAll('[role="option"]'));
@@ -1019,25 +1117,62 @@ function updateTeacherDatalist() {
     opts.forEach((el,i)=>el.classList.toggle('active', i===activeIndex));
     const el = opts[activeIndex];
     if (el) el.scrollIntoView({ block: 'nearest' });
+    // aria-activedescendant (optional)
+    try { input.setAttribute('aria-activedescendant', el.id || ''); } catch(_) {}
+  }
+
+  function norm(s){ return normalizeName((s||'').toString()); }
+
+  function matches(it, qRaw){
+    const q = (qRaw || '').toString().trim();
+    if (!q) return true;
+
+    const qUpper = q.toUpperCase();
+    const qNorm  = norm(q);
+    const iniOk = it.ini.startsWith(qUpper);
+
+    // If user types a short token (often initials), prioritize initials and name-begins.
+    const parts = qNorm.split(/\s+/).filter(Boolean);
+    const fullNorm = norm(it.full || '');
+    const firstOk = it.first && it.first.startsWith(parts[0] || '');
+    const lastOk  = it.last  && it.last.startsWith(parts[0] || '');
+
+    if (parts.length === 1) {
+      // Accept:
+      // - initials prefix
+      // - first or last name prefix
+      // - or full name contains token (fallback)
+      return iniOk || firstOk || lastOk || (fullNorm && fullNorm.includes(parts[0]));
+    }
+
+    // Multiple tokens: require all tokens to be present in full name OR initials prefix for first token
+    if (iniOk) return true;
+    if (!fullNorm) return false;
+    return parts.every(t => fullNorm.includes(t));
   }
 
   function renderMenu(){
-    const q = (input.value || '').toString().trim().toUpperCase();
-    const filtered = !q ? items : items.filter(x => x.includes(q));
+    const q = (input.value || '');
+    filteredItems = items.filter(it => matches(it, q));
+
     menu.innerHTML = '';
-    if (!filtered.length){
+    if (!filteredItems.length){
       menu.innerHTML = `<div class="pickerEmpty">Ingen match</div>`;
       return;
     }
-    filtered.slice(0, 24).forEach((code, i) => {
+
+    filteredItems.slice(0, 40).forEach((it, i) => {
       const row = document.createElement('div');
-      row.className = 'tpRow';
+      row.className = 'tpItem';
       row.setAttribute('role','option');
-      row.dataset.value = code;
-      row.textContent = code;
+      row.dataset.value = it.ini;
+      row.dataset.full = it.full || '';
+      row.id = `teacherOpt_${it.ini}_${i}`;
+      row.innerHTML = `<span class="tpLeft">${it.ini}</span><span class="tpRight">${it.full ? '('+it.full+')' : ''}</span>`;
       row.addEventListener('mousedown', (e) => {
+        // mousedown so selection happens before blur
         e.preventDefault();
-        commit(code);
+        commit(it);
         closeMenu();
       });
       menu.appendChild(row);
@@ -1047,7 +1182,7 @@ function updateTeacherDatalist() {
 
   function openMenu(){
     menu.hidden = false;
-    if (!wrap.classList.contains('open')) wrap.classList.add('open');
+    wrap.classList.add('open');
     renderMenu();
   }
   function closeMenu(){
@@ -1055,17 +1190,28 @@ function updateTeacherDatalist() {
     menu.hidden = true;
   }
 
-  function commit(code){
-    const ini = (code || '').toString().trim().toUpperCase();
+  function commit(it){
+    const ini = (it && it.ini) ? it.ini : ((it||'')+'').trim().toUpperCase();
+    if (!ini) return;
+
     const s2 = getSettings();
+    // Gem altid initialer som "me" (bruges til match mod elevernes k-lærer1/2-initialer)
     s2.me = ini;
-    // keep aliasMap if user already has it in storage, but we do not ship defaults
+    s2.meResolved = ini;
+    s2.meResolvedConfirmed = ini;
+
+    // Gem fulde navn separat (bruges kun til visning i UI)
+    s2.meFullName = (it && it.full) ? (it.full + '').trim() : '';
     setSettings(s2);
-    input.value = ini;
+
+    input.value = ini; // feltet holdes kort; listen viser fulde navne
+    if (clear) clear.hidden = false;
     renderStatus();
-    if (clear) clear.hidden = !ini;
+
+    // Send user direkte til K-elever (som ønsket)
     try { state.viewMode = 'K'; setTab('k'); } catch(_) {}
   }
+
 
   // Button / clear
   btn.onclick = (e) => { e.preventDefault(); wrap.classList.contains('open') ? closeMenu() : openMenu(); input.focus(); };
@@ -1075,7 +1221,7 @@ function updateTeacherDatalist() {
   if (clear) {
     clear.onclick = (e) => {
       e.preventDefault();
-      const s2 = getSettings(); s2.me = ''; s2.meResolved = ''; setSettings(s2);
+      const s2 = getSettings(); s2.me = ''; s2.meResolved = ''; s2.meResolvedConfirmed = ''; s2.meFullName = ''; setSettings(s2);
       input.value = '';
       clear.hidden = true;
       closeMenu();
@@ -1088,31 +1234,36 @@ function updateTeacherDatalist() {
     if (!wrap.contains(e.target)) closeMenu();
   });
 
-
   const handlePickerKeydown = (e) => {
-    // Arrow/Enter should work even if fokus ender på dropdown-knappen eller menuen.
     if (e.key === 'Escape') { closeMenu(); return; }
-    if ((e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'Down' || e.key === 'Up') || (e.keyCode === 40 || e.keyCode === 38)) {
+    if (e.key === 'ArrowDown' || e.key === 'Down' || e.keyCode === 40) {
       if (!wrap.classList.contains('open')) openMenu();
       e.preventDefault();
-      setActive(activeIndex + ((e.key === 'ArrowDown' || e.key === 'Down' || e.keyCode === 40) ? 1 : -1));
+      setActive(activeIndex + 1);
+      return;
+    }
+    if (e.key === 'ArrowUp' || e.key === 'Up' || e.keyCode === 38) {
+      if (!wrap.classList.contains('open')) openMenu();
+      e.preventDefault();
+      setActive(activeIndex - 1);
       return;
     }
     if (e.key === 'Enter') {
       const el = menu.querySelectorAll('[role="option"]')[activeIndex];
       if (el && el.dataset.value) {
         e.preventDefault();
-        commit(el.dataset.value);
+        const ini = el.dataset.value;
+        const full = el.dataset.full || '';
+        commit({ ini, full });
         closeMenu();
       }
     }
   };
-  input.addEventListener('keydown', handlePickerKeydown, true);
-  btn.addEventListener('keydown', handlePickerKeydown, true);
-  menu.addEventListener('keydown', handlePickerKeydown, true);
-  wrap.addEventListener('keydown', handlePickerKeydown, true);
-}
 
+  input.addEventListener('keydown', handlePickerKeydown);
+  btn.addEventListener('keydown', handlePickerKeydown);
+  menu.addEventListener('keydown', handlePickerKeydown);
+}
 
 function initMarksSearchPicker(){
   const input = document.getElementById('marksSearch');
@@ -1511,7 +1662,17 @@ async function refreshOverridesAndApplyTemplatesIfSafe(force=false){
   
 function rebuildAliasMapFromStudents(studs){
   const s = getSettings();
+  // Start from existing aliasMap, but drop any old initials-keys.
+  // Initials are derived from the current student list and may include overrides.
   const alias = { ...(s.aliasMap || {}) };
+  try {
+    Object.keys(alias).forEach(k => {
+      const keyUp = (k || '').toString().trim().toUpperCase();
+      if (!keyUp) return;
+      if (/^[A-ZÆØÅ]{1,4}$/.test(keyUp)) delete alias[k];
+      if (/^[A-ZÆØÅ]{1,4}\/[A-ZÆØÅ]{1,4}$/.test(keyUp)) delete alias[k];
+    });
+  } catch(_) {}
   const add = (ini, full) => {
     if (!ini || !full) return;
     const k = (ini||'').toString().trim().toLowerCase();
@@ -1519,16 +1680,29 @@ function rebuildAliasMapFromStudents(studs){
     const nk = normalizeName(full).replace(/\s+/g,'');
     if (nk) alias[nk] = full;
   };
+  // IMPORTANT:
+  // Brug de initialer, der allerede er beregnet ved import (kontaktlaererX_ini).
+  // De kan indeholde eksplicitte overrides fra CSV ("Initialer for k-lærer1/2").
+  // Hvis vi i stedet danner initialer ud fra navnet her, ender vi med at "genopfinde"
+  // auto-initialer (fx Andreas Bech Pedersen -> AP), selv om CSV'en siger AB.
   (studs || []).forEach(st => {
-    const t1 = (st && st.kontaktlaerer1) ? (st.kontaktlaerer1+'').trim() : '';
-    const t2 = (st && st.kontaktlaerer2) ? (st.kontaktlaerer2+'').trim() : '';
-    [t1,t2].filter(Boolean).forEach(t => {
-      if (/^[A-ZÆØÅ]{1,4}(\/[A-ZÆØÅ]{1,4})?$/.test(t)) {
-        add(t, t); // initials-only (fallback)
-      } else {
-        add(toInitials(t), t);
+    if (!st) return;
+
+    const pairs = [
+      { full: (st.kontaktlaerer1||'').toString().trim(), ini: (st.kontaktlaerer1_ini||'').toString().trim() },
+      { full: (st.kontaktlaerer2||'').toString().trim(), ini: (st.kontaktlaerer2_ini||'').toString().trim() }
+    ];
+
+    for (const p of pairs){
+      if (!p.full) continue;
+      // Hvis "fulde" feltet faktisk er initialer (sjældent), gem det som sig selv.
+      if (/^[A-ZÆØÅ]{1,4}(\/[A-ZÆØÅ]{1,4})?$/.test(p.full.toUpperCase())) {
+        add(p.full.toUpperCase(), p.full);
+        continue;
       }
-    });
+      const ini = isValidInitials(p.ini) ? cleanInitials(p.ini) : toInitials(p.full);
+      if (ini) add(ini, p.full);
+    }
   });
   setSettings({ ...s, aliasMap: alias });
 }
@@ -1790,9 +1964,66 @@ if (chosen && erObj[chosen]) {
         if (set.has(key)) mapped[field] = h;
       }
     }
+
+    // Fuzzy fallbacks (Excel/Uni-C variants with odd dashes/spaces etc.)
+    // We ONLY use these if the strict map did not find a column.
+    const findBy = (pred) => {
+      for (const h of headers) {
+        const k = normalizeHeader(h);
+        if (pred(k)) return h;
+      }
+      return null;
+    };
+
+    if (!mapped.ini1) {
+      const h = findBy(k => k.includes('initialer') && k.includes('laerer') && k.includes('1'));
+      if (h) mapped.ini1 = h;
+    }
+    if (!mapped.ini2) {
+      const h = findBy(k => k.includes('initialer') && k.includes('laerer') && k.includes('2'));
+      if (h) mapped.ini2 = h;
+    }
+
     return mapped;
   }
-  function normalizeStudentRow(row, map) {
+
+  function buildTeacherOverrideMap(rows, map){
+    // Build canonical teacher overrides from CSV columns:
+    // - Kontaktlærer1 paired with "Initialer for k-lærer1"
+    // - Kontaktlærer2 paired with "Initialer for k-lærer2"
+    // Any valid override (1-4 letters after cleaning) wins for that full name, regardless of later position.
+    const out = new Map(); // normFullName -> cleanedInitials
+    const add = (fullRaw, iniRaw) => {
+      const full = (fullRaw ?? '').toString().trim();
+      if (!full) return;
+      const norm = normalizeName(full);
+      if (!norm) return;
+      const cleaned = cleanInitials(iniRaw);
+      if (!isValidInitials(cleaned)) return;
+      // Keep first seen override unless a later one differs; if differs, prefer the shorter/cleaner one.
+      if (!out.has(norm)) out.set(norm, cleaned);
+      else {
+        const prev = out.get(norm);
+        if (prev !== cleaned) {
+          // Prefer the one that looks more like typical initials (2-3 letters), else keep existing.
+          const score = (s) => (s.length===2?3:(s.length===3?2:(s.length===1?1:0)));
+          if (score(cleaned) > score(prev)) out.set(norm, cleaned);
+        }
+      }
+    };
+
+    for (const row of (rows || [])){
+      if (!row) continue;
+      const k1 = (row[map.kontakt1] ?? '').toString().trim();
+      const i1 = (row[map.ini1] ?? '').toString().trim();
+      add(k1, i1);
+      const k2 = (row[map.kontakt2] ?? '').toString().trim();
+      const i2 = (row[map.ini2] ?? '').toString().trim();
+      add(k2, i2);
+    }
+    return out;
+  }
+  function normalizeStudentRow(row, map, teacherOverrides) {
     const get = (field) => (row[map[field]] ?? '').trim();
 
     // Rens fornavn-felt: nogle elever har et "ekstra efternavn" i fornavn-kolonnen.
@@ -1817,12 +2048,89 @@ if (chosen && erObj[chosen]) {
 const klasse = get('klasse');
     const ini1 = (get('ini1') || '').trim();
     const ini2 = (get('ini2') || '').trim();
-    const k1 = ini1 ? ini1.toUpperCase() : toInitials(get('kontakt1'));
-    const k2 = ini2 ? ini2.toUpperCase() : toInitials(get('kontakt2'));
     const kontakt1_navn = get('kontakt1');
     const kontakt2_navn = get('kontakt2');
-    const navn = `${fornavn} ${efternavn}`.trim();
+
+    // Initialer-regel (per "Accepterede kolonner"):
+    // - Hvis "Initialer for k-lærerX" er udfyldt og ligner rigtige initialer (1-4 bogstaver), brug dem.
+    // - Ellers dannes initialer automatisk ud fra kontaktlærerens navn.
+    // Tomme felter ignoreres senere i UI.
+    const ov1 = teacherOverrides && kontakt1_navn ? teacherOverrides.get(normalizeName(kontakt1_navn)) : '';
+    const ov2 = teacherOverrides && kontakt2_navn ? teacherOverrides.get(normalizeName(kontakt2_navn)) : '';
+    const k1 = ov1 ? ov1 : normalizedInitials(ini1, kontakt1_navn);
+    const k2 = ov2 ? ov2 : normalizedInitials(ini2, kontakt2_navn);
+    const navn = ((fornavn || '') + ' ' + (efternavn || '')).trim();
     return { fornavn, efternavn, navn, unilogin, koen, klasse, kontaktlaerer1: kontakt1_navn, kontaktlaerer2: kontakt2_navn, kontaktlaerer1_ini: k1, kontaktlaerer2_ini: k2 };
+  }
+
+  // ---------- Canonicalize K-lærer initials across dataset ----------
+  // In nogle CSV'er kan samme kontaktlærer optræde med både auto-initialer
+  // (fx Andreas Bech Pedersen -> AP) og et eksplicit override (fx AB).
+  // Vi ønsker én entydig initial pr. fulde navn i hele datasættet.
+  // Heuristik:
+  //   - Hvis et fulde navn har mindst én initial som afviger fra autoInitials(fullName),
+  //     betragtes den/de som overrides, og den mest hyppige override vælges som canonical.
+  //   - Ellers vælges den mest hyppige initial (typisk auto).
+  // Resultat: alle elever får samme *_ini for samme fulde navn.
+  function canonicalizeTeacherInitials(students){
+    const studs = Array.isArray(students) ? students : [];
+    if (!studs.length) return studs;
+
+    // Collect stats per full name
+    const statsByName = new Map(); // normName -> { fullName, auto, counts: Map(ini->count) }
+    const bump = (fullNameRaw, iniRaw) => {
+      const full = (fullNameRaw || '').toString().trim();
+      if (!full) return;
+      const norm = normalizeName(full);
+      if (!norm) return;
+      const ini = (iniRaw || '').toString().trim().toUpperCase();
+      if (!ini) return;
+      if (!statsByName.has(norm)) statsByName.set(norm, { fullName: full, auto: toInitials(full), counts: new Map() });
+      const s = statsByName.get(norm);
+      // keep prettiest full name (longest) if variations exist
+      if (full.length > (s.fullName||'').length) s.fullName = full;
+      s.counts.set(ini, (s.counts.get(ini) || 0) + 1);
+    };
+
+    for (const st of studs){
+      if (!st) continue;
+      bump(st.kontaktlaerer1, st.kontaktlaerer1_ini);
+      bump(st.kontaktlaerer2, st.kontaktlaerer2_ini);
+    }
+
+    // Choose canonical initials per name
+    const canonicalByName = new Map(); // normName -> canonicalIni
+    for (const [norm, info] of statsByName.entries()){
+      const auto = (info.auto || '').toUpperCase();
+      let best = '';
+      let bestCount = -1;
+
+      // Prefer overrides that differ from auto
+      for (const [ini, cnt] of info.counts.entries()){
+        if (auto && ini === auto) continue;
+        if (cnt > bestCount){ best = ini; bestCount = cnt; }
+      }
+
+      // If no differing overrides, fall back to most frequent overall
+      if (!best){
+        for (const [ini, cnt] of info.counts.entries()){
+          if (cnt > bestCount){ best = ini; bestCount = cnt; }
+        }
+      }
+
+      if (best) canonicalByName.set(norm, best);
+    }
+
+    // Apply canonical initials
+    for (const st of studs){
+      if (!st) continue;
+      const n1 = normalizeName((st.kontaktlaerer1 || '').toString().trim());
+      const n2 = normalizeName((st.kontaktlaerer2 || '').toString().trim());
+      if (n1 && canonicalByName.has(n1)) st.kontaktlaerer1_ini = canonicalByName.get(n1);
+      if (n2 && canonicalByName.has(n2)) st.kontaktlaerer2_ini = canonicalByName.get(n2);
+    }
+
+    return studs;
   }
 
   // ---------- UI rendering ----------
@@ -1903,9 +2211,10 @@ function updateTabLabels(){
     if (state.kGroupIndex < 0) state.kGroupIndex = 0;
     if (state.kGroupIndex > Math.max(0, kGroups.length-1)) state.kGroupIndex = Math.max(0, kGroups.length-1);
 
-    const me = (s.me || '').trim() ? `· K-lærer: ${(s.me||'').trim().toUpperCase()}` : '';
-    $('statusText').textContent = studs.length ? `Elever: ${studs.length} ${me}` : `Ingen elevliste indlæst`;
-  }
+    const me = '';
+    const build = '';
+    $('statusText').textContent = studs.length ? `Elever: ${studs.length}` : `Ingen elevliste indlæst`;
+}
 
   function renderSettings() {
     const s = getSettings();
@@ -2310,8 +2619,11 @@ const prog = mineList.reduce((acc, st) => {
     const statusEl = $("kStatusLine");
     if (statusEl) statusEl.textContent = "";
     if (kHeaderInfo) {
-      const who = (meResolvedConfirmed || meRaw || "").trim();
-      kHeaderInfo.textContent = who ? `✏️ Redigeres nu af: ${who}` : `✏️ Redigeres nu af: —`;
+      const fullName = ((s.meFullName || '') + '').trim();
+      const ini = ((meResolvedConfirmed || meRaw || '') + '').trim();
+      const who = (fullName || ini || '—');
+      // Mindre dobbeltinfo: kun blyant + navn/initialer
+      kHeaderInfo.textContent = who ? `✏️ ${who}` : '✏️ —';
     }
 
     if (kList) {
@@ -2674,11 +2986,17 @@ $('preview').textContent = buildStatement(st, getSettings());
 
 
 
-    const list = sortedStudents(studs).filter(st => {
+    let list = sortedStudents(studs).filter(st => {
       if (!q) return true;
+      const fn = normalizeName(st.fornavn || '');
+      const en = normalizeName(st.efternavn || '');
       const full = normalizeName(`${st.fornavn} ${st.efternavn}`);
-      return full.includes(q);
+      // Mere forudsigelig filtrering: start på fornavn/efternavn (og evt. fuldt navn)
+      return fn.startsWith(q) || en.startsWith(q) || full.startsWith(q);
     });
+
+    // --- Sortering (3-state) på K-grp / Klasse ---
+    if (!state.marksSort) state.marksSort = { key: null, dir: 0 };
 
     const kgrpLabel = (st) => {
       // Always show initials-based group key (e.g. AB/EB), even if CSV stores full teacher names.
@@ -2686,6 +3004,36 @@ $('preview').textContent = buildStatement(st, getSettings());
       const b = (st.kontaktlaerer2_ini || '').toString().trim();
       return groupKeyFromTeachers(a, b);
     };
+
+    function klasseSortKey(v){
+      const s = (v || '').toString().trim().toUpperCase();
+      const m = s.match(/^(\d+)\s*([A-ZÆØÅ]*)$/);
+      if (!m) return { t: 1, s };
+      return { t: 0, n: parseInt(m[1],10) || 0, suf: m[2] || '' };
+    }
+
+    // Anvend sortering hvis aktiv
+    if (state.marksSort && state.marksSort.key && state.marksSort.dir) {
+      const dir = state.marksSort.dir;
+      const key = state.marksSort.key;
+      const cmp = (a,b) => {
+        if (key === 'kgrp') {
+          return kgrpLabel(a).localeCompare(kgrpLabel(b), 'da');
+        }
+        if (key === 'klasse') {
+          const ka = klasseSortKey(a.klasse);
+          const kb = klasseSortKey(b.klasse);
+          if (ka.t !== kb.t) return ka.t - kb.t;
+          if (ka.t === 0) {
+            if (ka.n !== kb.n) return ka.n - kb.n;
+            return (ka.suf || '').localeCompare((kb.suf || ''), 'da');
+          }
+          return (ka.s || '').localeCompare((kb.s || ''), 'da');
+        }
+        return 0;
+      };
+      list = [...list].sort((a,b) => dir * cmp(a,b));
+    }
 
     function renderTick(unilogin, key, on){
       const pressed = on ? 'true' : 'false';
@@ -2696,6 +3044,90 @@ $('preview').textContent = buildStatement(st, getSettings());
 
 
 
+    // Inline search i kolonneheaderen ("Navn").
+    // Vi bruger en separat input (marksSearchInline) og spejler værdien til
+    // den eksisterende skjulte marksSearch-input, så resten af logikken er intakt.
+    function attachInlineMarksSearch(){
+      const inline = document.getElementById('marksSearchInline');
+      const clear  = document.getElementById('marksSearchInlineClear');
+      if (!inline) return;
+
+      // sync current value
+      inline.value = (searchEl && searchEl.value) ? searchEl.value : '';
+      if (clear) clear.hidden = !inline.value;
+
+      const rerenderWithFocus = () => {
+        // preserve caret
+        const pos = inline.selectionStart ?? inline.value.length;
+        setTimeout(() => {
+          const ii = document.getElementById('marksSearchInline');
+          if (!ii) return;
+          try {
+            ii.focus();
+            ii.setSelectionRange(pos, pos);
+          } catch(_){ /* no-op */ }
+        }, 0);
+      };
+
+      inline.oninput = () => {
+        if (searchEl) searchEl.value = inline.value;
+        if (clear) clear.hidden = !inline.value;
+        renderMarksTable();
+        rerenderWithFocus();
+      };
+
+      if (clear) {
+        clear.onclick = (e) => {
+          e.preventDefault();
+          inline.value = '';
+          if (searchEl) searchEl.value = '';
+          clear.hidden = true;
+          renderMarksTable();
+          rerenderWithFocus();
+        };
+      }
+    }
+
+
+    function attachMarksSortButtons(){
+      const btnK = document.getElementById('marksSortKgrp');
+      const btnC = document.getElementById('marksSortKlasse');
+      const toggle = (key) => {
+        if (!state.marksSort) state.marksSort = { key: null, dir: 0 };
+        if (state.marksSort.key !== key) {
+          state.marksSort.key = key;
+          state.marksSort.dir = 1;
+        } else {
+          // cycle: none -> asc -> desc -> none
+          if (!state.marksSort.dir) state.marksSort.dir = 1;
+          else if (state.marksSort.dir === 1) state.marksSort.dir = -1;
+          else state.marksSort.dir = 0;
+        }
+        renderMarksTable();
+      };
+      if (btnK) btnK.onclick = (e) => { e.preventDefault(); toggle('kgrp'); };
+      if (btnC) btnC.onclick = (e) => { e.preventDefault(); toggle('klasse'); };
+    }
+
+
+    const nameTh = `
+      <th class="nameTh">
+        <div class="thName compact">
+          <div class="thControl">
+            <input id="marksSearchInline" type="text" placeholder="Søg navn…" aria-label="Filtrer navn" autocomplete="off" />
+            <button class="clearBtn" id="marksSearchInlineClear" title="Ryd" aria-label="Ryd" hidden>×</button>
+          </div>
+        </div>
+      </th>`;
+
+    const sortIcon = (key) => {
+      if (!state.marksSort) state.marksSort = { key: null, dir: 0 };
+      if (state.marksSort.key !== key || !state.marksSort.dir) return '';
+      return state.marksSort.dir === 1 ? '↑' : '↓';
+    };
+    const thKgrp = `<th class="sortTh"><button type="button" class="sortBtn" id="marksSortKgrp">K-grp<span class="sortIcon">${sortIcon('kgrp')}</span></button></th>`;
+    const thKlasse = `<th class="sortTh"><button type="button" class="sortBtn" id="marksSortKlasse">Klasse<span class="sortIcon">${sortIcon('klasse')}</span></button></th>`;
+
     if (type === 'sang') {
       const marks = getMarks(KEYS.marksSang);
       $('marksLegend').textContent = '';
@@ -2705,7 +3137,7 @@ $('preview').textContent = buildStatement(st, getSettings());
         <table>
           <thead>
             <tr>
-              <th>Navn</th><th>K-grp</th><th>Klasse</th>
+              ${nameTh}${thKgrp}${thKlasse}
               ${cols.map(c => `<th class="cb" title="${escapeAttr(SNIPPETS.sang[c].hint||'')}"><span class="muted small">${escapeHtml(SNIPPETS.sang[c].title||'')}</span></th>`).join('')}
             </tr>
           </thead>
@@ -2723,6 +3155,8 @@ $('preview').textContent = buildStatement(st, getSettings());
           </tbody>
         </table>
       `;
+      attachInlineMarksSearch();
+      attachMarksSortButtons();
       return;
     }
 
@@ -2736,7 +3170,7 @@ $('preview').textContent = buildStatement(st, getSettings());
         <table>
           <thead>
             <tr>
-              <th>Navn</th><th>K-grp</th><th>Klasse</th>
+              ${nameTh}${thKgrp}${thKlasse}
               ${cols.map(c => `<th class="cb" title="${escapeAttr(SNIPPETS.gym[c].hint||'')}"><span class="muted small">${escapeHtml(SNIPPETS.gym[c].title||'')}</span></th>`).join('')}
               ${roleCodes.map(r => `<th class="cb" title="${escapeAttr((SNIPPETS.roller[r]||{}).hint||'')}"><span class="muted small">${escapeHtml((SNIPPETS.roller[r]||{}).title||r)}</span></th>`).join('')}
             </tr>
@@ -2756,6 +3190,8 @@ $('preview').textContent = buildStatement(st, getSettings());
           </tbody>
         </table>
       `;
+      attachInlineMarksSearch();
+      attachMarksSortButtons();
       return;
     }
 
@@ -2768,7 +3204,7 @@ $('preview').textContent = buildStatement(st, getSettings());
       <table>
         <thead>
           <tr>
-            <th>Navn</th><th>K-grp</th><th>Klasse</th>
+            ${nameTh}${thKgrp}${thKlasse}
             ${cols.map(c => `<th class="cb" title="${escapeAttr(SNIPPETS.elevraad[c].hint||'')}"><span class="muted small">${escapeHtml(SNIPPETS.elevraad[c].title||'')}</span></th>`).join('')}
           </tr>
         </thead>
@@ -2786,6 +3222,8 @@ $('preview').textContent = buildStatement(st, getSettings());
         </tbody>
       </table>
     `;
+    attachInlineMarksSearch();
+    attachMarksSortButtons();
 }
 
   async function importMarksFile(e, kind) {
@@ -2918,7 +3356,9 @@ async function loadDemoStudentsCsv() {
     return;
   }
 
-  const students = parsed.rows.map(r => normalizeStudentRow(r, map));
+      const teacherOverrides = buildTeacherOverrideMap(parsed.rows, map);
+  const studentsRaw = parsed.rows.map(r => normalizeStudentRow(r, map, teacherOverrides));
+  const students = canonicalizeTeacherInitials(studentsRaw);
   setStudents(students);
 
   renderSettings(); renderStatus();
@@ -3197,8 +3637,49 @@ if (document.getElementById('btnDownloadElevraad')) {
       const ok = required.every(r => map[r]);
       if (!ok) { alert('Kunne ikke finde de nødvendige kolonner (fornavn, efternavn, klasse).'); return; }
 
-      const students = parsed.rows.map(r => normalizeStudentRow(r, map));
+      // IMPORTANT:
+      // We must honor per-row explicit initials overrides from the CSV columns
+      // "Initialer for k-lærer1" / "Initialer for k-lærer2".
+      // These overrides are tied to the corresponding contact teacher column
+      // (Kontaktlærer1/Kontaktlærer2) and should become the canonical initials
+      // for that full name across the entire dataset.
+      const teacherOverrides = buildTeacherOverrideMap(parsed.rows, map);
+
+      // Skip completely empty rows (no student name). Count skipped for feedback.
+      let skippedEmpty = 0;
+      let missingTeachers = 0;
+      const missingTeacherNames = [];
+      const validRows = [];
+      for (const r of parsed.rows) {
+        const fn = (r[map.fornavn] ?? '').toString().trim();
+        const en = (r[map.efternavn] ?? '').toString().trim();
+        if (!fn && !en) { skippedEmpty++; continue; }
+
+        const k1 = (map.kontaktlaerer1 ? (r[map.kontaktlaerer1] ?? '') : '').toString().trim();
+        const k2 = (map.kontaktlaerer2 ? (r[map.kontaktlaerer2] ?? '') : '').toString().trim();
+        if (!k1 && !k2) {
+          missingTeachers++;
+          const nm = `${fn} ${en}`.trim() || '(ukendt elev)';
+          if (missingTeacherNames.length < 12) missingTeacherNames.push(nm);
+        }
+        validRows.push(r);
+      }
+
+      const studentsRaw = validRows.map(r => normalizeStudentRow(r, map, teacherOverrides));
+      const students = canonicalizeTeacherInitials(studentsRaw);
       setStudents(students);
+      // Feedback in Import tab
+      const statusEl = $('importStatus');
+      if (statusEl) {
+        const parts = [];
+        if (skippedEmpty) parts.push(`Sprunget over ${skippedEmpty} tomme rækker.`);
+        if (missingTeachers) {
+          const list = missingTeacherNames.length ? ` (fx: ${missingTeacherNames.join(', ')})` : '';
+          parts.push(`⚠️ ${missingTeachers} elever mangler kontaktlærer${list}.`);
+        }
+        statusEl.textContent = parts.length ? `✅ Elevliste indlæst. ${parts.join(' ')}` : '✅ Elevliste indlæst.';
+      }
+
 
       renderSettings(); renderStatus();
       if (state.tab === 'k') renderKList();
@@ -3644,68 +4125,6 @@ try {
 }
   init().catch(console.error);
 })();
-(function teacherPickerKeyboardNavigation() {
-  const input = document.getElementById("meInput");
-  const picker = document.getElementById("teacherPicker");
-
-  if (!input || !picker) {
-    console.warn("TeacherPicker: input eller picker ikke fundet");
-    return;
-  }
-
-  let index = -1;
-
-  function getOptions() {
-    return Array.from(
-      picker.querySelectorAll("[data-value], .option, div, li")
-    ).filter(el => el !== input && el.textContent.trim() !== "");
-  }
-
-  function highlight(i) {
-    const options = getOptions();
-    options.forEach((el, idx) => {
-      el.classList.toggle("active", idx === i);
-      el.style.background = idx === i ? "rgba(255,255,255,0.08)" : "";
-    });
-
-    if (options[i]) {
-      options[i].scrollIntoView({ block: "nearest" });
-    }
-  }
-
-  input.addEventListener("keydown", e => {
-    const options = getOptions();
-    if (!options.length) return;
-
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      index = (index + 1) % options.length;
-      highlight(index);
-    }
-
-    if (e.key === "ArrowUp") {
-      e.preventDefault();
-      index = (index - 1 + options.length) % options.length;
-      highlight(index);
-    }
-
-    if (e.key === "Enter" && index >= 0) {
-      e.preventDefault();
-      options[index].click();
-      index = -1;
-    }
-
-    if (e.key === "Escape") {
-      index = -1;
-      highlight(-1);
-    }
-  });
-
-  input.addEventListener("focus", () => {
-    index = -1;
-  });
-})();
-
 function updateCsvButton(count) {
   const btn = document.getElementById('btnImportStudents');
   if (!btn) return;

@@ -7,7 +7,8 @@
 <title>Udtalelser v1.0</title>
 <link rel="icon" href="favicon.ico">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link href="app.css" rel="stylesheet"/>
+<!-- Cache-bust for GitHub Pages / aggressive browser caching -->
+<link href="app.css?v=2026-01-04_1" rel="stylesheet"/>
 </head>
 <body>
 <header class="topbar no-print">
@@ -169,18 +170,15 @@
         </div>
       </div>
 
-      <div class="card">
-        <div class="cardTitle">Avanceret</div>
-        <details class="fold" style="margin-top:.2rem">
-          <summary>Vis avancerede muligheder</summary>
-          <div style="margin-top:.6rem">
-            <button class="btn danger" id="btnReset" type="button">🔴 Nulstil app (slet alle lokale data)</button>
-            <div class="muted small" style="margin:.5rem 0 0 0; line-height:1.45">
-              Sletter alle elever, udtalelser, indstillinger og tekster i denne browser.<br/>
-              Handlingen kan ikke fortrydes.
-            </div>
+      <div class="card dangerZone">
+        <div class="cardTitle">Sikkerhed</div>
+        <div style="margin-top:.35rem">
+          <button class="btn danger" id="btnReset" type="button">🔴 Nulstil app (slet alle lokale data)</button>
+          <div class="muted small" style="margin:.5rem 0 0 0; line-height:1.45">
+            Sletter alle elever, udtalelser, indstillinger og tekster i denne browser.<br/>
+            Handlingen kan ikke fortrydes.
           </div>
-        </details>
+        </div>
       </div>
 
     </div>
@@ -255,52 +253,44 @@
   <!-- DATA & EKSPORT (FAGLÆRERE) -->
   <div class="settingsSubtab" data-subtab="export" id="settingsSubtab-export">
     <div class="card no-print">
-      <div class="row between" style="align-items:center; gap:1rem; margin-bottom:.2rem">
+      <div class="row between exportTopRow" style="align-items:center; gap:1rem; margin-bottom:0">
         <div class="cardTitle" style="margin:0">Eksport</div>
-        <button class="btn small" id="btnPrintAllGroups" type="button" title="Udskriv alle K-grupper (alle elever) som én samlet udskrift">🖨️ Print alle K-grupper</button>
-      </div>
-      <div class="row gap wrap" style="margin:.5rem 0 .9rem 0; align-items:center">
-        <button class="btn ghost" id="btnBackupDownload" type="button" title="Download backup af alle lokale data">⬇️ Backup (download)</button>
-        <div class="muted small">Backup gemmer alt lokalt indhold (udtalelser, indstillinger, elevliste osv.) som en JSON-fil.</div>
-      </div>
-      <div class="muted small" style="margin:.35rem 0 .9rem 0">
-        Her kan sang-/gymnastik-/elevrådsfaglærere sætte flueben og eksportere en CSV, som kontaktlærerne kan importere.
-      </div>
-      <div class="row gap wrap">
-        <div class="field" style="min-width: 260px">
-          <div class="tabs small" id="marksTypeTabs">
-            <!-- data-type values are internal codes used by app.js -->
-            <button type="button" class="tab" data-type="sang">Sang</button>
-            <button type="button" class="tab" data-type="gym">Gymnastik</button>
-            <button type="button" class="tab" data-type="elevraad">Elevråd</button>
-          </div>
-          <select id="marksType" style="display:none">
-            <option value="sang">Sang</option>
-            <option value="gym">Gymnastik</option>
-            <option value="elevraad">Elevråd</option>
-          </select>
-        </div>
-        <div class="field" style="flex:1; min-width: 260px">
-          <label>Find elev</label>
-          <div class="teacherPicker" id="marksSearchPicker">
-            <input id="marksSearch" type="text" placeholder="Søg på fornavn eller fulde navn…" autocomplete="off"/>
-            <button class="clearBtn" id="marksSearchClear" title="Ryd søgning" aria-label="Ryd søgning">×</button>
-            <button class="tpBtn" id="marksSearchBtn" type="button" aria-label="Vis elevliste">▾</button>
-            <div class="tpMenu" id="marksSearchMenu" role="listbox" aria-label="Vælg elev" hidden></div>
-          </div>
-        </div>
-        <div class="field" style="min-width: 200px">
-          <label>&nbsp;</label>
-          <button class="btn" id="btnExportMarks" type="button">⬇️ Eksportér CSV</button>
+        <div class="exportActions" aria-label="Eksport handlinger">
+          <button class="btn exportActionBtn" id="btnPrintAllGroups" type="button" title="Udskriv alle K-grupper (alle elever) som én samlet udskrift">🖨️ Print alle K-grupper</button>
+          <button class="btn exportActionBtn" id="btnBackupDownload" type="button" title="Download backup af alle lokale data">⬇️ Backup (download)</button>
         </div>
       </div>
 
-      
-      <div class="divider"></div>
-      <div class="cardSubTitle"></div>
-      <div class="row gap wrap" style="align-items:center">
-        <div class="muted small" style="flex:1; min-width:260px"></div>
+      <div class="muted small exportIntro">
+        Her kan sang-/gymnastik-/elevrådsfaglærere sætte flueben og eksportere en CSV, som kontaktlærerne kan importere.
+      </div>
+      <!-- Filtre/søgning hører visuelt sammen med tabellen. -->
+      <div class="marksToolbar" aria-label="Filtre til eksporttabellen">
+        <div class="tabs small centered" id="marksTypeTabs">
+          <!-- data-type values are internal codes used by app.js -->
+          <button type="button" class="tab" data-type="sang">Sang</button>
+          <button type="button" class="tab" data-type="gym">Gymnastik</button>
+          <button type="button" class="tab" data-type="elevraad">Elevråd</button>
+          <button type="button" class="tab exportTab" id="btnExportMarks" title="Download en CSV, som kontaktlærerne kan importere">↓ Eksportér CSV</button>
         </div>
+        <select id="marksType" style="display:none">
+          <option value="sang">Sang</option>
+          <option value="gym">Gymnastik</option>
+          <option value="elevraad">Elevråd</option>
+        </select>
+      </div>
+
+      <!-- hidden dock: ældre elev-søgepicker (beholdes skjult af hensyn til bagudkompatibilitet) -->
+      <div class="marksSearchDock" id="marksSearchDock" aria-hidden="true">
+        <div class="teacherPicker" id="marksSearchPicker">
+          <input id="marksSearch" type="text" placeholder="Søg navn…" autocomplete="off"/>
+          <button class="clearBtn" id="marksSearchClear" title="Ryd søgning" aria-label="Ryd søgning">×</button>
+          <button class="tpBtn" id="marksSearchBtn" type="button" aria-label="Vis elevliste">▾</button>
+          <div class="tpMenu" id="marksSearchMenu" role="listbox" aria-label="Vælg elev" hidden></div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
 
       <div class="muted small" id="marksLegend" style="margin:.35rem 0 .6rem 0"></div>
       <div id="marksTableWrap"></div>
@@ -525,7 +515,7 @@
 
 <!-- (K-lærer) – custom dropdown bygges i app.js -->
 
-<script src="app.js"></script>
+<script src="app.js?v=2026-01-04_1"></script>
 <input type="file" id="importTemplatesInput" accept=".json" hidden>
 </body>
 </html>
