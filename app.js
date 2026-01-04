@@ -693,7 +693,7 @@ function openPrintWindowForStudents(students, settings, title) {
     /* iOS/iPadOS Safari: disable scaling transforms to avoid alternating blank pages */
     @supports (-webkit-touch-callout: none) {
       .page { --s: 1 !important; }
-      .content { transform: none !important; }
+      .statement { transform: none !important; width: auto !important; }
     }
 </style>
 </head>
@@ -735,9 +735,11 @@ ${pagesHtml}
   }
 
   window.addEventListener('load', () => {
-    if(!disableScale) fitAll();
-    // A tiny delay helps after font rasterization
-    setTimeout(fitAll, 50);
+    if(!disableScale) {
+      fitAll();
+      // A tiny delay helps after font rasterization
+      setTimeout(fitAll, 50);
+    }
     setTimeout(() => { try { window.focus(); window.print(); } catch(e) {} }, 120);
   });
 })();
