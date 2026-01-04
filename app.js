@@ -1663,6 +1663,26 @@ function normalizePlaceholderKey(key) {
   function escapeAttr(s) { return (s ?? '').toString().replace(/"/g,'&quot;'); }
   function $(id){ return document.getElementById(id); }
 
+// Focus + open K-lærer picker (waits for DOM + picker init)
+function focusTeacherPickerAutoOpen(opts){
+  const maxMs = (opts && opts.maxMs) ? opts.maxMs : 1200;
+  const t0 = Date.now();
+  (function tick(){
+    const input = document.getElementById('meInput');
+    const btn = document.getElementById('teacherPickerBtn');
+    // We prefer clicking the button because it reliably opens the menu and focuses input
+    if (input && btn && !input.disabled && !btn.disabled) {
+      try { btn.click(); } catch(_) {}
+      try { input.focus(); } catch(_) {}
+      return;
+    }
+    if (Date.now() - t0 < maxMs) {
+      requestAnimationFrame(tick);
+    }
+  })();
+}
+
+
   // Hold "Faglærer-arbejde" type tabs in sync with the underlying select.
   // This must live in the same scope as renderMarksTable().
   function syncMarksTypeTabs(){
@@ -2804,11 +2824,8 @@ function goToGeneralSettingsForTeacher(){
     setTab('set');
     setSettingsSubtab('general');
   } catch(_) {}
-  // Focus K-lærer input; focus opens the picker menu (input.onfocus -> openMenu)
-  setTimeout(() => {
-    const input = document.getElementById('meInput');
-    if (input) input.focus();
-  }, 0);
+  // Focus + open K-lærer picker
+  focusTeacherPickerAutoOpen();
 }
 
 function renderTeacherShortcutButton(hostEl, who){
@@ -3907,9 +3924,8 @@ async function loadDemoStudentsCsv() {
     setTab('set');
     const btnGen = document.getElementById('settingsTab-general');
     if (btnGen) btnGen.click();
-    const me = document.getElementById('meInput');
-    if (me) me.focus();
-  } catch (_) {}
+    focusTeacherPickerAutoOpen();
+      } catch (_) {}
 
   console.log('Demo indlæst fra:', usedUrl);
 }
@@ -3929,9 +3945,8 @@ on('btnLoadDemo','click', async () => {
       setTab('set');
       const btnGen = document.getElementById('settingsTab-general');
       if (btnGen) btnGen.click();
-      const me = document.getElementById('meInput');
-      if (me) me.focus();
-    } catch (_) {}
+      focusTeacherPickerAutoOpen();
+      } catch (_) {}
   } catch (e) {
     console.error(e);
     alert('Kunne ikke indlæse demo_students.csv. Se console for detaljer.');
