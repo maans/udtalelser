@@ -265,8 +265,8 @@ function resolveFullName(row) {
     gym:  {
   "G1": {
     "title": "Meget engageret",
-    "text_m": "{{FORNAVN}} har deltaget meget engageret i fællesgymnastik og har vist stor lyst til at udfordre sig selv. {{HAN_HUN}} har bidraget positivt til holdets fællesskab.",
-    "text_k": "{{FORNAVN}} har deltaget meget engageret i fællesgymnastik og har vist stor lyst til at udfordre sig selv. {{HAN_HUN}} har bidraget positivt til holdets fællesskab."
+    "text_m": "{{FORNAVN}} har deltaget meget engageret i fællesgymnastik og har vist stor lyst til at udfordre sig selv. {(HAN_HUN_CAP)} har bidraget positivt til holdets fællesskab.",
+    "text_k": "{{FORNAVN}} har deltaget meget engageret i fællesgymnastik og har vist stor lyst til at udfordre sig selv. {(HAN_HUN_CAP)} har bidraget positivt til holdets fællesskab."
   },
   "G2": {
     "title": "Stabil deltagelse",

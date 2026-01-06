@@ -8,7 +8,7 @@
       "variants": {
         "G1": {
           "label": "Meget engageret",
-          "text": "{{FORNAVN}} har deltaget meget engageret i fællesgymnastik og har vist stor lyst til at udfordre sig selv. {{HAN_HUN}} har bidraget positivt til holdets fællesskab."
+          "text": "{{FORNAVN}} har deltaget meget engageret i fællesgymnastik og har vist stor lyst til at udfordre sig selv. {(HAN_HUN_CAP)} har bidraget positivt til holdets fællesskab."
         },
         "G2": {
           "label": "Stabil deltagelse",
