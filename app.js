@@ -287,8 +287,8 @@ function resolveFullName(row) {
   },
   "REDSKAB": {
     "title": "Redskabshold",
-    "text_m": "{{FORNAVN}} har været en del af redskabsholdet, som {{HAN_HUN}} frivilligt har meldt sig til. {{HAN_HUN}} har ydet en stor indsats og taget ansvar.",
-    "text_k": "{{FORNAVN}} har været en del af redskabsholdet, som {{HAN_HUN}} frivilligt har meldt sig til. {{HAN_HUN}} har ydet en stor indsats og taget ansvar."
+    "text_m": "{{FORNAVN}} har været en del af redskabsholdet, som {{HAN_HUN}} frivilligt har meldt sig til. {(HAN_HUN_CAP)} har ydet en stor indsats og taget ansvar.",
+    "text_k": "{{FORNAVN}} har været en del af redskabsholdet, som {{HAN_HUN}} frivilligt har meldt sig til. {(HAN_HUN_CAP)} har ydet en stor indsats og taget ansvar."
   },
   "DGI": {
     "title": "DGI-instruktør",
@@ -536,6 +536,20 @@ function applySnippetOverrides() {
         if (typeof it.text_k === 'string') SNIPPETS.roller[k].text_k = it.text_k;
       });
     }
+    // --- Roller (separat scope)
+    const roller = pack.roller && (pack.roller.roles ? pack.roller : (pack.roller.roller ? pack.roller.roller : null));
+    if (roller && roller.roles) {
+      Object.keys(roller.roles).forEach(k => {
+        const it = roller.roles[k] || {};
+        if (!SNIPPETS.roller[k]) SNIPPETS.roller[k] = { title: k, text_m: '', text_k: '' };
+        // Rollenavne er faste, men vi accepterer tekstfelterne.
+        if (typeof it.text === 'string') { SNIPPETS.roller[k].text_m = it.text; SNIPPETS.roller[k].text_k = it.text; }
+        if (typeof it.text_m === 'string') SNIPPETS.roller[k].text_m = it.text_m;
+        if (typeof it.text_k === 'string') SNIPPETS.roller[k].text_k = it.text_k;
+      });
+    }
+
+
 
     // --- Elevråd (YES)
     const er = pack.elevraad && (typeof pack.elevraad.text === 'string') ? pack.elevraad : (pack.elevraad && pack.elevraad.elevraad ? pack.elevraad.elevraad : null);
@@ -1105,22 +1119,18 @@ function buildOverridePackage(scope) {
       const text = ($('gymText_'+k)?.value || '').trim();
       variants[k] = { label, text };
     });
+    pkg.payload.gym = { variants, variantOrder: ['G1','G2','G3'] };
+  }
 
+  if (scope === 'roller') {
     const roles = {};
     const roleRows = Array.from(document.querySelectorAll('[data-role-key]'));
     roleRows.forEach(row => {
       const key = row.getAttribute('data-role-key');
-      const label = (row.querySelector('.roleLabel')?.value || '').trim() || key;
       const text = (row.querySelector('.roleText')?.value || '').trim();
-      if (key) roles[key] = { label, text };
+      if (key) roles[key] = { label: key, text };
     });
-
-    pkg.payload.gym = {
-      variants,
-      variantOrder: ['G1','G2','G3'],
-      roles,
-      roleOrder: Object.keys(roles)
-    };
+    pkg.payload.roller = { roles, roleOrder: Object.keys(roles) };
   }
 
   if (scope === 'elevraad') {
@@ -1153,14 +1163,35 @@ function importOverridePackage(expectedScope, obj) {
     if (p.sang && p.sang.items) overrides.sang = p.sang;
   }
   if (obj.scope === 'all' || obj.scope === 'gym') {
-    if (p.gym) overrides.gym = p.gym;
+    if (p.gym) {
+      const prev = overrides.gym || {};
+      overrides.gym = Object.assign({}, prev, p.gym);
+      // Backward compat: ældre gym-pakker kan indeholde roller.
+      if (p.gym.roles) {
+        const prevR = overrides.roller || {};
+        overrides.roller = {
+          roles: Object.assign({}, prevR.roles || {}, p.gym.roles),
+          roleOrder: p.gym.roleOrder || prevR.roleOrder || Object.keys(p.gym.roles)
+        };
+      }
+    }
   }
+  if (obj.scope === 'all' || obj.scope === 'roller') {
+    if (p.roller && p.roller.roles) {
+      const prevR = overrides.roller || {};
+      overrides.roller = {
+        roles: Object.assign({}, prevR.roles || {}, p.roller.roles),
+        roleOrder: p.roller.roleOrder || prevR.roleOrder || Object.keys(p.roller.roles)
+      };
+    }
+  }
+
   if (obj.scope === 'all' || obj.scope === 'elevraad') {
     if (p.elevraad) overrides.elevraad = p.elevraad;
   }
 
   // Mark local snippet edits so auto-refresh does not overwrite them.
-  if (obj.scope === 'all' || obj.scope === 'sang' || obj.scope === 'gym' || obj.scope === 'elevraad') {
+  if (obj.scope === 'all' || obj.scope === 'sang' || obj.scope === 'gym' || obj.scope === 'roller' || obj.scope === 'elevraad') {
     setSnippetsDirty(true);
   }
 
@@ -1743,7 +1774,12 @@ function normalizePlaceholderKey(key) {
   function normalizeHeader(input) { return normalizeName(input).replace(/[^a-z0-9]+/g, ""); }
 
   // ---------- util ----------
-  function escapeAttr(s) { return (s ?? '').toString().replace(/"/g,'&quot;'); }
+  function escapeAttr(s) { return (s ?? '').toString()
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/\r?\n/g,'&#10;'); }
   function $(id){ return document.getElementById(id); }
 
 // Focus + open K-lærer picker (waits for DOM + picker init)
@@ -2103,14 +2139,25 @@ function setStudents(studs){ lsSet(KEYS.students, studs); rebuildAliasMapFromStu
     const isFemale = (g === 'k' || g === 'f' || g === 'p' || g.includes('pige') || g.includes('kvinde') || g.includes('female'));
     const isMale = (g === 'm' || g === 'd' || g.includes('dreng') || g.includes('mand') || /\bmale\b/.test(g));
 
-    if (isFemale && !isMale) {
-      return { HAN_HUN: 'hun', HAM_HENDE: 'hende', HANS_HENDES: 'hendes', SIG_HAM_HENDE: 'sig' };
-    }
-    if (isMale && !isFemale) {
-      return { HAN_HUN: 'han', HAM_HENDE: 'ham', HANS_HENDES: 'hans', SIG_HAM_HENDE: 'sig' };
-    }
+    const cap1 = (s) => {
+      const str = String(s || '');
+      return str ? (str.charAt(0).toUpperCase() + str.slice(1)) : str;
+    };
+
+    const pack = (hanHun, hamHende, hansHendes) => ({
+      HAN_HUN: hanHun,
+      HAM_HENDE: hamHende,
+      HANS_HENDES: hansHendes,
+      SIG_HAM_HENDE: 'sig',
+      HAN_HUN_CAP: cap1(hanHun),
+      HAM_HENDE_CAP: cap1(hamHende),
+      HANS_HENDES_CAP: cap1(hansHendes),
+    });
+
+    if (isFemale && !isMale) return pack('hun', 'hende', 'hendes');
+    if (isMale && !isFemale) return pack('han', 'ham', 'hans');
     // Ukendt/neutral
-    return { HAN_HUN: 'han/hun', HAM_HENDE: 'ham/hende', HANS_HENDES: 'hans/hendes', SIG_HAM_HENDE: 'sig' };
+    return pack('han/hun', 'ham/hende', 'hans/hendes');
   }
 
 
@@ -2138,8 +2185,8 @@ function setStudents(studs){ lsSet(KEYS.students, studs); rebuildAliasMapFromStu
   // 1) exact uppercased key
   // 2) normalized key (æ/ø/å -> AE/OE/AA + diacritics stripped)
   // 3) raw key as-is
-  return s.replace(/\{\{\s*([^{}]+?)\s*\}\}|\{\s*([^{}]+?)\s*\}/g, (m, k1, k2) => {
-    const rawKey = (k1 || k2 || "").trim();
+  return s.replace(/\{\{\s*([^{}]+?)\s*\}\}|\{\(\s*([^){}]+?)\s*\)\}|\{\s*([^{}]+?)\s*\}/g, (m, k1, k2, k3) => {
+    const rawKey = (k1 || k2 || k3 || "").trim();
     if (!rawKey) return "";
     const keyUpper = rawKey.toUpperCase();
     const keyNorm = normalizePlaceholderKey(rawKey);
@@ -2226,7 +2273,10 @@ if (chosen && erObj[chosen]) {
       "NAVN": fullName,
       "HAN_HUN": pr.HAN_HUN,
       "HAM_HENDE": pr.HAM_HENDE,
-      "HANS_HENDES": pr.HANS_HENDES
+      "HANS_HENDES": pr.HANS_HENDES,
+      "HAN_HUN_CAP": pr.HAN_HUN_CAP,
+      "HAM_HENDE_CAP": pr.HAM_HENDE_CAP,
+      "HANS_HENDES_CAP": pr.HANS_HENDES_CAP
     };
     sangAfsnit = applyPlaceholders(sangAfsnit, snMap);
     gymAfsnit = applyPlaceholders(gymAfsnit, snMap);
@@ -2262,6 +2312,9 @@ if (chosen && erObj[chosen]) {
       "HAN_HUN": pr.HAN_HUN,
       "HAM_HENDE": pr.HAM_HENDE,
       "HANS_HENDES": pr.HANS_HENDES,
+      "HAN_HUN_CAP": pr.HAN_HUN_CAP,
+      "HAM_HENDE_CAP": pr.HAM_HENDE_CAP,
+      "HANS_HENDES_CAP": pr.HANS_HENDES_CAP,
       "ELEV_EFTERNAVN": (student.efternavn || '').trim(),
       "ELEV_KLASSE": formatClassLabel(student.klasse),
       "PERIODE_FRA": period.from,
@@ -2301,6 +2354,9 @@ if (chosen && erObj[chosen]) {
       "HAN_HUN": pr.HAN_HUN,
       "HAM_HENDE": pr.HAM_HENDE,
       "HANS_HENDES": pr.HANS_HENDES,
+      "HAN_HUN_CAP": pr.HAN_HUN_CAP,
+      "HAM_HENDE_CAP": pr.HAM_HENDE_CAP,
+      "HANS_HENDES_CAP": pr.HANS_HENDES_CAP,
 
       /* legacy placeholders */
       "NAVN": fullName,
@@ -2870,9 +2926,16 @@ function renderSnippetsEditor() {
   const er = (SNIPPETS.elevraad && SNIPPETS.elevraad.YES) ? SNIPPETS.elevraad.YES : { text_m: '', text_k: '' };
   $('elevraadText').value = (er.text_m || er.text_k || '');
 
-  // Roller (gym)
-  const list = document.getElementById('gymRolesList');
+  // Roller
+  const list = document.getElementById('rolesList') || document.getElementById('gymRolesList');
   if (!list) return;
+  if (!list.dataset._boundInput) {
+    list.dataset._boundInput = '1';
+    list.addEventListener('input', (e) => {
+      const t = e.target;
+      if (t && t.classList && t.classList.contains('roleText')) commitSnippetsFromUI('roller');
+    });
+  }
   list.innerHTML = '';
   Object.keys(SNIPPETS.roller || {}).forEach(key => {
     const it = SNIPPETS.roller[key];
@@ -2883,7 +2946,7 @@ function renderSnippetsEditor() {
       <div class="row gap wrap" style="align-items:center">
         <div class="field" style="min-width:220px;flex:1">
           <label>Rolle-navn</label>
-          <input class="roleLabel" type="text" value="${escapeHtml(it.title || key)}">
+          <input class="roleLabel" type="text" value="${escapeHtml(it.title || key)}" readonly disabled>
         </div>
         <div class="field" style="flex:2;min-width:280px">
           <label>Tekst</label>
@@ -2955,16 +3018,17 @@ function commitSnippetsFromUI(scope) {
         text: ($('gymText_'+k).value || '').trim()
       };
     });
+    overrides.gym = { variants, variantOrder: ['G1','G2','G3'] };
+  }
+
+  if (scope === 'roller') {
     const roles = {};
     Array.from(document.querySelectorAll('[data-role-key]')).forEach(row => {
       const key = row.getAttribute('data-role-key');
       if (!key) return;
-      roles[key] = {
-        label: (row.querySelector('.roleLabel')?.value || '').trim() || key,
-        text: (row.querySelector('.roleText')?.value || '').trim()
-      };
+      roles[key] = { label: key, text: (row.querySelector('.roleText')?.value || '').trim() };
     });
-    overrides.gym = { variants, roles, variantOrder: ['G1','G2','G3'], roleOrder: Object.keys(roles) };
+    overrides.roller = { roles, roleOrder: Object.keys(roles) };
   }
 
   if (scope === 'elevraad') {
@@ -3240,6 +3304,7 @@ const prog = mineList.reduce((acc, st) => {
         const hasU = !!(free.elevudvikling || '').trim();
         const hasP = !!(free.praktisk || '').trim();
         const hasK = !!(free.kgruppe || '').trim();
+        const isComplete = !!(hasU && hasP && hasK);
 
         // ALL-mode status: U · P · K → initials (last editor)
         const lastBy = ((free.lastEditedBy || '') + '').trim();
@@ -3258,13 +3323,16 @@ const prog = mineList.reduce((acc, st) => {
         const hasS = isTruthy(mS.sang_variant) || isTruthy(mS.variant) || mS.S1 === true || mS.S2 === true || mS.S3 === true || hasAnyTruthyValue(mS);
         const hasG = isTruthy(mG.gym_variant) || (Array.isArray(mG.gym_roles) && mG.gym_roles.length > 0) || hasAnyTruthyValue(mG);
         const hasE = isTruthy(mE.elevraad_variant) || isTruthy(mE.variant) || isTruthy(mE.elevraad) || hasAnyTruthyValue(mE);
+        const hasAnyProgress = !!(hasU || hasP || hasK || hasS || hasG || hasE);
+        const isWip = !!(hasAnyProgress && !isComplete);
         const markLabels = [hasS ? 'Sang' : '', hasG ? 'Gym' : '', hasE ? 'Elevråd' : ''].filter(Boolean);
         const marksLine = markLabels.length ? ` · ${markLabels.join(' · ')}` : '';
 
         return `
-          <div class="card clickable" data-unilogin="${escapeAttr(st.unilogin)}">
+          <div class="card clickable ${isComplete ? "complete" : (isWip ? "wip" : "")}" data-unilogin="${escapeAttr(st.unilogin)}">
             <div class="cardTopRow">
               <div class="cardTitle"><b>${escapeHtml(full)}</b></div>
+              ${isComplete ? `<span class="dot done" title="Færdig: U, P og K er udfyldt."></span>` : (isWip ? `<span class="dot wip" title="Undervejs: der er indhold, men ikke alt er færdigt endnu."></span>` : ``)}
               <div class="cardFlags muted small">${statusRight}</div>
             </div>
             <div class="cardSub muted small">${escapeHtml(formatClassLabel(st.klasse || '') + marksLine)}</div>
@@ -3573,7 +3641,58 @@ $('preview').textContent = buildStatement(st, getSettings());
     const typeEl = $('marksType');
     const searchEl = $('marksSearch');
     const legendEl = $('marksLegend');
-    if (!wrap || !legendEl) return;
+    const pickTextForStudent = (snippet, st) => {
+      if (!snippet) return '';
+      const pr = pronouns(st.koen || st.gender || st.sex || '');
+      const isFemale = pr && pr.HAN_HUN === 'hun';
+      return (isFemale ? (snippet.text_k || snippet.text_m || '') : (snippet.text_m || snippet.text_k || ''));
+    };
+    const placeholderMapFor = (st) => {
+      const full = `${st.fornavn||''} ${st.efternavn||''}`.trim();
+      const first = (st.fornavn||'').trim() || full.split(' ')[0] || '';
+      const pr = pronouns(st.koen || st.gender || st.sex || '');
+      return {
+        "FORNAVN": first,
+        "ELEV_FORNAVN": first,
+        "ELEV_NAVN": full,
+        "ELEV_FULDE_NAVN": full,
+        "HAN_HUN": pr.HAN_HUN,
+        "HAM_HENDE": pr.HAM_HENDE,
+        "HANS_HENDES": pr.HANS_HENDES,
+        "HAN_HUN_CAP": pr.HAN_HUN_CAP,
+        "HAM_HENDE_CAP": pr.HAM_HENDE_CAP,
+        "HANS_HENDES_CAP": pr.HANS_HENDES_CAP,
+        "SIG_HAM_HENDE": pr.SIG_HAM_HENDE
+      };
+    };
+    const previewFor = (st, rawText) => {
+      let txt = (rawText || '').trim();
+      if (!txt) return '';
+      // Support legacy placeholder style: {(HAN_HUN)} etc. -> {HAN_HUN}
+      txt = txt.replace(/\{\(\s*([^{}()]+?)\s*\)\}/g, '{$1}')
+               .replace(/\{\{\(\s*([^{}()]+?)\s*\)\}\}/g, '{{$1}}');
+      // Apply placeholders (same engine as the print-template)
+      let out = applyPlaceholders(txt, placeholderMapFor(st)).trim();
+      // Make preview readable (only for tooltip): insert line breaks after sentence ends.
+      out = out.replace(/([.!?])\s+/g, '$1\n\n');
+      // Avoid extreme whitespace
+      out = out.replace(/[\t\r]+/g, ' ').trim();
+      return out;
+    }; // (ellers føles knapperne 'døde').
+    const hasStudents = !!(studs && studs.length);
+    const disableWithHint = (id, disabled, hint) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.disabled = !!disabled;
+      // Preserve original title when enabled.
+      if (!el.dataset._origTitle) el.dataset._origTitle = el.getAttribute('title') || '';
+      el.setAttribute('title', disabled ? (hint || 'Indlæs først elevliste (students.csv).') : el.dataset._origTitle);
+      el.classList.toggle('disabled', !!disabled);
+    };
+    // Export/print depends on students. Backup should stay available.
+    disableWithHint('btnExportMarks', !hasStudents, 'Indlæs først elevliste (students.csv), før du kan eksportere.');
+    disableWithHint('btnPrintAllStudents', !hasStudents, 'Indlæs først elevliste (students.csv), før du kan printe.');
+    disableWithHint('btnPrintAllGroups', !hasStudents, 'Indlæs først elevliste (students.csv), før du kan printe.');
 
     // Sticky kolonneheader i eksport-tabellen (marks)
     if (!document.getElementById('marksStickyCss')) {
@@ -3611,7 +3730,7 @@ $('preview').textContent = buildStatement(st, getSettings());
 
     const type = (typeEl && typeEl.value) ? typeEl.value : 'sang';
 
-    const storageKey = (type === 'sang') ? KEYS.marksSang : (type === 'gym') ? KEYS.marksGym : KEYS.marksElev;
+    const storageKey = (type === 'sang') ? KEYS.marksSang : (type === 'gym' || type === 'roller') ? KEYS.marksGym : KEYS.marksElev;
     const q = normalizeName((searchEl && searchEl.value) ? searchEl.value : '').trim();
 
     if (!studs || !studs.length){
@@ -3671,12 +3790,102 @@ $('preview').textContent = buildStatement(st, getSettings());
       list = [...list].sort((a,b) => dir * cmp(a,b));
     }
 
-    function renderTick(unilogin, key, on){
+    function renderTick(unilogin, key, on, tooltip){
       const pressed = on ? 'true' : 'false';
       const cls = 'tickbox' + (on ? ' on' : '');
       // data-u/data-k bruges af click-handleren på marks-tabellen
-      return `<td class="cb"><button type="button" class="${cls}" data-u="${escapeAttr(unilogin)}" data-k="${escapeAttr(key)}" aria-pressed="${pressed}"><span class="check">✓</span></button></td>`;
+      return `<td class="cb"><button type="button" class="${cls}" data-u="${escapeAttr(unilogin)}" data-k="${escapeAttr(key)}" aria-pressed="${pressed}" data-tip="${escapeAttr(tooltip||'')}"><span class="check">✓</span></button></td>`;
     }
+
+    
+    // --- Custom hover tooltip (multi-line). We don't use the browser title-tooltip because it can't wrap nicely.
+    let _hoverTipEl = null;
+    function ensureHoverTipEl(){
+      if (_hoverTipEl) return _hoverTipEl;
+      const el = document.createElement('div');
+      el.className = 'hoverTip';
+      el.style.display = 'none';
+      document.body.appendChild(el);
+      _hoverTipEl = el;
+      return el;
+    }
+    function showHoverTip(text, x, y){
+      if (!text) return;
+      const el = ensureHoverTipEl();
+      el.textContent = text;
+      el.style.display = 'block';
+      // position with clamping
+      const pad = 12;
+      const rect = el.getBoundingClientRect();
+      let left = x + pad;
+      let top  = y + pad;
+      const maxLeft = window.innerWidth - rect.width - 8;
+      const maxTop  = window.innerHeight - rect.height - 8;
+      if (left > maxLeft) left = Math.max(8, x - rect.width - pad);
+      if (top  > maxTop)  top  = Math.max(8, y - rect.height - pad);
+      el.style.left = left + 'px';
+      el.style.top  = top  + 'px';
+    }
+    function hideHoverTip(){
+      if (!_hoverTipEl) return;
+      _hoverTipEl.style.display = 'none';
+    }
+    function bindMarksHoverTips(container){
+      if (!container || container.dataset._hoverTipsBound) return;
+      container.dataset._hoverTipsBound = '1';
+
+      let currentBtn = null;
+
+      container.addEventListener('mousemove', (e) => {
+        if (!currentBtn) return;
+        const tip = currentBtn.getAttribute('data-tip') || '';
+        if (!tip) return;
+        showHoverTip(tip, e.clientX, e.clientY);
+      });
+
+      container.addEventListener('mouseleave', () => {
+        currentBtn = null;
+        hideHoverTip();
+      });
+
+      container.addEventListener('mouseover', (e) => {
+        const btn = e.target && e.target.closest ? e.target.closest('button[data-tip]') : null;
+        if (!btn) return;
+        const tip = btn.getAttribute('data-tip') || '';
+        if (!tip) return;
+        currentBtn = btn;
+        showHoverTip(tip, e.clientX, e.clientY);
+      });
+
+      container.addEventListener('mouseout', (e) => {
+        const btn = e.target && e.target.closest ? e.target.closest('button[data-tip]') : null;
+        if (!btn) return;
+        if (btn === currentBtn) {
+          currentBtn = null;
+          hideHoverTip();
+        }
+      });
+    }
+
+function tooltipTextFor(st, scope, key){
+      try {
+        let snip = null;
+        if (scope === 'roller') snip = (SNIPPETS.roller || {})[key];
+        else snip = (SNIPPETS[scope] || {})[key];
+        if (!snip) return '';
+        const p = pronouns(st.koen || st.køn || st.gender || '');
+        const base = (p.HAN_HUN === 'hun' && snip.text_k) ? snip.text_k : (snip.text_m || snip.text_k || '');
+        const filled = applyPlaceholders(base, Object.assign({ FORNAVN: st.fornavn || '' }, p));
+        const flat = String(filled || '').trim().replace(/\s+/g,' ');
+        if (!flat) return '';
+        const pretty = flat.replace(/([.!?])\s+/g, '$1\n\n');
+        const title = String(snip.title || key).trim();
+        return (title ? (title + '\n\n') : '') + pretty;
+      } catch(e) {
+        return '';
+      }
+    }
+
 
 
 
@@ -3767,14 +3976,14 @@ $('preview').textContent = buildStatement(st, getSettings());
     if (type === 'sang') {
       const marks = getMarks(KEYS.marksSang);
       $('marksLegend').textContent = '';
-      const cols = Object.keys(SNIPPETS.sang);
+      const cols = ['S1','S2','S3'].filter(k => (SNIPPETS.sang||{})[k]);
 
       wrap.innerHTML = `
         <table>
           <thead>
             <tr>
               ${nameTh}${thKgrp}${thKlasse}
-              ${cols.map(c => `<th class="cb" title="${escapeAttr(SNIPPETS.sang[c].hint||'')}"><span class="muted small">${escapeHtml(SNIPPETS.sang[c].title||'')}</span></th>`).join('')}
+              ${cols.map((c,i) => `<th class="cb" title="${escapeAttr((SNIPPETS.sang[c]||{}).title||'')}"><span class="muted small">Niveau ${i+1}</span></th>`).join('')}
             </tr>
           </thead>
           <tbody>
@@ -3785,7 +3994,7 @@ $('preview').textContent = buildStatement(st, getSettings());
                 <td>${escapeHtml(full)}</td>
                 <td class="muted small">${escapeHtml(kgrpLabel(st))}</td>
                 <td class="muted small">${escapeHtml(st.klasse||'')}</td>
-                ${cols.map(c => renderTick(st.unilogin, c, ((m.sang_variant||'')===c))).join('')}
+                ${cols.map(c => renderTick(st.unilogin, c, ((m.sang_variant||'')===c), previewFor(st, pickTextForStudent(SNIPPETS.sang[c], st)))).join('')}
               </tr>`;
             }).join('')}
           </tbody>
@@ -3793,13 +4002,46 @@ $('preview').textContent = buildStatement(st, getSettings());
       `;
       attachInlineMarksSearch();
       attachMarksSortButtons();
+      bindMarksHoverTips(wrap);
       return;
     }
 
     if (type === 'gym') {
       const marks = getMarks(KEYS.marksGym);
       $('marksLegend').textContent = '';
-      const cols = Object.keys(SNIPPETS.gym);
+      const cols = ['G1','G2','G3'].filter(k => (SNIPPETS.gym||{})[k]);
+
+      wrap.innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              ${nameTh}${thKgrp}${thKlasse}
+              ${cols.map((c,i) => `<th class="cb" title="${escapeAttr((SNIPPETS.gym[c]||{}).title||'')}"><span class="muted small">${['Engageret','Stabil','Varierende'][i]||escapeHtml((SNIPPETS.gym[c]||{}).title||c)}</span></th>`).join('')}
+            </tr>
+          </thead>
+          <tbody>
+            ${list.map(st => {
+              const m = marks[st.unilogin] || {};
+              const full = `${st.fornavn||''} ${st.efternavn||''}`.trim();
+              return `<tr>
+                <td>${escapeHtml(full)}</td>
+                <td class="muted small">${escapeHtml(kgrpLabel(st))}</td>
+                <td class="muted small">${escapeHtml(st.klasse||'')}</td>
+                ${cols.map(c => renderTick(st.unilogin, c, ((m.gym_variant||'')===c), previewFor(st, pickTextForStudent(SNIPPETS.gym[c], st)))).join('')}
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      `;
+      attachInlineMarksSearch();
+      attachMarksSortButtons();
+      bindMarksHoverTips(wrap);
+      return;
+    }
+
+    if (type === 'roller') {
+      const marks = getMarks(KEYS.marksGym);
+      $('marksLegend').textContent = '';
       const roleCodes = Object.keys(SNIPPETS.roller || {});
 
       wrap.innerHTML = `
@@ -3807,7 +4049,6 @@ $('preview').textContent = buildStatement(st, getSettings());
           <thead>
             <tr>
               ${nameTh}${thKgrp}${thKlasse}
-              ${cols.map(c => `<th class="cb" title="${escapeAttr(SNIPPETS.gym[c].hint||'')}"><span class="muted small">${escapeHtml(SNIPPETS.gym[c].title||'')}</span></th>`).join('')}
               ${roleCodes.map(r => `<th class="cb" title="${escapeAttr((SNIPPETS.roller[r]||{}).hint||'')}"><span class="muted small">${escapeHtml((SNIPPETS.roller[r]||{}).title||r)}</span></th>`).join('')}
             </tr>
           </thead>
@@ -3815,12 +4056,12 @@ $('preview').textContent = buildStatement(st, getSettings());
             ${list.map(st => {
               const m = marks[st.unilogin] || {};
               const full = `${st.fornavn||''} ${st.efternavn||''}`.trim();
+              const roles = Array.isArray(m.gym_roles) ? m.gym_roles : [];
               return `<tr>
                 <td>${escapeHtml(full)}</td>
                 <td class="muted small">${escapeHtml(kgrpLabel(st))}</td>
                 <td class="muted small">${escapeHtml(st.klasse||'')}</td>
-                ${cols.map(c => renderTick(st.unilogin, c, ((m.gym_variant||'')===c))).join('')}
-                ${roleCodes.map(r => renderTick(st.unilogin, 'role:'+r, (Array.isArray(m.gym_roles)?m.gym_roles:[]).includes(r))).join('')}
+                ${roleCodes.map(r => renderTick(st.unilogin, 'role:'+r, roles.includes(r), previewFor(st, pickTextForStudent(SNIPPETS.roller[r], st)))).join('')}
               </tr>`;
             }).join('')}
           </tbody>
@@ -3828,20 +4069,21 @@ $('preview').textContent = buildStatement(st, getSettings());
       `;
       attachInlineMarksSearch();
       attachMarksSortButtons();
+      bindMarksHoverTips(wrap);
       return;
     }
 
     // elevraad
     const marks = getMarks(KEYS.marksElev);
     $('marksLegend').textContent = '';
-    const cols = Object.keys(SNIPPETS.elevraad);
+    const cols = Object.keys(SNIPPETS.elevraad || {});
 
     wrap.innerHTML = `
       <table>
         <thead>
           <tr>
             ${nameTh}${thKgrp}${thKlasse}
-            ${cols.map(c => `<th class="cb" title="${escapeAttr(SNIPPETS.elevraad[c].hint||'')}"><span class="muted small">${escapeHtml(SNIPPETS.elevraad[c].title||'')}</span></th>`).join('')}
+            ${cols.map((c,i) => `<th class="cb" title="${escapeAttr((SNIPPETS.elevraad[c]||{}).title||'')}"><span class="muted small">${cols.length===1?'Elevråd':'Valg '+(i+1)}</span></th>`).join('')}
           </tr>
         </thead>
         <tbody>
@@ -3852,7 +4094,7 @@ $('preview').textContent = buildStatement(st, getSettings());
               <td>${escapeHtml(full)}</td>
               <td class="muted small">${escapeHtml(kgrpLabel(st))}</td>
               <td class="muted small">${escapeHtml(st.klasse||'')}</td>
-              ${cols.map(c => renderTick(st.unilogin, c, ((m.elevraad_variant||'')===c))).join('')}
+              ${cols.map(c => renderTick(st.unilogin, c, ((m.elevraad_variant||'')===c), previewFor(st, pickTextForStudent(SNIPPETS.elevraad[c], st)))).join('')}
             </tr>`;
           }).join('')}
         </tbody>
@@ -3860,6 +4102,7 @@ $('preview').textContent = buildStatement(st, getSettings());
     `;
     attachInlineMarksSearch();
     attachMarksSortButtons();
+    bindMarksHoverTips(wrap);
 }
 
   async function importMarksFile(e, kind) {
@@ -4181,57 +4424,53 @@ if (document.getElementById('btnDownloadGym')) {
     const pkg = buildOverridePackage('gym');
     downloadJson('snippets_gym_override.json', pkg);
   });
-  if (document.getElementById('btnImportGymSnippets') && document.getElementById('fileImportGymSnippets')) {
-    on('btnImportGymSnippets','click', () => $('fileImportGymSnippets').click());
-    on('fileImportGymSnippets','change', async (e) => {
-    const f = e.target.files && e.target.files[0];
-    if (!f) return;
-    const txt = await f.text();
-    const obj = JSON.parse(txt);
-    importOverridePackage('gym', obj);
-    renderSettings();
-    e.target.value = '';
+  if (document.getElementById('btnImportGym') && document.getElementById('fileImportGym')) {
+    on('btnImportGym','click', () => $('fileImportGym').click());
+    on('fileImportGym','change', async (e) => {
+      const f = e.target.files && e.target.files[0];
+      if (!f) return;
+      const txt = await f.text();
+      const obj = JSON.parse(txt);
+      importOverridePackage('gym', obj);
+      renderSettings();
+      e.target.value = '';
     });
   }
-  on('btnRestoreGymSnippets','click', async () => {
-    await loadRemoteOverrides();
-    clearLocalSnippetScope('gym');
-    applySnippetOverrides();
-    renderSettings();
-    if (state.tab === 'edit') renderEdit();
-  });
-
-  on('btnAddRole','click', () => {
-    const keyRaw = prompt('Kort nøgle til rollen (fx FANEBÆRER, REDSKAB, DGI):');
-    if (!keyRaw) return;
-    const key = keyRaw.trim().toUpperCase().replace(/\s+/g,'_');
-    if (!key) return;
-    const o = getSnippetDraft();
-    if (!o.gym) o.gym = { variants: {}, roles: {} };
-    if (!o.gym.roles) o.gym.roles = {};
-    if (!o.gym.roles[key]) o.gym.roles[key] = { label: keyRaw.trim(), text: '' };
-    setSnippetDraft(o);
-    applySnippetOverrides();
-    renderSettings();
-  });
-
-  const rolesList = document.getElementById('gymRolesList');
-  if (rolesList) {
-    rolesList.addEventListener('click', (ev) => {
-      const btn = ev.target.closest('[data-remove-role]');
-      if (!btn) return;
-      const key = btn.getAttribute('data-remove-role');
-      if (!key) return;
-      const o = getSnippetDraft();
-      // Hvis rollen kun findes som override, så fjern den her; ellers gem "tom" override for at kunne skjule?
-      // Minimal: fjern override-rollen + fjern fra defaults via et "tombstone"
-      if (!o.gym) o.gym = {};
-      if (!o.gym.roles) o.gym.roles = {};
-      // Tombstone for at kunne fjerne en default-rolle:
-      o.gym.roles[key] = { label: '', text: '' , _deleted: true };
-      setSnippetDraft(o);
+  if (document.getElementById('btnRestoreGym')) {
+    on('btnRestoreGym','click', async () => {
+      await loadRemoteOverrides();
+      clearLocalSnippetScope('gym');
       applySnippetOverrides();
       renderSettings();
+      if (state.tab === 'edit') renderEdit();
+    });
+  }
+}
+
+if (document.getElementById('btnDownloadRoller')) {
+  on('btnDownloadRoller','click', () => {
+    const pkg = buildOverridePackage('roller');
+    downloadJson('snippets_roller_override.json', pkg);
+  });
+  if (document.getElementById('btnImportRoller') && document.getElementById('fileImportRoller')) {
+    on('btnImportRoller','click', () => $('fileImportRoller').click());
+    on('fileImportRoller','change', async (e) => {
+      const f = e.target.files && e.target.files[0];
+      if (!f) return;
+      const txt = await f.text();
+      const obj = JSON.parse(txt);
+      importOverridePackage('roller', obj);
+      renderSettings();
+      e.target.value = '';
+    });
+  }
+  if (document.getElementById('btnRestoreRoller')) {
+    on('btnRestoreRoller','click', async () => {
+      await loadRemoteOverrides();
+      clearLocalSnippetScope('roller');
+      applySnippetOverrides();
+      renderSettings();
+      if (state.tab === 'edit') renderEdit();
     });
   }
 }
@@ -4355,7 +4594,7 @@ if (document.getElementById('btnDownloadElevraad')) {
           const m = marks[st.unilogin] || {};
           return { Unilogin: st.unilogin, Navn: full, Sang_variant: m.sang_variant || '' };
         });
-        downloadText('sang_marks.csv', toCsv(rows, ['Unilogin','Navn','Sang_variant']));
+        downloadText('sang_vurderinger.csv', toCsv(rows, ['Unilogin','Navn','Sang_variant']));
       }
       if (type === 'gym') {
         const marks = getMarks(KEYS.marksGym);
@@ -4368,7 +4607,7 @@ if (document.getElementById('btnDownloadElevraad')) {
           roleCodes.forEach(rc => row[rc] = m[rc] ? 1 : 0);
           return row;
         });
-        downloadText('gym_marks.csv', toCsv(rows, headers));
+        downloadText('gym_rolle_vurderinger.csv', toCsv(rows, headers));
       }
       if (type === 'elevraad') {
         const marks = getMarks(KEYS.marksElev);
@@ -4377,7 +4616,7 @@ if (document.getElementById('btnDownloadElevraad')) {
           const m = marks[st.unilogin] || {};
           return { Unilogin: st.unilogin, Navn: full, Elevraad: m.elevraad ? 1 : 0 };
         });
-        downloadText('elevraad_marks.csv', toCsv(rows, ['Unilogin','Navn','Elevraad']));
+        downloadText('elevraad_vurderinger.csv', toCsv(rows, ['Unilogin','Navn','Elevraad']));
       }
     });
 
@@ -4526,7 +4765,7 @@ if (document.getElementById('btnDownloadElevraad')) {
         const k = el.getAttribute('data-k');
         if (!u || !k) return;
         const type = (state.marksType || 'sang');
-        const storageKey = (type === 'gym') ? KEYS.marksGym : (type === 'elevraad' ? KEYS.marksElev : KEYS.marksSang);
+        const storageKey = (type === 'gym' || type === 'roller') ? KEYS.marksGym : (type === 'elevraad' ? KEYS.marksElev : KEYS.marksSang);
         const marks = getMarks(storageKey);
         marks[u] = marks[u] || {};
 
@@ -4564,7 +4803,7 @@ if (document.getElementById('btnDownloadElevraad')) {
         const k = btn.getAttribute('data-k');
         if (!u || !k) return;
         const type = (state.marksType || 'sang');
-        const storageKey = (type === 'gym') ? KEYS.marksGym : (type === 'elevraad' ? KEYS.marksElev : KEYS.marksSang);
+        const storageKey = (type === 'gym' || type === 'roller') ? KEYS.marksGym : (type === 'elevraad' ? KEYS.marksElev : KEYS.marksSang);
         const marks = getMarks(storageKey);
         marks[u] = marks[u] || {};
 
@@ -4601,7 +4840,7 @@ if (document.getElementById('btnDownloadElevraad')) {
       btnExport.__wired = true;
       btnExport.addEventListener('click', () => {
         const type = (state.marksType || 'sang');
-        const storageKey = (type === 'gym') ? KEYS.marksGym : (type === 'elevraad' ? KEYS.marksElev : KEYS.marksSang);
+        const storageKey = (type === 'gym' || type === 'roller') ? KEYS.marksGym : (type === 'elevraad' ? KEYS.marksElev : KEYS.marksSang);
         const studs = getStudents() || [];
         if (!studs.length) { alert('Upload elevliste først.'); return; }
         const marks = getMarks(storageKey) || {};

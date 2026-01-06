@@ -8,7 +8,7 @@
 <link rel="icon" href="favicon.ico">
 <link rel="apple-touch-icon" href="icon-192.png">
 <!-- Cache-bust for GitHub Pages / aggressive browser caching -->
-<link href="app.css?v=2026-01-04_1" rel="stylesheet"/>
+<link href="app.css?v=2026-01-06_2" rel="stylesheet"/>
 </head>
 <body>
 <header class="topbar no-print">
@@ -269,15 +269,15 @@
       <div class="cardSubTitle">Import af faglærer-CSV’er (for kontaktlærere)</div>
       <div class="grid3">
         <div class="field">
-          <label>sang_marks.csv</label>
+          <label>sang_vurderinger.csv</label>
           <input accept=".csv,.txt" id="importSang" type="file"/>
         </div>
         <div class="field">
-          <label>gym_marks.csv</label>
+          <label>gym_rolle_vurderinger.csv</label>
           <input accept=".csv,.txt" id="importGym" type="file"/>
         </div>
         <div class="field">
-          <label>elevraad_marks.csv</label>
+          <label>elevraad_vurderinger.csv</label>
           <input accept=".csv,.txt" id="importElevraad" type="file"/>
         </div>
       </div>
@@ -298,21 +298,34 @@
         </div>
       </div>
 
-      <div class="muted small exportIntro">
-        Her kan sang-/gymnastik-/elevrådsfaglærere sætte flueben og eksportere en CSV, som kontaktlærerne kan importere.
-      </div>
+      <details class="fold exportHelpFold">
+  <summary>Del vurderinger med kontaktlærerne (CSV)</summary>
+  <div class="muted small" style="margin-top:.55rem; line-height:1.45">
+    <p><b>Når du deler vurderinger</b><br/>Her kan faglærere sende deres vurderinger videre, så kontaktlærerne kan skrive udtalelserne færdige.</p>
+    <ul style="margin:.35rem 0 .6rem 1.1rem">
+      <li><b>Sang</b> deler sangvurderinger (<code>sang_vurderinger.csv</code>)</li>
+      <li><b>Gymnastik</b> deler gymnastikvurderinger og roller samlet (<code>gym_rolle_vurderinger.csv</code>)</li>
+      <li><b>Elevråd</b> deler markering af elevrådsrepræsentant (<code>elevraad_vurderinger.csv</code>)</li>
+    </ul>
+    <p><b>Backup (noget andet)</b><br/>Backup bruges kun, hvis du vil gemme eller flytte <i>hele</i> dit arbejde – fx mellem lærere eller computere.</p>
+    <p style="margin:.35rem 0 0 0"><b>CSV = del vurderinger</b> · <b>Backup = gem det hele</b></p>
+  </div>
+</details>
+
       <!-- Filtre/søgning hører visuelt sammen med tabellen. -->
       <div class="marksToolbar" aria-label="Filtre til eksporttabellen">
         <div class="tabs small centered" id="marksTypeTabs">
           <!-- data-type values are internal codes used by app.js -->
-          <button type="button" class="tab" data-type="sang">Sang</button>
-          <button type="button" class="tab" data-type="gym">Gymnastik</button>
-          <button type="button" class="tab" data-type="elevraad">Elevråd</button>
-          <button type="button" class="tab exportTab" id="btnExportMarks" title="Download en CSV, som kontaktlærerne kan importere">↓ Eksportér CSV</button>
+          <button type="button" class="tab" data-type="sang" title="Vurder elevernes deltagelse i sang og del det med kontaktlærerne.">Sang</button>
+          <button type="button" class="tab" data-type="gym" title="Vurder elevernes deltagelse i fællesgymnastik og del det med kontaktlærerne.">Gymnastik</button>
+          <button type="button" class="tab" data-type="roller" title="Marker elever med faste roller (fx fanebærer) og del det med kontaktlærerne.">Roller</button>
+          <button type="button" class="tab" data-type="elevraad" title="Marker elevrådsrepræsentant og del det med kontaktlærerne.">Elevråd</button>
+          <button type="button" class="tab exportTab" id="btnExportMarks" title="Eksporterer vurderinger fra den aktive fane som én CSV-fil">↓ Eksportér CSV</button>
         </div>
         <select id="marksType" style="display:none">
           <option value="sang">Sang</option>
           <option value="gym">Gymnastik</option>
+          <option value="roller">Roller</option>
           <option value="elevraad">Elevråd</option>
         </select>
       </div>
@@ -385,7 +398,7 @@
           Redigér tekster direkte her. Når du klikker “Download ændringer”, får du en fil du kan sende til Måns.
         </div>
 
-        <details open>
+        <details>
           <summary><b>Sang</b> (3 niveauer)</summary>
           <div class="row gap wrap" style="margin:.5rem 0">
             <button class="btn" id="btnDownloadSang" type="button">⬇️ Download ændringer</button>
@@ -423,7 +436,7 @@
         </details>
 
         <details>
-          <summary><b>Gymnastik</b> (3 niveauer + roller)</summary>
+          <summary><b>Gymnastik</b> (3 niveauer)</summary>
           <div class="row gap wrap" style="margin:.5rem 0">
             <button class="btn" id="btnDownloadGym" type="button">⬇️ Download ændringer</button>
             <button class="btn ghost" id="btnImportGym" type="button">⬆️ Importér ændringer</button>
@@ -458,9 +471,19 @@
             <textarea id="gymText_G3" rows="4"></textarea>
           </div>
 
-          <div class="divider"></div>
-          <div class="cardSubTitle">Roller</div>
-          <div id="gymRolesList"></div>
+        </details>
+
+        
+        <details>
+          <summary><b>Roller</b> (Gymnastik – særlige roller)</summary>
+          <div class="row gap wrap" style="margin:.5rem 0">
+            <button class="btn" id="btnDownloadRoller" type="button">⬇️ Download ændringer</button>
+            <button class="btn ghost" id="btnImportRoller" type="button">⬆️ Importér ændringer</button>
+            <button class="btn ghost" id="btnRestoreRoller" type="button">↩️ Gendan standard</button>
+            <input id="fileImportRoller" type="file" accept=".json" style="display:none"/>
+          </div>
+          <div class="muted small" style="margin-bottom:.5rem">Rollenavne er faste. Du kan kun redigere teksten.</div>
+          <div id="rolesList"></div>
         </details>
 
         <details>
@@ -539,6 +562,32 @@
 </div>
       </details>
 
+      
+      <details class="fold">
+        <summary>Deling (CSV og Backup)</summary>
+        <div class="muted small" style="margin-top:.6rem; line-height:1.45">
+          <pre class="asciiFlow">Faglærer
+   |
+   |  (Sang / Gymnastik / Elevråd)
+   v
+[ Udfyld vurderinger ]
+   |
+   v
+[ Eksportér CSV ]
+   |
+   v
+Kontaktlærer
+   |
+   v
+[ Importér CSV ]
+   |
+   v
+[ Skriv elevudtalelser ]</pre>
+          <div style="margin-top:.4rem"><b>CSV = del vurderinger</b> · <b>Backup = gem det hele</b></div>
+        </div>
+      </details>
+
+      
       <div class="helpTip">
         <p class="muted"><strong>Tip:</strong> Brug <a href="#" class="helpLink" data-goto="set:export"><em>Backup (download)</em></a> før du rydder lokale data eller skifter computer/browser.</p>
       </div>
@@ -552,7 +601,7 @@
 
 <!-- (K-lærer) – custom dropdown bygges i app.js -->
 
-<script src="app.js?v=2026-01-04_1"></script>
+<script src="app.js?v=2026-01-06_2"></script>
 <input type="file" id="importTemplatesInput" accept=".json" hidden>
 </body>
 </html>

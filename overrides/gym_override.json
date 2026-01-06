@@ -31,7 +31,7 @@
         },
         "REDSKAB": {
           "label": "Redskabshold",
-          "text": "{{FORNAVN}} har været en del af redskabsholdet, som {{HAN_HUN}} frivilligt har meldt sig til. {{HAN_HUN}} har ydet en stor indsats og taget ansvar."
+          "text": "{{FORNAVN}} har været en del af redskabsholdet, som {{HAN_HUN}} frivilligt har meldt sig til. {(HAN_HUN_CAP)} har ydet en stor indsats og taget ansvar."
         },
         "DGI": {
           "label": "DGI-instruktør",

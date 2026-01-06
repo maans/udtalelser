@@ -110,7 +110,12 @@ code{font-family:var(--mono)}
   z-index:10;
 }
 .brand{display:flex; align-items:center; gap:.6rem; min-width:190px}
+.cardTopRow .dot{margin:0 6px 0 2px; align-self:center}
 .dot{width:10px;height:10px;border-radius:50%;background:var(--accent); box-shadow: 0 0 0 3px rgba(139,211,255,.15)}
+.dot.done{background:rgba(60,220,150,1); box-shadow: 0 0 0 3px rgba(60,220,150,.15)}
+.dot.wip{background:rgba(255,205,80,1); box-shadow: 0 0 0 3px rgba(255,205,80,.15)}
+.card.complete{border-color:rgba(60,220,150,.55); box-shadow: 0 0 0 1px rgba(60,220,150,.25), 0 10px 30px rgba(0,0,0,.35)}
+.card.wip{border-color:rgba(255,205,80,.55); box-shadow: 0 0 0 1px rgba(255,205,80,.20), 0 10px 30px rgba(0,0,0,.35)}
 .tabs{display:flex; gap:.4rem; flex:1; justify-content:center}
 .tab{
   display:inline-flex; align-items:center; gap:.45rem;
@@ -458,11 +463,12 @@ tr:hover td{background: rgba(255,255,255,.02)}
 .cardTopRow{
   display:flex;
   align-items:baseline;
-  justify-content:space-between;
+  justify-content:flex-start;
   gap:12px;
 }
 .cardFlags{
   white-space:nowrap;
+  margin-left:auto;
 }
 
 /* Redigér nav: keep class a bit separated */
@@ -850,4 +856,30 @@ body.udt-readonly .udt-lock-banner{
 }
 body.udt-readonly main.app{
   filter: saturate(0.85);
+}
+
+/* Export help foldout: compact, mobile-friendly */
+.exportHelpFold{margin:.35rem 0 .55rem 0; padding:.45rem .6rem}
+.exportHelpFold summary{font-weight:700}
+
+/* Help: small ASCII flow diagram */
+.asciiFlow{white-space:pre; overflow:auto; padding:.5rem .6rem; border:1px dashed var(--border); border-radius: var(--radius); background: rgba(0,0,0,.10); margin:.35rem 0 0 0}
+
+
+/* Custom hover tooltip used in Eksport marks tables */
+.hoverTip{
+  position: fixed;
+  z-index: 9999;
+  display: none;
+  max-width: 420px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,.18);
+  background: rgba(10,12,16,.95);
+  color: rgba(255,255,255,.92);
+  box-shadow: 0 14px 40px rgba(0,0,0,.55);
+  font-size: 12.5px;
+  line-height: 1.35;
+  white-space: pre-wrap;
+  pointer-events: none;
 }
