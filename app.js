@@ -734,19 +734,24 @@ async function resolvePrintLogoDataUrl() {
 function syncPrintLogoTestUI() {
   const img = document.getElementById('printLogoPreview');
   const status = document.getElementById('printLogoStatus');
+  const btnPick = document.getElementById('btnPickPrintLogo');
   const btnClear = document.getElementById('btnClearPrintLogo');
-  if (!img || !status || !btnClear) return;
+  if (!img || !status || !btnClear || !btnPick) return;
 
   const local = getLocalPrintLogoDataUrl();
   if (local) {
     img.src = local;
     img.style.display = 'block';
     status.textContent = 'Test-logo er aktivt (kun i denne browser).';
+    btnPick.style.display = 'none';
+    btnClear.style.display = '';
     btnClear.disabled = false;
   } else {
     img.removeAttribute('src');
     img.style.display = 'none';
     status.textContent = 'Intet test-logo valgt.';
+    btnPick.style.display = '';
+    btnClear.style.display = 'none';
     btnClear.disabled = true;
   }
 }
