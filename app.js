@@ -3658,6 +3658,20 @@ function formatTime(ts) {
     $('txtElevudv').value = t.elevudvikling || '';
     $('txtPraktisk').value = t.praktisk || '';
     $('txtKgruppe').value = t.kgruppe || '';
+    // A: Auto-fokus i Udvikling når Redigér åbnes via tastatur (Enter fra K-elever).
+    if (state && state.__editOpenedByKeyboard) {
+      state.__editOpenedByKeyboard = false;
+      // Sørg for at sektionen er åben (Model 1: fold ikke andre sammen).
+      const d = $('secElevudv'); if (d) d.open = true;
+      setTimeout(() => {
+        const el = $('txtElevudv');
+        if (el) {
+          try { el.focus(); } catch(_) {}
+          try { const v = el.value || ''; el.setSelectionRange(v.length, v.length); } catch(_) {}
+        }
+      }, 0);
+    }
+
     // Keep layout stable: the pill is always present, but hidden when empty.
     const as = $('autosavePill');
     if (as) {
@@ -5093,6 +5107,38 @@ try {
           }
         }
 
+
+        // A+B (Redigér):
+        // A: Hvis Redigér åbnes via tastatur (Enter fra K-elever), fokuseres Udvikling-feltet (done i renderEdit).
+        // B: Tab / Shift+Tab cykler mellem de tre tekstfelter i Redigér (kun når fokus allerede er i et af felterne).
+        if (!e.ctrlKey && !e.altKey && !e.metaKey && state && state.tab === 'edit') {
+          const k = e.key;
+          if (k === 'Tab') {
+            const ae = document.activeElement;
+            const id = ae && ae.id;
+            const order = ['txtElevudv','txtPraktisk','txtKgruppe'];
+            const pos = order.indexOf(id);
+            if (pos !== -1) {
+              e.preventDefault();
+              const nextPos = e.shiftKey ? (pos + order.length - 1) % order.length : (pos + 1) % order.length;
+              const nextId = order[nextPos];
+              // Fold ud hvis sektionen er lukket, men fold ikke andre sammen (Model 1).
+              if (nextId === 'txtElevudv') { const d = $('secElevudv'); if (d) d.open = true; }
+              if (nextId === 'txtPraktisk') { const d = $('secPraktisk'); if (d) d.open = true; }
+              if (nextId === 'txtKgruppe') { const d = $('secKgruppe'); if (d) d.open = true; }
+              // Fokusér (læg cursor sidst) efter eventuel fold-ud.
+              setTimeout(() => {
+                const el = $(nextId);
+                if (el) {
+                  try { el.focus(); } catch(_) {}
+                  try { const v = el.value || ''; el.setSelectionRange(v.length, v.length); } catch(_) {}
+                }
+              }, 0);
+              return;
+            }
+          }
+        }
+
         // TRIN 1: ← / → til K-grupper (kun i "Alle K-grupper"-tilstand)
         // - Kun aktiv når fokus ikke er i input/textarea/contenteditable
         // - Kun i K-fanen og kun når viewMode === 'ALL'
@@ -5166,6 +5212,7 @@ try {
                 const u = (cards[idx] && cards[idx].getAttribute('data-unilogin')) || '';
                 if (u) {
                   state.selectedUnilogin = u;
+                  state.__editOpenedByKeyboard = true;
                   setTab('edit');
                   renderAll();
                   return;
