@@ -3392,7 +3392,7 @@ const prog = mineList.reduce((acc, st) => {
     }
 
     if (kList) {
-      kList.innerHTML = mineList.map(st => {
+      kList.innerHTML = mineList.map((st, idx) => {
         const full = `${st.fornavn || ''} ${st.efternavn || ''}`.trim();
         const free = getTextFor(st.unilogin);
         const hasU = !!(free.elevudvikling || '').trim();
@@ -3424,7 +3424,7 @@ const prog = mineList.reduce((acc, st) => {
         const marksLine = markLabels.length ? ` · ${markLabels.join(' · ')}` : '';
 
         return `
-          <div class="card clickable ${isComplete ? "complete" : (isWip ? "wip" : "")}" data-unilogin="${escapeAttr(st.unilogin)}">
+          <div class="card clickable ${((idx === state.kActiveIndex) ? "kbActive " : "")}${isComplete ? "complete" : (isWip ? "wip" : "")}" data-unilogin="${escapeAttr(st.unilogin)}">
             <div class="cardTopRow">
               <div class="cardTitle"><b>${escapeHtml(full)}</b></div>
               ${isComplete ? `<span class="dot done" title="Færdig: U, P og K er udfyldt."></span>` : (isWip ? `<span class="dot wip" title="Undervejs: der er indhold, men ikke alt er færdigt endnu."></span>` : ``)}
@@ -4054,7 +4054,7 @@ function tooltipTextFor(st, scope, key){
       <th class="nameTh">
         <div class="thName compact">
           <div class="thControl">
-            <input id="marksSearchInline" type="text" placeholder="Søg navn…" aria-label="Filtrer navn" autocomplete="off" />
+            <input id="marksSearchInline" type="text" placeholder="Søg navn…" title="Find elever ved at skrive hele eller dele af navnet" aria-label="Filtrer navn" autocomplete="off" />
             <button class="clearBtn" id="marksSearchInlineClear" title="Ryd" aria-label="Ryd" hidden>×</button>
           </div>
         </div>
@@ -4065,8 +4065,8 @@ function tooltipTextFor(st, scope, key){
       if (state.marksSort.key !== key || !state.marksSort.dir) return '';
       return state.marksSort.dir === 1 ? '↑' : '↓';
     };
-    const thKgrp = `<th class="sortTh"><button type="button" class="sortBtn" id="marksSortKgrp">K-grp<span class="sortIcon">${sortIcon('kgrp')}</span></button></th>`;
-    const thKlasse = `<th class="sortTh"><button type="button" class="sortBtn" id="marksSortKlasse">Klasse<span class="sortIcon">${sortIcon('klasse')}</span></button></th>`;
+    const thKgrp = `<th class="sortTh"><button type="button" class="sortBtn" id="marksSortKgrp" title="Sortér elever efter kontaktgruppe">K-grp<span class="sortIcon">${sortIcon('kgrp')}</span></button></th>`;
+    const thKlasse = `<th class="sortTh"><button type="button" class="sortBtn" id="marksSortKlasse" title="Sortér elever efter klasse">Klasse<span class="sortIcon">${sortIcon('klasse')}</span></button></th>`;
 
     if (type === 'sang') {
       const marks = getMarks(KEYS.marksSang);
@@ -4101,7 +4101,7 @@ function tooltipTextFor(st, scope, key){
       return;
     }
 
-    if (type === 'gym') {
+    if (type === 'gym' || type === 'roller') {
       const marks = getMarks(KEYS.marksGym);
       $('marksLegend').textContent = '';
       const cols = ['G1','G2','G3'].filter(k => (SNIPPETS.gym||{})[k]);
@@ -4724,7 +4724,7 @@ if (document.getElementById('btnDownloadElevraad')) {
         });
         downloadText('sang_vurderinger.csv', toCsv(rows, ['Unilogin','Navn','Sang_variant']));
       }
-      if (type === 'gym') {
+      if (type === 'gym' || type === 'roller') {
         const marks = getMarks(KEYS.marksGym);
         const roleCodes = Object.keys(SNIPPETS.roller);
         const headers = ['Unilogin','Navn','Gym_variant', ...roleCodes];
@@ -4995,7 +4995,7 @@ if (document.getElementById('btnDownloadElevraad')) {
           } else if (type === 'elevraad') {
             const v = m.elevraad_variant || '';
             for (const c of Object.keys(SNIPPETS.elevraad || {})) out[c] = (v === c) ? '1' : '';
-          } else if (type === 'gym') {
+          } else if (type === 'gym' || type === 'roller') {
             const v = m.gym_variant || '';
             for (const c of Object.keys(SNIPPETS.gym || {})) out[c] = (v === c) ? '1' : '';
             const roles = Array.isArray(m.gym_roles) ? m.gym_roles : [];
@@ -5035,6 +5035,172 @@ try {
 }
 
     wireEvents();
+
+    // Globale genvejstaster (baseline): Ctrl+Alt + bogstav
+    // Vi klikker på eksisterende UI-knapper (id'er), så navigationen følger appens normale flow.
+    if (!window.__huShortcutsWired) {
+      window.__huShortcutsWired = true;
+
+      const isTypingTarget = (el) => {
+        if (!el) return false;
+        const tag = (el.tagName || '').toUpperCase();
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true;
+        if (el.isContentEditable) return true;
+        return false;
+      };
+
+  // TRIN 2: Tastatur-aktivt elevkort (state-baseret markør, ikke DOM-fokus)
+  function updateKActiveCardUI() {
+    try {
+      const kList = $("kList");
+      if (!kList) return;
+      const cards = Array.from(kList.querySelectorAll('[data-unilogin]'));
+      if (!cards.length) return;
+
+      let idx = Number.isFinite(state.kActiveIndex) ? state.kActiveIndex : 0;
+      idx = Math.max(0, Math.min(idx, cards.length - 1));
+      state.kActiveIndex = idx;
+
+      cards.forEach((el, i) => {
+        if (i === idx) el.classList.add("kbActive");
+        else el.classList.remove("kbActive");
+      });
+
+      try { cards[idx].scrollIntoView({ block: "nearest" }); } catch(_) {}
+    } catch(_) {}
+  }
+
+
+      const clickById = (id) => {
+        try {
+          const el = document.getElementById(id);
+          if (el && !el.disabled) el.click();
+        } catch (_) {}
+      };
+
+      const goSettingsSubtab = (subtabId) => {
+        clickById('tab-set');
+        clickById(subtabId);
+      };
+
+      document.addEventListener('keydown', (e) => {
+        // ESC: slip fokus fra tekstfelter, så genveje virker igen
+        if (e.key === 'Escape') {
+          const ae = document.activeElement;
+          if (isTypingTarget(ae)) {
+            try { ae.blur(); } catch(_) {}
+            return;
+          }
+        }
+
+        // TRIN 1: ← / → til K-grupper (kun i "Alle K-grupper"-tilstand)
+        // - Kun aktiv når fokus ikke er i input/textarea/contenteditable
+        // - Kun i K-fanen og kun når viewMode === 'ALL'
+        // - preventDefault() for at undgå browser-scroll/hop
+        // - Ingen øvrige taster (Op/Ned/Enter) håndteres her endnu
+        if (!e.ctrlKey && !e.altKey && !e.metaKey) {
+          const k = e.key;
+          if (k === 'ArrowLeft' || k === 'ArrowRight') {
+            const typing = isTypingTarget(e.target);
+            if (!typing && state && state.tab === 'k' && state.viewMode === 'ALL') {
+              const studsNow = getStudents();
+              const groups = (state.__kGroups && Array.isArray(state.__kGroups)) ? state.__kGroups : buildKGroups(studsNow);
+              const n = (groups && groups.length) ? groups.length : 0;
+              if (n > 0) {
+                e.preventDefault();
+                const gi = Math.max(0, Math.min(state.kGroupIndex || 0, n - 1));
+                if (k === 'ArrowLeft' && gi > 0) state.kGroupIndex = gi - 1;
+                if (k === 'ArrowRight' && gi < n - 1) state.kGroupIndex = gi + 1;
+                renderKList();
+                return;
+              }
+            }
+          }
+        }
+
+        
+
+        // TRIN 2: ↑ / ↓ over elevkort (state-indeks, ikke DOM-fokus)
+        // - Kun når fokus ikke er i input/textarea/contenteditable
+        // - Kun i K-fanen
+        // - Ingen Enter her
+        if (!e.ctrlKey && !e.altKey && !e.metaKey) {
+          const k = e.key;
+          const code = e.code;
+          if (k === 'ArrowUp' || k === 'ArrowDown' || code === 'ArrowUp' || code === 'ArrowDown') {
+            const typing = isTypingTarget(e.target);
+            if (!typing && state && state.tab === 'k') {
+              e.preventDefault();
+              const kList = $("kList");
+              const n = kList ? kList.querySelectorAll('[data-unilogin]').length : 0;
+              if (n > 0) {
+                let idx = Number.isFinite(state.kActiveIndex) ? state.kActiveIndex : 0;
+                idx = Math.max(0, Math.min(idx, n - 1));
+                if (k === 'ArrowUp' || code === 'ArrowUp') idx = Math.max(0, idx - 1);
+                if (k === 'ArrowDown' || code === 'ArrowDown') idx = Math.min(n - 1, idx + 1);
+                state.kActiveIndex = idx;
+                updateKActiveCardUI();
+                return;
+              }
+            }
+          }
+        }
+
+        // TRIN 3: Enter = åbn aktiv elev (samme handling som klik på elevkort)
+        // - Kun når fokus ikke er i input/textarea/contenteditable
+        // - Kun i K-fanen
+        if (!e.ctrlKey && !e.altKey && !e.metaKey) {
+          const k = e.key;
+          const code = e.code;
+          if (k === 'Enter' || code === 'Enter' || code === 'NumpadEnter') {
+            const typing = isTypingTarget(e.target);
+            if (!typing && state && state.tab === 'k') {
+              const kList = $("kList");
+              const cards = kList ? Array.from(kList.querySelectorAll('[data-unilogin]')) : [];
+              const n = cards.length;
+              if (n > 0) {
+                e.preventDefault();
+                let idx = Number.isFinite(state.kActiveIndex) ? state.kActiveIndex : 0;
+                idx = Math.max(0, Math.min(idx, n - 1));
+                state.kActiveIndex = idx;
+                const u = (cards[idx] && cards[idx].getAttribute('data-unilogin')) || '';
+                if (u) {
+                  state.selectedUnilogin = u;
+                  setTab('edit');
+                  renderAll();
+                  return;
+                }
+              }
+            }
+          }
+        }
+
+const modOk = (e.ctrlKey && e.altKey);
+        if (!modOk) return;
+
+        const keyRaw = (e.key || '');
+        const key0 = (keyRaw + '').toLowerCase();
+        // På dansk tastatur kan Ctrl+Alt+E være AltGr+E (= '€')
+        const key = (key0 === '€') ? 'e' : key0;
+        const typing = isTypingTarget(e.target);
+        // Kapr ikke genveje mens man skriver – undtagelse: Backup må gerne være global.
+        if (typing && key !== 'b') return;
+
+        if (key === 'k') { e.preventDefault(); clickById('tab-k'); return; }
+        if (key === 'r') { e.preventDefault(); clickById('tab-edit'); return; }
+        if (key === 's') { e.preventDefault(); clickById('tab-set'); return; }
+        if (key === 'z') { e.preventDefault(); clickById('tab-set'); return; }
+        if (key === 'x') { e.preventDefault(); clickById('tab-set'); requestAnimationFrame(() => { clickById('settingsTab-general'); requestAnimationFrame(() => { try { const inp = document.getElementById('meInput'); if (inp) { inp.focus(); try { inp.setSelectionRange(inp.value.length, inp.value.length); } catch(_) {} } } catch(_) {} }); }); return; }
+
+
+        if (key === 'i') { e.preventDefault(); goSettingsSubtab('settingsTab-data'); return; }
+        if (key === 'e') { e.preventDefault(); goSettingsSubtab('settingsTab-export'); return; }
+        if (key === 't') { e.preventDefault(); goSettingsSubtab('settingsTab-texts'); return; }
+        if (key === 'h') { e.preventDefault(); goSettingsSubtab('settingsTab-help'); return; }
+
+        if (key === 'b') { e.preventDefault(); clickById('btnBackupDownload'); return; }
+      }, true);
+    }
 
     // Print scaling (single-student print)
     if (!window.__printScaleWired) {

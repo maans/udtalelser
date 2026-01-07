@@ -110,6 +110,15 @@ code{font-family:var(--mono)}
   z-index:10;
 }
 .brand{display:flex; align-items:center; gap:.6rem; min-width:190px}
+
+/* Tastatur-aktivt elevkort (diskret, konkurrerer ikke med statuskanter)
+   Brug outline (ikke box-shadow), så vi ikke bliver overskrevet af
+   .card.complete/.card.wip som allerede sætter box-shadow. */
+.card.kbActive{
+  outline: 2px solid rgba(255,255,255,0.70);
+  outline-offset: -2px;
+  border-radius: 12px;
+}
 .cardTopRow .dot{margin:0 6px 0 2px; align-self:center}
 .dot{width:10px;height:10px;border-radius:50%;background:var(--accent); box-shadow: 0 0 0 3px rgba(139,211,255,.15)}
 .dot.done{background:rgba(60,220,150,1); box-shadow: 0 0 0 3px rgba(60,220,150,.15)}
