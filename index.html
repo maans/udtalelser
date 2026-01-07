@@ -389,6 +389,20 @@
             <button class="btn ghost" id="btnImportTemplates" type="button">⬆️ Importér skabeloner</button>
             <input id="fileImportTemplates" type="file" accept=".json" style="display:none"/>
           </div>
+<div class="divider" style="margin:.75rem 0"></div>
+
+          <div class="muted small" style="margin:.35rem 0 .6rem 0">
+            <b>Test print-logo (lokalt)</b>: Vælg et logo her for at se det i udskrift – uden at ændre filer i repoet. Kan fjernes igen.
+          </div>
+
+          <div class="row gap wrap" style="margin:.5rem 0">
+            <button class="btn ghost" id="btnPickPrintLogo" type="button" title="Vælg et logo til test i denne browser (gemmes lokalt)">🧪 Vælg test-logo…</button>
+            <button class="btn ghost" id="btnClearPrintLogo" type="button" title="Fjern test-logo (lokalt)">↩️ Fjern test-logo</button>
+            <input id="filePrintLogo" type="file" accept="image/png,image/svg+xml,.png,.svg" style="display:none"/>
+            <span class="muted small" id="printLogoStatus"></span>
+          </div>
+
+          <img id="printLogoPreview" alt="Test-logo preview" style="display:none; max-height:46px; max-width:100%; margin-top:.25rem; filter:none;" />
         </details>
       </div>
 

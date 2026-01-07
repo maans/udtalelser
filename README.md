@@ -59,3 +59,30 @@ For at undgå konflikter i `localStorage` kan kun **én** browser-fane skrive ad
 ## Notes
 
 - Fordi `localStorage` er lokalt, skal man lave backup ved skift af enhed/browser.
+---
+
+## Logo override ved udskrift (Model B)
+
+Appen understøtter udskiftning af logo på udskrifter **uden ændringer i kode**.
+
+### Sådan gør du
+1. Gå til mappen:
+   ```
+   /overrides
+   ```
+2. Her ligger `print_logo.example.png` som en **skabelon** (korrekt størrelse/proportioner og transparent baggrund).
+3. Kopiér skabelonen, erstat grafikken med dit eget logo, og gem som:
+   ```
+   print_logo.png
+   ```
+
+### Prioritet ved print
+1. Lokalt test-logo (hvis valgt i UI – kun til preview)
+2. `/overrides/print_logo.png`
+3. Indbygget fallback-logo
+
+### Tekniske noter
+- Anbefalet format: **PNG** (SVG understøttes også)
+- Baggrund: **transparent**
+- Størrelse: lille og bred (ca. max 600×200 px)
+- `print_logo.example.png` bruges **aldrig** af appen – den er kun reference

@@ -19,6 +19,21 @@ function resolveFullName(row) {
 
   const LS_PREFIX = 'udt_';
 
+  // ---------- Print logo override ----------
+  // Priority:
+  // 1) Local *test* logo (stored in localStorage) for quick preview before committing to repo
+  // 2) Repo override file (/overrides/print_logo.png or .svg)
+  // 3) Hardcoded fallback (PRINT_HEADER_LOGO_DATAURL)
+  const PRINT_LOGO_LOCAL_KEY = LS_PREFIX + 'print_logo_local_v1';
+  const PRINT_LOGO_REMOTE_CANDIDATES = [
+    './overrides/print_logo.png',
+    './overrides/print_logo.svg',
+    '/overrides/print_logo.png',
+    '/overrides/print_logo.svg'
+  ];
+  let PRINT_LOGO_REMOTE_CACHE = null; // dataURL or null
+
+
 
   /* ---------- Multi-tab single-writer lock ----------
      Goal: Only one tab can write to localStorage at a time.
@@ -668,7 +683,76 @@ function applyOnePagePrintScale() {
 }
 
 
-function openPrintWindowForStudents(students, settings, title) {
+
+// --- Print logo helpers ---
+function getLocalPrintLogoDataUrl() {
+  try { return localStorage.getItem(PRINT_LOGO_LOCAL_KEY) || ''; } catch { return ''; }
+}
+function setLocalPrintLogoDataUrl(dataUrl) {
+  try { localStorage.setItem(PRINT_LOGO_LOCAL_KEY, String(dataUrl || '')); } catch {}
+}
+function clearLocalPrintLogoDataUrl() {
+  try { localStorage.removeItem(PRINT_LOGO_LOCAL_KEY); } catch {}
+}
+
+function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    try {
+      const fr = new FileReader();
+      fr.onload = () => resolve(String(fr.result || ''));
+      fr.onerror = () => reject(fr.error || new Error('FileReader fejl'));
+      fr.readAsDataURL(blob);
+    } catch (e) { reject(e); }
+  });
+}
+
+async function tryFetchAsDataUrl(url) {
+  const r = await fetch(url, { cache: 'no-store' });
+  if (!r || !r.ok) throw new Error('HTTP ' + (r ? r.status : ''));
+  const blob = await r.blob();
+  return await blobToDataUrl(blob);
+}
+
+async function resolvePrintLogoDataUrl() {
+  const local = getLocalPrintLogoDataUrl();
+  if (local) return local;
+
+  if (PRINT_LOGO_REMOTE_CACHE) return PRINT_LOGO_REMOTE_CACHE;
+
+  for (const url of PRINT_LOGO_REMOTE_CANDIDATES) {
+    try {
+      const dataUrl = await tryFetchAsDataUrl(url);
+      if (dataUrl) {
+        PRINT_LOGO_REMOTE_CACHE = dataUrl;
+        return dataUrl;
+      }
+    } catch (_) {}
+  }
+  return PRINT_HEADER_LOGO_DATAURL;
+}
+
+function syncPrintLogoTestUI() {
+  const img = document.getElementById('printLogoPreview');
+  const status = document.getElementById('printLogoStatus');
+  const btnClear = document.getElementById('btnClearPrintLogo');
+  if (!img || !status || !btnClear) return;
+
+  const local = getLocalPrintLogoDataUrl();
+  if (local) {
+    img.src = local;
+    img.style.display = 'block';
+    status.textContent = 'Test-logo er aktivt (kun i denne browser).';
+    btnClear.disabled = false;
+  } else {
+    img.removeAttribute('src');
+    img.style.display = 'none';
+    status.textContent = 'Intet test-logo valgt.';
+    btnClear.disabled = true;
+  }
+}
+
+
+async function openPrintWindowForStudents(students, settings, title) {
   const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({
     '&': '&amp;',
     '<': '&lt;',
@@ -693,6 +777,8 @@ function openPrintWindowForStudents(students, settings, title) {
     const _monthYear = _d.toLocaleDateString('da-DK', { month: 'long', year: 'numeric' });
     headerDateText = _monthYear ? (_monthYear.charAt(0).toUpperCase() + _monthYear.slice(1)) : '';
   }
+
+  const logoSrc = await resolvePrintLogoDataUrl();
   const pagesHtml = list.map(st => {
     const txt = buildStatement(st, settings);
     // Title extraction (first line) — no regex
@@ -712,7 +798,7 @@ function openPrintWindowForStudents(students, settings, title) {
       <div class="page">
         <div class="content">
           <div class="printHeaderTop"><div class="printHeaderDate">${escapeHtml(headerDateText)}</div></div>
-          <div class="printHeaderLogo"><img src="${PRINT_HEADER_LOGO_DATAURL}" alt="Himmerlands Ungdomsskole" /></div>
+          <div class="printHeaderLogo"><img src="${logoSrc}" alt="Himmerlands Ungdomsskole" /></div>
           <div class="printTitle">${escapeHtml(titleLine)}</div>
           <pre class="statement">${escapeHtml(bodyText)}</pre>
         </div>
@@ -863,7 +949,7 @@ async function printAllKStudents() {
 
   const title = isAll ? 'Udtalelser v1.0 – print K-gruppe' : 'Udtalelser v1.0 – print K-elever';
   const sorted = sortedStudents(list);
-  openPrintWindowForStudents(sorted, getSettings(), title);
+  await openPrintWindowForStudents(sorted, getSettings(), title);
 }
 
 async function printAllKGroups() {
@@ -926,7 +1012,7 @@ kGroups.forEach(g => {
   const title = 'Udtalelser v1.0 – print alle K-grupper';
   // Brug samme printmotor som enkelt-elev / k-gruppe, så header (logo + dato) altid kommer med.
   // preserveOrder=true så vi ikke mister gruppe-ordenen ved intern sortering.
-  openPrintWindowForStudents(all, getSettings(), title, { preserveOrder: true });
+  await openPrintWindowForStudents(all, getSettings(), title, { preserveOrder: true });
 }
 
 async function printAllStudents() {
@@ -950,7 +1036,7 @@ async function printAllStudents() {
   });
 
   const title = 'Udtalelser v1.0 – print alle elever';
-  openPrintWindowForStudents(all, getSettings(), title, { preserveOrder: true });
+  await openPrintWindowForStudents(all, getSettings(), title, { preserveOrder: true });
 }
 
 
@@ -2957,6 +3043,9 @@ function renderSnippetsEditor() {
     `;
     list.appendChild(row);
   });
+    // Sync optional local print-logo test UI
+    try { syncPrintLogoTestUI(); } catch (_) {}
+
 }
 
 function escapeHtml(s) {
@@ -4209,6 +4298,39 @@ function tooltipTextFor(st, scope, key){
       location.reload();
     });
 
+    // Print-logo: lokalt test-logo (gemmes i localStorage, kan ryddes igen)
+    const pickLogoBtn = document.getElementById('btnPickPrintLogo');
+    const clearLogoBtn = document.getElementById('btnClearPrintLogo');
+    const logoInput = document.getElementById('filePrintLogo');
+    if (pickLogoBtn && logoInput) {
+      pickLogoBtn.addEventListener('click', () => logoInput.click());
+      logoInput.addEventListener('change', (e) => {
+        const f = e && e.target && e.target.files ? e.target.files[0] : null;
+        if (!f) return;
+        // Basic guard: only images
+        if (!String(f.type || '').startsWith('image/')) {
+          alert('Vælg venligst en billedfil (PNG eller SVG).');
+          return;
+        }
+        const fr = new FileReader();
+        fr.onload = () => {
+          const dataUrl = String(fr.result || '');
+          if (!dataUrl) return;
+          setLocalPrintLogoDataUrl(dataUrl);
+          syncPrintLogoTestUI();
+          // reset input so same file can be chosen again
+          try { logoInput.value = ''; } catch(_) {}
+        };
+        fr.readAsDataURL(f);
+      });
+    }
+    if (clearLogoBtn) {
+      clearLogoBtn.addEventListener('click', () => {
+        clearLocalPrintLogoDataUrl();
+        syncPrintLogoTestUI();
+      });
+    }
+
 
 async function loadDemoStudentsCsv() {
   const candidates = [
@@ -4726,7 +4848,7 @@ if (document.getElementById('btnDownloadElevraad')) {
 
       const settings = getSettings();
       const title = (`Udtalelse - ${(st.fornavn || '').trim()} ${(st.efternavn || '').trim()}`).trim() || 'Udtalelse';
-      openPrintWindowForStudents([st], settings, title);
+      await openPrintWindowForStudents([st], settings, title);
     });
   
     // --- Faglærer-markeringer (Eksport) ---
