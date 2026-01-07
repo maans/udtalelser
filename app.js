@@ -5107,6 +5107,29 @@ try {
           }
         }
 
+        // Ctrl+P / Cmd+P: print det samme som den primære print-knap i den aktuelle fane.
+        // - K-elever / Alle K-grupper: print aktiv K-gruppe (matcher knappen i view'et)
+        // - Redigér: print elev (PDF med logo)
+        // - Indstillinger/Hjælp: lad browserens standard print ske
+        const isCtrlOrCmd = !!(e.ctrlKey || e.metaKey);
+        const keyLower = ((e.key || '') + '').toLowerCase();
+        if (isCtrlOrCmd && !e.altKey && keyLower === 'p') {
+          if (state && state.tab === 'k') {
+            e.preventDefault();
+            // Bruger samme printmotor som knappen på K-elever-siden.
+            // NB: I viewMode=ALL printer den stadig kun den aktive K-gruppe.
+            printAllKStudents();
+            return;
+          }
+          if (state && state.tab === 'edit') {
+            e.preventDefault();
+            // Genbrug samme handler som "🖨️ Print <elev>"-knappen.
+            clickById('btnPrint');
+            return;
+          }
+          // I andre visninger: lad browserens standard print ske.
+        }
+
 
         // A+B (Redigér):
         // A: Hvis Redigér åbnes via tastatur (Enter fra K-elever), fokuseres Udvikling-feltet (done i renderEdit).
