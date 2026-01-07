@@ -799,18 +799,61 @@ async function openPrintWindowForStudents(students, settings, title) {
       titleLine = rawPrint.trim();
       bodyText = '';
     }
+
+    // Signature block: keep forstander-navn fast over "Forstander" (undgå at navne skubber hinanden)
+    let signatureHtml = '';
+    let bodyForPre = bodyText;
+    try {
+      const lines = String(bodyText || '').split('\n');
+      let sigIdx = -1;
+      for (let i = lines.length - 1; i >= 0; i--) {
+        const ln = lines[i] || '';
+        if (ln.includes('Kontaktlærere') && ln.includes('Forstander')) { sigIdx = i; break; }
+      }
+      if (sigIdx > 0) {
+        // Fjern signaturlinjerne fra pre-teksten (navne + labels)
+        let cutStart = sigIdx - 1;
+        while (cutStart > 0 && !String(lines[cutStart - 1] || '').trim()) cutStart--;
+        const kept = lines.slice(0, cutStart);
+        while (kept.length && !String(kept[kept.length - 1] || '').trim()) kept.pop();
+        bodyForPre = kept.join('\n');
+
+        const kontaktNavn = [st.kontaktlaerer1, st.kontaktlaerer2]
+          .filter(x => (x || '').toString().trim())
+          .map(x => (x || '').toString().trim())
+          .join(' & ');
+
+        const forstanderNavn = ((settings && settings.forstanderName) ? settings.forstanderName : '').toString().trim();
+
+        signatureHtml = `
+          <div class="signatures">
+            <div class="sig-col sig-left">
+              <div class="sig-name">${escapeHtml(kontaktNavn)}</div>
+              <div class="sig-label">Kontaktlærere</div>
+            </div>
+            <div class="sig-col sig-right">
+              <div class="sig-name">${escapeHtml(forstanderNavn)}</div>
+              <div class="sig-label">Forstander</div>
+            </div>
+          </div>`;
+      }
+    } catch(e) {}
+
     return `
       <div class="page">
         <div class="content">
           <div class="printHeaderTop"><div class="printHeaderDate">${escapeHtml(headerDateText)}</div></div>
           <div class="printHeaderLogo"><img src="${logoSrc}" alt="Himmerlands Ungdomsskole" /></div>
           <div class="printTitle">${escapeHtml(titleLine)}</div>
-          <pre class="statement">${escapeHtml(bodyText)}</pre>
+          <pre class="statement">${escapeHtml(bodyForPre)}</pre>${signatureHtml}
         </div>
       </div>`;
   }).join('');
 
-  const docTitle = escapeHtml(title || 'Print');
+  // Single vs multi print: multi-print uses per-page absolute footer to avoid overlapping fixed elements
+  const printModeClass = (list.length > 1) ? 'print-multi' : 'print-single';
+
+const docTitle = escapeHtml(title || 'Print');
 
   const html = `<!doctype html>
 <html>
@@ -901,9 +944,39 @@ async function openPrintWindowForStudents(students, settings, title) {
       overflow: hidden;
     }
 
+    /* Signatur: to faste kolonner (Kontaktlærere / Forstander) */
+    .signatures{
+      display:flex;
+      justify-content:space-between;
+      gap: 16px;
+      margin-top: 18px;
+      width: 100%;
+      font-family: Arial, sans-serif;
+      font-size: 10.5pt;
+      line-height: 1.25;
+    }
+ 
+    @media print{
+      /* Footer-signatur: fixed for enkelt-elev print, absolut pr. side ved multi-print (for at undgå overlappende fixed-elementer) */
+      body.print-single .signatures{ position: fixed; bottom: 32px; left: 0; right: 0; width: 100%; }
+      body.print-multi .page{ position: relative; }
+      body.print-multi .content{ position: relative; min-height: 273mm; }
+      body.print-multi .signatures{ position: absolute; bottom: 32px; left: 0; right: 0; width: 100%; }
+      /* Sørg for at brødtekst aldrig kan løbe ned i signaturen */
+      pre.statement{ padding-bottom: 110px; }
+    }
+
+   .sig-col{ width: 48%; break-inside: avoid; page-break-inside: avoid; }
+    .sig-left{ text-align: left; }
+    .sig-right{ text-align: center; }
+    .sig-name{ display:block; }
+    .sig-label{ display:block; margin-top: 2px; }
+    .sig-left .sig-label{ text-align: center; }
+
+
 </style>
 </head>
-<body>
+<body class="${printModeClass}">
 ${pagesHtml}
 <script>
 (function(){
