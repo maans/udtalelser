@@ -966,9 +966,10 @@ const docTitle = escapeHtml(title || 'Print');
       pre.statement{ padding-bottom: 110px; }
     }
 
-   .sig-col{ width: 48%; break-inside: avoid; page-break-inside: avoid; }
-    .sig-left{ text-align: left; }
-    .sig-right{ text-align: center; }
+    /* Giv Kontaktlærere mere plads end Forstander (2 navne vs 1) */
+    .sig-col{ break-inside: avoid; page-break-inside: avoid; min-width: 0; }
+    .sig-left{ text-align: center; flex: 2 1 0; }
+    .sig-right{ text-align: center; flex: 1 1 0; }
     .sig-name{ display:block; }
     .sig-label{ display:block; margin-top: 2px; }
     .sig-left .sig-label{ text-align: center; }
@@ -3823,6 +3824,152 @@ $('preview').textContent = buildStatement(st, getSettings());
     const typeEl = $('marksType');
     const searchEl = $('marksSearch');
     const legendEl = $('marksLegend');
+
+    // Robust wiring: marksTableWrap is created/removed when switching subtabs.
+    // So we wire click + keyboard navigation here (when the DOM exists),
+    // instead of relying on a one-time init.
+    function wireMarksGridOnce() {
+      if (!wrap) return;
+
+      // Click / toggle
+      if (!wrap.__wiredClick) {
+        wrap.__wiredClick = true;
+        wrap.addEventListener('click', (e) => {
+          const btn = e.target && (e.target.closest ? e.target.closest('button.tickbox[data-u][data-k]') : null);
+          if (!btn) return;
+          // Keep interaction local + predictable
+          e.preventDefault();
+          e.stopPropagation();
+
+          const u = btn.getAttribute('data-u');
+          const k = btn.getAttribute('data-k');
+          if (!u || !k) return;
+
+          const rowId = btn.getAttribute('data-row') || u;
+          const colIdx = Number(btn.getAttribute('data-col') || 0);
+          state.marksFocus = { row: rowId, col: colIdx };
+
+          const type = (state.marksType || (typeEl && typeEl.value) || 'sang');
+          const storageKey = (type === 'gym' || type === 'roller') ? KEYS.marksGym : (type === 'elevraad' ? KEYS.marksElev : KEYS.marksSang);
+          const marks = getMarks(storageKey);
+          marks[u] = marks[u] || {};
+
+          if (k.startsWith('role:')) {
+            const roleKey = k.slice(5);
+            const arr = Array.isArray(marks[u].gym_roles) ? marks[u].gym_roles : [];
+            const has = arr.includes(roleKey);
+            if (has) arr.splice(arr.indexOf(roleKey), 1);
+            else arr.push(roleKey);
+            marks[u].gym_roles = arr;
+          } else {
+            const field = (type === 'gym') ? 'gym_variant' : (type === 'elevraad' ? 'elevraad_variant' : 'sang_variant');
+            const cur = (marks[u][field] || '');
+            marks[u][field] = (cur === k) ? '' : k;
+          }
+
+          setMarks(storageKey, marks);
+          try { updateImportStatsUI(); } catch (_) {}
+          if (state.tab === 'k') { try { renderKList(); } catch (_) {} }
+
+          // Re-render table; focus is restored via restoreMarksGridFocus() below.
+          renderMarksTable();
+        }, true);
+      }
+
+      // Keyboard navigation (arrows + Enter/Space + PageUp/PageDown + Esc)
+      if (!wrap.__wiredKeydown) {
+        wrap.__wiredKeydown = true;
+        wrap.addEventListener('keydown', (e) => {
+          const btn = e.target && (e.target.closest ? e.target.closest('button.tickbox[data-u][data-k]') : null);
+          if (!btn) return;
+
+          const key = e.key;
+
+          if (key === 'Escape' || key === 'Esc') {
+            e.preventDefault();
+            e.stopPropagation();
+            try { btn.blur(); } catch(_) {}
+            return;
+          }
+
+          const tr = btn.closest ? btn.closest('tr') : null;
+          if (!tr) return;
+          const tbody = tr.parentElement;
+          const rows = tbody ? Array.from(tbody.querySelectorAll('tr')) : [];
+          if (!rows.length) return;
+
+          const rowId = btn.getAttribute('data-row') || btn.getAttribute('data-u') || '';
+          const colIdx = Number(btn.getAttribute('data-col') || 0);
+
+          const focusBtn = (b) => {
+            if (!b) return;
+            try {
+              const rid = b.getAttribute('data-row') || b.getAttribute('data-u') || '';
+              const c = Number(b.getAttribute('data-col') || 0);
+              state.marksFocus = { row: rid, col: c };
+            } catch (_) {}
+            try { b.focus(); } catch(_) {}
+          };
+
+          // Toggle (keep focus)
+          if (key === 'Enter' || key === ' ') {
+            e.preventDefault();
+            state.marksFocus = { row: rowId, col: colIdx };
+            btn.click();
+            return;
+          }
+
+          // Left/Right: same row
+          if (key === 'ArrowLeft' || key === 'ArrowRight') {
+            e.preventDefault();
+            const rowBtns = Array.from(tr.querySelectorAll('button.tickbox[data-u][data-k]'));
+            if (!rowBtns.length) return;
+            const nextCol = colIdx + (key === 'ArrowRight' ? 1 : -1);
+            const b = rowBtns[Math.max(0, Math.min(rowBtns.length - 1, nextCol))];
+            focusBtn(b);
+            return;
+          }
+
+          // Up/Down + PageUp/PageDown: same column
+          const jump = (key === 'PageDown' ? 10 : (key === 'PageUp' ? -10 : (key === 'ArrowDown' ? 1 : (key === 'ArrowUp' ? -1 : 0))));
+          if (jump !== 0) {
+            e.preventDefault();
+            const i = rows.indexOf(tr);
+            if (i === -1) return;
+            const ni = i + jump;
+            if (ni < 0 || ni >= rows.length) return;
+            const targetRow = rows[ni];
+            const targetBtns = Array.from(targetRow.querySelectorAll('button.tickbox[data-u][data-k]'));
+            if (!targetBtns.length) return;
+            const b = targetBtns[Math.max(0, Math.min(targetBtns.length - 1, colIdx))];
+            focusBtn(b);
+            return;
+          }
+        });
+      }
+    }
+
+    // Keep keyboard focus stable in the marks grid across re-renders
+    function restoreMarksGridFocus(){
+      const f = state.marksFocus;
+      if (!f || !wrap) return;
+      // Defer until DOM has been painted
+      requestAnimationFrame(() => {
+        try {
+          const row = String(f.row || '');
+          const col = String(f.col || 0);
+          // Escape for CSS attribute selector (minimal)
+          const esc = (v) => v.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+          const sel = `button.tickbox[data-row="${esc(row)}"][data-col="${esc(col)}"]`;
+          const btn = wrap.querySelector(sel);
+          if (btn && typeof btn.focus === 'function') btn.focus();
+        } catch (_) {}
+      });
+    }
+
+    // Make sure interactions are wired whenever the export subtab is visible.
+    wireMarksGridOnce();
+
     const pickTextForStudent = (snippet, st) => {
       if (!snippet) return '';
       const pr = pronouns(st.koen || st.gender || st.sex || '');
@@ -3972,11 +4119,11 @@ $('preview').textContent = buildStatement(st, getSettings());
       list = [...list].sort((a,b) => dir * cmp(a,b));
     }
 
-    function renderTick(unilogin, key, on, tooltip){
+    function renderTick(unilogin, key, on, tooltip, colIndex){
       const pressed = on ? 'true' : 'false';
       const cls = 'tickbox' + (on ? ' on' : '');
       // data-u/data-k bruges af click-handleren på marks-tabellen
-      return `<td class="cb"><button type="button" class="${cls}" data-u="${escapeAttr(unilogin)}" data-k="${escapeAttr(key)}" aria-pressed="${pressed}" data-tip="${escapeAttr(tooltip||'')}"><span class="check">✓</span></button></td>`;
+      return `<td class="cb"><button type="button" class="${cls}" data-u="${escapeAttr(unilogin)}" data-k="${escapeAttr(key)}" aria-pressed="${pressed}" data-tip="${escapeAttr(tooltip||'')}" data-row="${escapeAttr(unilogin)}" data-col="${(colIndex==null?0:colIndex)}" tabindex="0"><span class="check">✓</span></button></td>`;
     }
 
     
@@ -4176,7 +4323,7 @@ function tooltipTextFor(st, scope, key){
                 <td>${escapeHtml(full)}</td>
                 <td class="muted small">${escapeHtml(kgrpLabel(st))}</td>
                 <td class="muted small">${escapeHtml(st.klasse||'')}</td>
-                ${cols.map(c => renderTick(st.unilogin, c, ((m.sang_variant||'')===c), previewFor(st, pickTextForStudent(SNIPPETS.sang[c], st)))).join('')}
+                ${cols.map((c,ci) => renderTick(st.unilogin, c, ((m.sang_variant||'')===c), previewFor(st, pickTextForStudent(SNIPPETS.sang[c], st)), ci)).join('')}
               </tr>`;
             }).join('')}
           </tbody>
@@ -4185,10 +4332,11 @@ function tooltipTextFor(st, scope, key){
       attachInlineMarksSearch();
       attachMarksSortButtons();
       bindMarksHoverTips(wrap);
+      restoreMarksGridFocus();
       return;
     }
 
-    if (type === 'gym' || type === 'roller') {
+    if (type === 'gym') {
       const marks = getMarks(KEYS.marksGym);
       $('marksLegend').textContent = '';
       const cols = ['G1','G2','G3'].filter(k => (SNIPPETS.gym||{})[k]);
@@ -4209,7 +4357,7 @@ function tooltipTextFor(st, scope, key){
                 <td>${escapeHtml(full)}</td>
                 <td class="muted small">${escapeHtml(kgrpLabel(st))}</td>
                 <td class="muted small">${escapeHtml(st.klasse||'')}</td>
-                ${cols.map(c => renderTick(st.unilogin, c, ((m.gym_variant||'')===c), previewFor(st, pickTextForStudent(SNIPPETS.gym[c], st)))).join('')}
+                ${cols.map((c,ci) => renderTick(st.unilogin, c, ((m.gym_variant||'')===c), previewFor(st, pickTextForStudent(SNIPPETS.gym[c], st)), ci)).join('')}
               </tr>`;
             }).join('')}
           </tbody>
@@ -4218,6 +4366,7 @@ function tooltipTextFor(st, scope, key){
       attachInlineMarksSearch();
       attachMarksSortButtons();
       bindMarksHoverTips(wrap);
+      restoreMarksGridFocus();
       return;
     }
 
@@ -4252,6 +4401,7 @@ function tooltipTextFor(st, scope, key){
       attachInlineMarksSearch();
       attachMarksSortButtons();
       bindMarksHoverTips(wrap);
+      restoreMarksGridFocus();
       return;
     }
 
@@ -4276,7 +4426,7 @@ function tooltipTextFor(st, scope, key){
               <td>${escapeHtml(full)}</td>
               <td class="muted small">${escapeHtml(kgrpLabel(st))}</td>
               <td class="muted small">${escapeHtml(st.klasse||'')}</td>
-              ${cols.map(c => renderTick(st.unilogin, c, ((m.elevraad_variant||'')===c), previewFor(st, pickTextForStudent(SNIPPETS.elevraad[c], st)))).join('')}
+              ${cols.map((c,ci) => renderTick(st.unilogin, c, ((m.elevraad_variant||'')===c), previewFor(st, pickTextForStudent(SNIPPETS.elevraad[c], st)), ci)).join('')}
             </tr>`;
           }).join('')}
         </tbody>
@@ -4811,7 +4961,7 @@ if (document.getElementById('btnDownloadElevraad')) {
         });
         downloadText('sang_vurderinger.csv', toCsv(rows, ['Unilogin','Navn','Sang_variant']));
       }
-      if (type === 'gym' || type === 'roller') {
+      if (type === 'gym') {
         const marks = getMarks(KEYS.marksGym);
         const roleCodes = Object.keys(SNIPPETS.roller);
         const headers = ['Unilogin','Navn','Gym_variant', ...roleCodes];
@@ -4979,6 +5129,9 @@ if (document.getElementById('btnDownloadElevraad')) {
         const u = el.getAttribute('data-u');
         const k = el.getAttribute('data-k');
         if (!u || !k) return;
+        // Keep keyboard focus stable across re-render
+        // Keep keyboard focus stable across re-render (fallback col=0 for input checkboxes)
+        state.marksFocus = { row: u, col: Number(el.getAttribute('data-col') || 0) };
         const type = (state.marksType || 'sang');
         const storageKey = (type === 'gym' || type === 'roller') ? KEYS.marksGym : (type === 'elevraad' ? KEYS.marksElev : KEYS.marksSang);
         const marks = getMarks(storageKey);
@@ -5004,6 +5157,79 @@ if (document.getElementById('btnDownloadElevraad')) {
         try { updateImportStatsUI(); } catch (err) {}
         if (state.tab === 'k') { try { renderKList(); } catch (err) {} }
         renderMarksTable();
+      });
+
+      // Keyboard navigation in marks grid (arrow keys + Enter/Space)
+      marksWrap.addEventListener('keydown', (e) => {
+        const btn = e.target && (e.target.closest ? e.target.closest('button.tickbox[data-u][data-k]') : null);
+        if (!btn) return;
+
+        const key = e.key;
+
+        // ESC: slip fokus fra tickbox-knapperne, så globale genveje virker igen
+        if (key === 'Escape' || key === 'Esc') {
+          e.preventDefault();
+          e.stopPropagation();
+          try { btn.blur(); } catch(_) {}
+          return;
+        }
+        const tr = btn.closest ? btn.closest('tr') : null;
+
+        const rowId = btn.getAttribute('data-row') || btn.getAttribute('data-u') || '';
+        const colAttr = btn.getAttribute('data-col');
+        const colIdx = (colAttr != null && colAttr !== '') ? Number(colAttr) : (() => {
+          if (!tr) return 0;
+          const rowBtns = Array.from(tr.querySelectorAll('button.tickbox[data-u][data-k]'));
+          return Math.max(0, rowBtns.indexOf(btn));
+        })();
+
+        const focusBtn = (b) => {
+          if (!b) return;
+          try {
+            const rid = b.getAttribute('data-row') || b.getAttribute('data-u') || '';
+            const c = Number(b.getAttribute('data-col') || 0);
+            state.marksFocus = { row: rid, col: c };
+          } catch (_) {}
+          b.focus();
+        };
+
+        // Toggle
+        if (key === 'Enter' || key === ' ') {
+          e.preventDefault();
+          state.marksFocus = { row: rowId, col: colIdx };
+          btn.click();
+          return;
+        }
+
+        if (!tr) return;
+        const tbody = tr.parentElement;
+        const rows = tbody ? Array.from(tbody.querySelectorAll('tr')) : [];
+        const rowBtns = Array.from(tr.querySelectorAll('button.tickbox[data-u][data-k]'));
+
+        // Left/Right: same row
+        if (key === 'ArrowLeft' || key === 'ArrowRight') {
+          e.preventDefault();
+          const nextCol = colIdx + (key === 'ArrowRight' ? 1 : -1);
+          const b = rowBtns[Math.max(0, Math.min(rowBtns.length - 1, nextCol))];
+          focusBtn(b);
+          return;
+        }
+
+        // Up/Down + PageUp/PageDown: same column
+        const jump = (key === 'PageDown' ? 10 : (key === 'PageUp' ? -10 : (key === 'ArrowDown' ? 1 : (key === 'ArrowUp' ? -1 : 0))));
+        if (jump !== 0) {
+          e.preventDefault();
+          const i = rows.indexOf(tr);
+          if (i === -1) return;
+          const ni = i + jump;
+          if (ni < 0 || ni >= rows.length) return;
+          const targetRow = rows[ni];
+          const targetBtns = Array.from(targetRow.querySelectorAll('button.tickbox[data-u][data-k]'));
+          if (!targetBtns.length) return;
+          const b = targetBtns[Math.max(0, Math.min(targetBtns.length - 1, colIdx))];
+          focusBtn(b);
+          return;
+        }
       });
     }
 
@@ -5082,7 +5308,7 @@ if (document.getElementById('btnDownloadElevraad')) {
           } else if (type === 'elevraad') {
             const v = m.elevraad_variant || '';
             for (const c of Object.keys(SNIPPETS.elevraad || {})) out[c] = (v === c) ? '1' : '';
-          } else if (type === 'gym' || type === 'roller') {
+          } else if (type === 'gym') {
             const v = m.gym_variant || '';
             for (const c of Object.keys(SNIPPETS.gym || {})) out[c] = (v === c) ? '1' : '';
             const roles = Array.isArray(m.gym_roles) ? m.gym_roles : [];
@@ -5261,6 +5487,21 @@ try {
         }
 
         
+
+// TRIN 1B: ← / → i Redigér (forrige/næste elev)
+// - Kun når fokus ikke er i input/textarea/contenteditable
+// - Matcher navigationstankegangen fra "Alle K-grupper"
+if (!e.ctrlKey && !e.altKey && !e.metaKey) {
+  const k = e.key;
+  if (k === 'ArrowLeft' || k === 'ArrowRight') {
+    const typing = isTypingTarget(e.target);
+    if (!typing && state && state.tab === 'edit') {
+      e.preventDefault();
+      gotoAdjacentStudent(k === 'ArrowRight' ? 'next' : 'prev');
+      return;
+    }
+  }
+}
 
         // TRIN 2: ↑ / ↓ over elevkort (state-indeks, ikke DOM-fokus)
         // - Kun når fokus ikke er i input/textarea/contenteditable
