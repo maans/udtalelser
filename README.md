@@ -24,8 +24,8 @@ Applikationen er udviklet til brug i udtalelsesperioder, hvor enkelhed, datasikk
 Se Hjælp-fanen i appen eller materialerne i `/docs`:
 - 📘 Udvidet guide (PDF)
 - 🖼️ Infografik (PNG)
-- 🎬 Kort introduktionsvideo (MP4)
-- 🎧 Lyd: Hvorfor serverløs elevudtalelser? (M4A)
+- 🎬 En praktisk guide til Udtalelser (MP4)
+- 🎧 Strømlin og sikre elevudtalelser lokalt (M4A)
 
 ## Status
 Udtalelser v1.0 er stabil og anvendes i praksis.  
