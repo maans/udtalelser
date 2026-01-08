@@ -3848,6 +3848,7 @@ $('preview').textContent = buildStatement(st, getSettings());
           const rowId = btn.getAttribute('data-row') || u;
           const colIdx = Number(btn.getAttribute('data-col') || 0);
           state.marksFocus = { row: rowId, col: colIdx };
+          state.__marksHadFocus = true;
 
           const type = (state.marksType || (typeEl && typeEl.value) || 'sang');
           const storageKey = (type === 'gym' || type === 'roller') ? KEYS.marksGym : (type === 'elevraad' ? KEYS.marksElev : KEYS.marksSang);
@@ -3877,80 +3878,95 @@ $('preview').textContent = buildStatement(st, getSettings());
       }
 
       // Keyboard navigation (arrows + Enter/Space + PageUp/PageDown + Esc)
-      if (!wrap.__wiredKeydown) {
-        wrap.__wiredKeydown = true;
-        wrap.addEventListener('keydown', (e) => {
-          const btn = e.target && (e.target.closest ? e.target.closest('button.tickbox[data-u][data-k]') : null);
-          if (!btn) return;
-
-          const key = e.key;
-
-          if (key === 'Escape' || key === 'Esc') {
-            e.preventDefault();
-            e.stopPropagation();
-            try { btn.blur(); } catch(_) {}
-            return;
-          }
-
-          const tr = btn.closest ? btn.closest('tr') : null;
-          if (!tr) return;
-          const tbody = tr.parentElement;
-          const rows = tbody ? Array.from(tbody.querySelectorAll('tr')) : [];
-          if (!rows.length) return;
-
-          const rowId = btn.getAttribute('data-row') || btn.getAttribute('data-u') || '';
-          const colIdx = Number(btn.getAttribute('data-col') || 0);
-
-          const focusBtn = (b) => {
-            if (!b) return;
-            try {
-              const rid = b.getAttribute('data-row') || b.getAttribute('data-u') || '';
-              const c = Number(b.getAttribute('data-col') || 0);
-              state.marksFocus = { row: rid, col: c };
-            } catch (_) {}
-            try { b.focus(); } catch(_) {}
-          };
-
-          // Toggle (keep focus)
-          if (key === 'Enter' || key === ' ') {
-            e.preventDefault();
-            state.marksFocus = { row: rowId, col: colIdx };
-            btn.click();
-            return;
-          }
-
-          // Left/Right: same row
-          if (key === 'ArrowLeft' || key === 'ArrowRight') {
-            e.preventDefault();
-            const rowBtns = Array.from(tr.querySelectorAll('button.tickbox[data-u][data-k]'));
-            if (!rowBtns.length) return;
-            const nextCol = colIdx + (key === 'ArrowRight' ? 1 : -1);
-            const b = rowBtns[Math.max(0, Math.min(rowBtns.length - 1, nextCol))];
-            focusBtn(b);
-            return;
-          }
-
-          // Up/Down + PageUp/PageDown: same column
-          const jump = (key === 'PageDown' ? 10 : (key === 'PageUp' ? -10 : (key === 'ArrowDown' ? 1 : (key === 'ArrowUp' ? -1 : 0))));
-          if (jump !== 0) {
-            e.preventDefault();
-            const i = rows.indexOf(tr);
-            if (i === -1) return;
-            const ni = i + jump;
-            if (ni < 0 || ni >= rows.length) return;
-            const targetRow = rows[ni];
-            const targetBtns = Array.from(targetRow.querySelectorAll('button.tickbox[data-u][data-k]'));
-            if (!targetBtns.length) return;
-            const b = targetBtns[Math.max(0, Math.min(targetBtns.length - 1, colIdx))];
-            focusBtn(b);
-            return;
-          }
-        });
-      }
+      
     }
 
     // Keep keyboard focus stable in the marks grid across re-renders
-    function restoreMarksGridFocus(){
+    
+    // Tastatur: kun når fokus står på en tickbox-knap.
+    // Regler:
+    // - Enter/Space: trigger .click() (ingen state-ændring her)
+    // - Piletaster: flyt fokus (ingen state-ændring)
+    // - Esc: blur (så globale genveje virker igen)
+    function attachMarksTickKeyboard(){
+      if (!wrap) return;
+      const esc = (v) => String(v || '').replace(/\\/g,'\\\\').replace(/"/g,'\\"');
+      const getRowOrder = () => {
+        const trs = Array.from(wrap.querySelectorAll('tbody tr'));
+        return trs.map(tr => {
+          const b = tr.querySelector('button.tickbox[data-row][data-col]');
+          return b ? (b.getAttribute('data-row') || '') : '';
+        }).filter(Boolean);
+      };
+      const clampToRow = (rowId, col) => {
+        const btns = Array.from(wrap.querySelectorAll(`button.tickbox[data-row="${esc(rowId)}"][data-col]`));
+        if (!btns.length) return null;
+        const exact = btns.find(b => Number(b.getAttribute('data-col')||0) === col);
+        if (exact) return exact;
+        const cols = btns.map(b => Number(b.getAttribute('data-col')||0)).sort((a,b)=>a-b);
+        const min = cols[0], max = cols[cols.length-1];
+        const c = Math.max(min, Math.min(max, col));
+        return btns.find(b => Number(b.getAttribute('data-col')||0) === c) || btns[0];
+      };
+      const focusBtn = (b) => {
+        if (!b) return;
+        try {
+          state.marksFocus = { row: b.getAttribute('data-row') || b.getAttribute('data-u') || '', col: Number(b.getAttribute('data-col')||0) };
+          state.__marksHadFocus = true;
+        } catch(_) {}
+        try { b.focus({ preventScroll: true }); } catch(_) { try { b.focus(); } catch(__) {} }
+      };
+
+      const onKey = (e) => {
+        const btn = e.currentTarget;
+        const key = e.key;
+
+        if (key === 'Escape' || key === 'Esc') {
+          e.preventDefault(); e.stopPropagation();
+          try { btn.blur(); } catch(_) {}
+          return;
+        }
+
+        if (key === 'Enter' || key === ' ') {
+          e.preventDefault(); e.stopPropagation();
+          // eneste toggle
+          btn.click();
+          return;
+        }
+
+        if (!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(key)) return;
+
+        e.preventDefault(); e.stopPropagation();
+
+        const rowId = btn.getAttribute('data-row') || btn.getAttribute('data-u') || '';
+        const col = Number(btn.getAttribute('data-col') || 0);
+
+        if (key === 'ArrowLeft' || key === 'ArrowRight') {
+          const nextCol = col + (key === 'ArrowRight' ? 1 : -1);
+          focusBtn(clampToRow(rowId, nextCol));
+          return;
+        }
+
+        const order = getRowOrder();
+        const idx = order.indexOf(rowId);
+        if (idx === -1) return;
+        const nextIdx = idx + (key === 'ArrowDown' ? 1 : -1);
+        if (nextIdx < 0 || nextIdx >= order.length) return;
+        const nextRow = order[nextIdx];
+        focusBtn(clampToRow(nextRow, col));
+      };
+
+      const buttons = Array.from(wrap.querySelectorAll('button.tickbox[data-u][data-k]'));
+      buttons.forEach(b => {
+        if (b.__huTickKbWired) return;
+        b.__huTickKbWired = true;
+        b.addEventListener('keydown', onKey);
+      });
+    }
+
+function restoreMarksGridFocus(){
+      // Fokus gendannes kun hvis brugeren allerede har arbejdet i grid'et.
+      if (!state.__marksHadFocus) return;
       const f = state.marksFocus;
       if (!f || !wrap) return;
       // Defer until DOM has been painted
@@ -3962,7 +3978,7 @@ $('preview').textContent = buildStatement(st, getSettings());
           const esc = (v) => v.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
           const sel = `button.tickbox[data-row="${esc(row)}"][data-col="${esc(col)}"]`;
           const btn = wrap.querySelector(sel);
-          if (btn && typeof btn.focus === 'function') btn.focus();
+          if (btn && typeof btn.focus === 'function') btn.focus({ preventScroll: true });
         } catch (_) {}
       });
     }
@@ -4332,6 +4348,7 @@ function tooltipTextFor(st, scope, key){
       attachInlineMarksSearch();
       attachMarksSortButtons();
       bindMarksHoverTips(wrap);
+      attachMarksTickKeyboard();
       restoreMarksGridFocus();
       return;
     }
@@ -4366,6 +4383,7 @@ function tooltipTextFor(st, scope, key){
       attachInlineMarksSearch();
       attachMarksSortButtons();
       bindMarksHoverTips(wrap);
+      attachMarksTickKeyboard();
       restoreMarksGridFocus();
       return;
     }
@@ -4392,7 +4410,7 @@ function tooltipTextFor(st, scope, key){
                 <td>${escapeHtml(full)}</td>
                 <td class="muted small">${escapeHtml(kgrpLabel(st))}</td>
                 <td class="muted small">${escapeHtml(st.klasse||'')}</td>
-                ${roleCodes.map(r => renderTick(st.unilogin, 'role:'+r, roles.includes(r), previewFor(st, pickTextForStudent(SNIPPETS.roller[r], st)))).join('')}
+                ${roleCodes.map((r,ci) => renderTick(st.unilogin, 'role:'+r, roles.includes(r), previewFor(st, pickTextForStudent(SNIPPETS.roller[r], st)), ci)).join('')}
               </tr>`;
             }).join('')}
           </tbody>
@@ -4401,6 +4419,7 @@ function tooltipTextFor(st, scope, key){
       attachInlineMarksSearch();
       attachMarksSortButtons();
       bindMarksHoverTips(wrap);
+      attachMarksTickKeyboard();
       restoreMarksGridFocus();
       return;
     }
@@ -4435,6 +4454,9 @@ function tooltipTextFor(st, scope, key){
     attachInlineMarksSearch();
     attachMarksSortButtons();
     bindMarksHoverTips(wrap);
+    attachMarksTickKeyboard();
+    restoreMarksGridFocus();
+    return;
 }
 
   async function importMarksFile(e, kind) {
@@ -5119,156 +5141,7 @@ if (document.getElementById('btnDownloadElevraad')) {
       });
     }
 
-    // Checkbox ændringer i marks-tabellen
-    const marksWrap = document.getElementById('marksTableWrap');
-    if (marksWrap && !marksWrap.__wired) {
-      marksWrap.__wired = true;
-      marksWrap.addEventListener('change', (e) => {
-        const el = e.target;
-        if (!el || el.type !== 'checkbox') return;
-        const u = el.getAttribute('data-u');
-        const k = el.getAttribute('data-k');
-        if (!u || !k) return;
-        // Keep keyboard focus stable across re-render
-        // Keep keyboard focus stable across re-render (fallback col=0 for input checkboxes)
-        state.marksFocus = { row: u, col: Number(el.getAttribute('data-col') || 0) };
-        const type = (state.marksType || 'sang');
-        const storageKey = (type === 'gym' || type === 'roller') ? KEYS.marksGym : (type === 'elevraad' ? KEYS.marksElev : KEYS.marksSang);
-        const marks = getMarks(storageKey);
-        marks[u] = marks[u] || {};
-
-        if (k.startsWith('role:')) {
-          // Gym-roller (multi)
-          const roleKey = k.slice(5);
-          const arr = Array.isArray(marks[u].gym_roles) ? marks[u].gym_roles : [];
-          const has = arr.includes(roleKey);
-          if (el.checked && !has) arr.push(roleKey);
-          if (!el.checked && has) arr.splice(arr.indexOf(roleKey), 1);
-          marks[u].gym_roles = arr;
-        } else {
-          // Variant (single)
-          const field = (type === 'gym') ? 'gym_variant' : (type === 'elevraad' ? 'elevraad_variant' : 'sang_variant');
-          if (el.checked) marks[u][field] = k;
-          else if (marks[u][field] === k) marks[u][field] = '';
-        }
-
-        setMarks(storageKey, marks);
-        // Live opdater status-boksen og evt. K-elever-kort
-        try { updateImportStatsUI(); } catch (err) {}
-        if (state.tab === 'k') { try { renderKList(); } catch (err) {} }
-        renderMarksTable();
-      });
-
-      // Keyboard navigation in marks grid (arrow keys + Enter/Space)
-      marksWrap.addEventListener('keydown', (e) => {
-        const btn = e.target && (e.target.closest ? e.target.closest('button.tickbox[data-u][data-k]') : null);
-        if (!btn) return;
-
-        const key = e.key;
-
-        // ESC: slip fokus fra tickbox-knapperne, så globale genveje virker igen
-        if (key === 'Escape' || key === 'Esc') {
-          e.preventDefault();
-          e.stopPropagation();
-          try { btn.blur(); } catch(_) {}
-          return;
-        }
-        const tr = btn.closest ? btn.closest('tr') : null;
-
-        const rowId = btn.getAttribute('data-row') || btn.getAttribute('data-u') || '';
-        const colAttr = btn.getAttribute('data-col');
-        const colIdx = (colAttr != null && colAttr !== '') ? Number(colAttr) : (() => {
-          if (!tr) return 0;
-          const rowBtns = Array.from(tr.querySelectorAll('button.tickbox[data-u][data-k]'));
-          return Math.max(0, rowBtns.indexOf(btn));
-        })();
-
-        const focusBtn = (b) => {
-          if (!b) return;
-          try {
-            const rid = b.getAttribute('data-row') || b.getAttribute('data-u') || '';
-            const c = Number(b.getAttribute('data-col') || 0);
-            state.marksFocus = { row: rid, col: c };
-          } catch (_) {}
-          b.focus();
-        };
-
-        // Toggle
-        if (key === 'Enter' || key === ' ') {
-          e.preventDefault();
-          state.marksFocus = { row: rowId, col: colIdx };
-          btn.click();
-          return;
-        }
-
-        if (!tr) return;
-        const tbody = tr.parentElement;
-        const rows = tbody ? Array.from(tbody.querySelectorAll('tr')) : [];
-        const rowBtns = Array.from(tr.querySelectorAll('button.tickbox[data-u][data-k]'));
-
-        // Left/Right: same row
-        if (key === 'ArrowLeft' || key === 'ArrowRight') {
-          e.preventDefault();
-          const nextCol = colIdx + (key === 'ArrowRight' ? 1 : -1);
-          const b = rowBtns[Math.max(0, Math.min(rowBtns.length - 1, nextCol))];
-          focusBtn(b);
-          return;
-        }
-
-        // Up/Down + PageUp/PageDown: same column
-        const jump = (key === 'PageDown' ? 10 : (key === 'PageUp' ? -10 : (key === 'ArrowDown' ? 1 : (key === 'ArrowUp' ? -1 : 0))));
-        if (jump !== 0) {
-          e.preventDefault();
-          const i = rows.indexOf(tr);
-          if (i === -1) return;
-          const ni = i + jump;
-          if (ni < 0 || ni >= rows.length) return;
-          const targetRow = rows[ni];
-          const targetBtns = Array.from(targetRow.querySelectorAll('button.tickbox[data-u][data-k]'));
-          if (!targetBtns.length) return;
-          const b = targetBtns[Math.max(0, Math.min(targetBtns.length - 1, colIdx))];
-          focusBtn(b);
-          return;
-        }
-      });
-    }
-
-    // Tick-buttons (erstatter checkboxes)
-    if (marksWrap && !marksWrap.__wiredClick) {
-      marksWrap.__wiredClick = true;
-      marksWrap.addEventListener('click', (e) => {
-        const btn = e.target && (e.target.closest ? e.target.closest('button.tickbox[data-u][data-k]') : null);
-        if (!btn) return;
-        e.preventDefault();
-        const u = btn.getAttribute('data-u');
-        const k = btn.getAttribute('data-k');
-        if (!u || !k) return;
-        const type = (state.marksType || 'sang');
-        const storageKey = (type === 'gym' || type === 'roller') ? KEYS.marksGym : (type === 'elevraad' ? KEYS.marksElev : KEYS.marksSang);
-        const marks = getMarks(storageKey);
-        marks[u] = marks[u] || {};
-
-        if (k.startsWith('role:')) {
-          const roleKey = k.slice(5);
-          const arr = Array.isArray(marks[u].gym_roles) ? marks[u].gym_roles : [];
-          const has = arr.includes(roleKey);
-          if (has) arr.splice(arr.indexOf(roleKey), 1);
-          else arr.push(roleKey);
-          marks[u].gym_roles = arr;
-        } else {
-          const field = (type === 'gym') ? 'gym_variant' : (type === 'elevraad' ? 'elevraad_variant' : 'sang_variant');
-          const cur = (marks[u][field] || '');
-          marks[u][field] = (cur === k) ? '' : k;
-        }
-
-        setMarks(storageKey, marks);
-        try { updateImportStatsUI(); } catch (err) {}
-        if (state.tab === 'k') { try { renderKList(); } catch (err) {} }
-        renderMarksTable();
-      });
-    }
-
-    // Eksportér CSV
+        // Eksportér CSV
     const btnExport = document.getElementById('btnExportMarksCSV');
   // Update button text/tooltip every render
   if (btnExport) {
