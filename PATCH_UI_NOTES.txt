@@ -1,9 +1,0 @@
-
-PATCH UI v1 (oven på UdtalelserV2_patch_singleprint_sort_keyboard)
-
-Indhold:
-- Større tekstfelt for udtalelses-skabelon
-- Lås + blyant på ALLE faglærer-tekster
-- Ingen ændring i print, CSV eller elevdata
-
-Dette er en ren UI-patch.
