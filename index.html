@@ -530,42 +530,55 @@
           <a href="docs/Udtalelser_Enkelhed_Sikkerhed.pdf" target="_blank" rel="noopener">Udtalelser v1.0 – Enkelhed og sikkerhed</a>
         </p>
         <p style="margin:6px 0"><strong>Infografik (PNG):</strong>
-          <a href="docs/infografik.png" target="_blank" rel="noopener">Overblik på én side</a>
+          <a href="docs/infografik.png" target="_blank" rel="noopener">Hurtig guide (infografik)</a>
         </p>
         <p style="margin:6px 0"><strong>Kort video (MP4):</strong>
           <a href="docs/En_praktisk_guide_til_Udtalelser.mp4" target="_blank" rel="noopener">En praktisk guide til Udtalelser</a>
         </p>
         <p style="margin:6px 0"><strong>Lyd (M4A):</strong>
-          <a href="docs/Strømlin_sikre_elevudtalelser_lokalt.m4a" target="_blank" rel="noopener">Strømlin og sikre elevudtalelser lokalt</a>
+          <a href="docs/Stroemlin_sikre_elevudtalelser_lokalt.m4a" target="_blank" rel="noopener">Strømlin og sikre elevudtalelser lokalt</a>
+        </p>
+        <p class="muted small" style="margin:8px 0 0 0">Alle materialer ligger i mappen <code>/docs</code>.</p>
+
+        <hr style="margin:12px 0; opacity:.25;" />
+
+        <p style="margin:6px 0"><strong>Download appen (ZIP):</strong>
+          <a href="https://github.com/maans/udtalelser/archive/refs/heads/main.zip" target="_blank" rel="noopener">Hent seneste version som ZIP</a>
+          <span class="muted small">(til offline brug, arkiv eller deling)</span>
         </p>
       </div>
 
-<details class="fold" open>
-        <summary>Quick start (hvem gør hvad?)</summary>
+
+      <details class="fold" open>
+        <summary>Quick start – sådan bruger I appen</summary>
         <ol class="helpList">
           <li>
             Indlæs elevlisten (<code>students.csv</code>).
-            <span class="helpRefs">– <a href="#" class="helpLink" data-goto="set:data">Import</a></span>
+            <span class="helpRefs">– <a href="#" class="helpLink" data-goto="set:data">Import 🔗</a></span>
           </li>
           <li>
-            Skriv dine initialer i <em>Generelt</em>.
-            <span class="helpRefs">– <a href="#" class="helpLink" data-goto="set:general">Generelt</a></span>
+            Angiv dine initialer.
+            <span class="helpRefs">– <a href="#" class="helpLink" data-goto="set:general">Generelt 🔗</a></span>
           </li>
           <li>
-            Redigér dine elever i <em>K-elever</em> og brug <em>Redigér</em> til fuld visning og print.
-            <span class="helpRefs">– <a href="#" class="helpLink" data-goto="k">K-elever</a> · <a href="#" class="helpLink" data-goto="edit">Redigér</a></span>
+            Se og vælg elever.
+            <span class="helpRefs">– <a href="#" class="helpLink" data-goto="k">K-elever 🔗</a></span>
           </li>
           <li>
-            Faglærere: sæt krydser og eksportér CSV. Kontaktlærere: importér CSV’erne.
-            <span class="helpRefs">– <a href="#" class="helpLink" data-goto="set:export">Eksport</a> · <a href="#" class="helpLink" data-goto="set:data">Import</a></span>
+            Skriv og redigér udtalelser.
+            <span class="helpRefs">– <a href="#" class="helpLink" data-goto="edit">Redigér 🔗</a></span>
           </li>
           <li>
-            Backup kan deles mellem lærere – import er sikker og overskriver ikke dine udfyldte felter.
-            <span class="helpRefs">– <a href="#" class="helpLink" data-goto="set:data">Importér / gendan backup</a></span>
+            Faglærere: sæt krydser og eksportér vurderinger.
+            <span class="helpRefs">– <a href="#" class="helpLink" data-goto="set:export">Eksport 🔗</a></span>
+          </li>
+          <li>
+            Del eller flyt arbejdet.
+            <span class="helpRefs">– <a href="#" class="helpLink" data-goto="set:data">Importér / gendan backup 🔗</a></span>
           </li>
           <li>
             Tekster og skabeloner kan opdateres centralt.
-            <span class="helpRefs">– <a href="#" class="helpLink" data-goto="set:texts">Tekster / skabeloner</a></span>
+            <span class="helpRefs">– <a href="#" class="helpLink" data-goto="set:texts">Tekster / skabeloner 🔗</a></span>
           </li>
         </ol>
       </details>
@@ -586,6 +599,7 @@
         <div class="muted small" style="margin-top:.6rem; line-height:1.45">
           <p><b>Er der en server?</b><br/>Nej. Alt gemmes lokalt i din browser. Der sendes ingen data nogen steder.</p>
           <p><b>Er det GDPR-sikkert?</b><br/>Ja. Ingen elevdata forlader computeren.</p>
+          <p><b>Hvordan fjerner man en elev?</b><br/>Elever fjernes ved at genindlæse elevlisten (CSV) uden eleven. Appen har bevidst ingen slet-knap for enkelt-elever for at undgå utilsigtet datatab.</p>
           <p><b>Kan flere lærere arbejde på de samme elever?</b><br/>Ja. Hvis du importerer en kollegas backup, kan appen vise, hvem der sidst har redigeret en elev.</p>
           <p><b>Hvad hvis browseren crasher?</b><br/>Data gemmes løbende i browseren. Det anbefales at tage backup jævnligt.</p>
           <p><b>Skal man printe direkte fra appen?</b><br/>Nej. Klik Print, luk printdialogen, og kopiér teksten over i skolens Word- eller Docs-skabelon. Print og underskriv dér.</p>

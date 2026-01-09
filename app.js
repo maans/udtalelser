@@ -2099,7 +2099,7 @@ function defaultSettings() {
       forstanderLocked: true,
       me: "",
       meResolved: "",
-      schoolYearEnd: new Date().getFullYear() + 1
+      schoolYearEnd: new Date().getFullYear()
     };
   }
   function defaultTemplates() {
@@ -2287,7 +2287,7 @@ function setStudents(studs){ lsSet(KEYS.students, studs); rebuildAliasMapFromStu
   function setTextFor(unilogin, obj){ lsSet(KEYS.textPrefix + unilogin, obj); }
 
   function computePeriod(schoolYearEnd) {
-    const endYear = Number(schoolYearEnd) || (new Date().getFullYear() + 1);
+    const endYear = Number(schoolYearEnd) || (new Date().getFullYear());
     return { from: `August ${endYear - 1}`, to: `Juni ${endYear}`, dateMonthYear: `Juni ${endYear}` };
   }
 
