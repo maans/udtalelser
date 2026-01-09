@@ -525,31 +525,7 @@
     <div class="card">
       <h2>Hjælp</h2>
       <p class="muted">Kort og praktisk – uden server, uden login. Alt gemmes lokalt i din browser.</p>
-      <div class="helpDocLinks" style="margin-top:10px">
-        <p style="margin:6px 0"><strong>Udvidet guide (PDF):</strong>
-          <a href="docs/Udtalelser_Enkelhed_Sikkerhed.pdf" target="_blank" rel="noopener">Udtalelser v1.0 – Enkelhed og sikkerhed</a>
-        </p>
-        <p style="margin:6px 0"><strong>Infografik (PNG):</strong>
-          <a href="docs/infografik.png" target="_blank" rel="noopener">Hurtig guide (infografik)</a>
-        </p>
-        <p style="margin:6px 0"><strong>Kort video (MP4):</strong>
-          <a href="docs/En_praktisk_guide_til_Udtalelser.mp4" target="_blank" rel="noopener">En praktisk guide til Udtalelser</a>
-        </p>
-        <p style="margin:6px 0"><strong>Lyd (M4A):</strong>
-          <a href="docs/Stroemlin_sikre_elevudtalelser_lokalt.m4a" target="_blank" rel="noopener">Strømlin og sikre elevudtalelser lokalt</a>
-        </p>
-        <p class="muted small" style="margin:8px 0 0 0">Alle materialer ligger i mappen <code>/docs</code>.</p>
-
-        <hr style="margin:12px 0; opacity:.25;" />
-
-        <p style="margin:6px 0"><strong>Download appen (ZIP):</strong>
-          <a href="https://github.com/maans/udtalelser/archive/refs/heads/main.zip" target="_blank" rel="noopener">Hent seneste version som ZIP</a>
-          <span class="muted small">(til offline brug, arkiv eller deling)</span>
-        </p>
-      </div>
-
-
-      <details class="fold" open>
+<details class="fold" open>
         <summary>Quick start – sådan bruger I appen</summary>
         <ol class="helpList">
           <li>
@@ -582,6 +558,35 @@
           </li>
         </ol>
       </details>
+      <details class="fold">
+        <summary>Mere hjælp og dokumentation (valgfrit)</summary>
+        <div class="helpDocLinks" style="margin-top:10px">
+          <p class="muted small" style="margin:0 0 10px 0">Ekstra materiale, hvis du vil have mere overblik eller flere detaljer.</p>
+
+          <p style="margin:6px 0"><strong>Udvidet guide (PDF):</strong>
+            <a href="docs/Udtalelser_Enkelhed_Sikkerhed.pdf" target="_blank" rel="noopener">Udtalelser v1.0 – Enkelhed og sikkerhed</a>
+          </p>
+          <p style="margin:6px 0"><strong>Infografik (PNG):</strong>
+            <a href="docs/infografik.png" target="_blank" rel="noopener">Hurtig guide (infografik)</a>
+          </p>
+          <p style="margin:6px 0"><strong>Kort video (MP4):</strong>
+            <a href="docs/En_praktisk_guide_til_Udtalelser.mp4" target="_blank" rel="noopener">En praktisk guide til Udtalelser</a>
+          </p>
+          <p style="margin:6px 0"><strong>Lyd (M4A):</strong>
+            <a href="docs/Stroemlin_sikre_elevudtalelser_lokalt.m4a" target="_blank" rel="noopener">Strømlin og sikre elevudtalelser lokalt</a>
+          </p>
+
+          <p class="muted small" style="margin:10px 0 0 0">Alle materialer ligger i mappen <code>/docs</code>.</p>
+
+          <hr style="margin:12px 0; opacity:.25;" />
+
+          <p style="margin:6px 0"><strong>Download appen som ZIP (valgfrit):</strong>
+            <a href="https://github.com/maans/udtalelser/archive/refs/heads/main.zip" target="_blank" rel="noopener">Hent en samlet kopi af appen</a>
+            <span class="muted small">(offline brug, arkiv eller deling)</span>
+          </p>
+        </div>
+      </details>
+
 
       
 <details class="fold">
@@ -599,6 +604,7 @@
         <div class="muted small" style="margin-top:.6rem; line-height:1.45">
           <p><b>Er der en server?</b><br/>Nej. Alt gemmes lokalt i din browser. Der sendes ingen data nogen steder.</p>
           <p><b>Er det GDPR-sikkert?</b><br/>Ja. Ingen elevdata forlader computeren.</p>
+          <p><b>Kan jeg downloade appen?</b><br/>Ja. Appen kan bruges direkte i browseren, men kan også <a href="https://github.com/maans/udtalelser/archive/refs/heads/main.zip" target="_blank" rel="noopener">downloades som ZIP til offline brug, arkiv eller deling</a>.</p>
           <p><b>Hvordan fjerner man en elev?</b><br/>Elever fjernes ved at genindlæse elevlisten (CSV) uden eleven. Appen har bevidst ingen slet-knap for enkelt-elever for at undgå utilsigtet datatab.</p>
           <p><b>Kan flere lærere arbejde på de samme elever?</b><br/>Ja. Hvis du importerer en kollegas backup, kan appen vise, hvem der sidst har redigeret en elev.</p>
           <p><b>Hvad hvis browseren crasher?</b><br/>Data gemmes løbende i browseren. Det anbefales at tage backup jævnligt.</p>

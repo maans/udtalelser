@@ -59,12 +59,7 @@ a:hover{opacity:.9}
 .helpLink{
   font-weight: 700;
 }
-.helpLink::after{
-  content:"↗";
-  font-size: .78em;
-  margin-left: .25em;
-  opacity: .65;
-}
+.helpLink::after{ content: none !important; display:none !important; }
 
 code{font-family:var(--mono)}
 .muted{color:var(--muted)}

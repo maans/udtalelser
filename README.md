@@ -4,7 +4,7 @@ Udtalelser v1.0 er en lille, serverløs browser-applikation til samarbejde om el
 
 ## Hvad er idéen?
 - Ingen server
-- Intet login
+- Ingen login
 - Ingen elevdata forlader computeren
 - Alt gemmes lokalt i browseren (localStorage)
 
