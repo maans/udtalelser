@@ -1,7 +1,0 @@
-PATCH v1.3 (oven på UdtalelserV2_patch_singleprint_sort_keyboard)
-
-- Print elev virker (btnPrint -> printOneStudent)
-- printAllKStudents/printAllKGroups markeret async (await-fix)
-- Udtalelses-skabelon (#templateText) gjort større (55vh)
-- Locked-text: fjernet pointer-events:none så man kan markere/scroll uden "rod"
-- demo_students.csv opdateret (korrigeret drenge/piger)
