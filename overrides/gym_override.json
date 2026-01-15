@@ -8,15 +8,15 @@
       "variants": {
         "G1": {
           "label": "Meget engageret",
-          "text": "{{FORNAVN}} har deltaget meget engageret i fællesgymnastik og har vist stor lyst til at udfordre sig selv. {(HAN_HUN_CAP)} har bidraget positivt til holdets fællesskab."
+          "text": "{{FORNAVN}} har udvist stor interesse for fællesgymnastik, opvisningerne og skolens fællesskab heri. {{FORNAVN}} har udvist stor glæde ved at være en del af, og inddrage andre i fællesskabet og har gennem sin energiske deltagelse i timerne og opvisningerne vist stort engagement, hvilket har virket som en stor drivkraft og motivator for skolens andre elever."
         },
         "G2": {
           "label": "Stabil deltagelse",
-          "text": "{{FORNAVN}} har deltaget stabilt i fællesgymnastik og har mødt undervisningen med en positiv indstilling."
+          "text": "{{FORNAVN}} har udvist interesse for fællesgymnastik, opvisningerne og for at lære og dygtiggøre sig. {{FORNAVN}} har gennem sin deltagelse i timerne og opvisningerne bidraget positivt og meget aktivt til det store fællesskab."
         },
         "G3": {
           "label": "Varierende deltagelse",
-          "text": "{{FORNAVN}} har haft en varierende deltagelse i fællesgymnastik, men har i perioder vist vilje til at indgå i fællesskabet."
+          "text": "{{FORNAVN}} har deltaget aktivt i fællesgymnastik og opvisninger. {{FORNAVN}} har lært alle skolens obligatoriske serier, hvilket har bidraget positivt til opvisningerne og fællesskabet."
         }
       },
       "variantOrder": [
@@ -27,15 +27,15 @@
       "roles": {
         "FANEBÆRER": {
           "label": "Fanebærer",
-          "text": "{{FORNAVN}} har været udtaget som fanebærer til skolens fælles gymnastikopvisninger. Et hverv {{HAN_HUN}} har varetaget ansvarsfuldt og respektfuldt."
+          "text": "{{FORNAVN}} har været udtaget som en af skolens fanebærere til de fælles gymnastikopvisninger. Et hverv {(HAN_HUN)} fuldt ud har opfyldt, både ansvarsfuldt og respektfuldt. {{FORNAVN}} har som fanebærer repræsenteret skolen og dens værdier på fornemmeste vis."
         },
         "REDSKAB": {
           "label": "Redskabshold",
-          "text": "{{FORNAVN}} har været en del af redskabsholdet, som {{HAN_HUN}} frivilligt har meldt sig til. {(HAN_HUN_CAP)} har ydet en stor indsats og taget ansvar."
+          "text": "{{FORNAVN}} har været en del af redskabsholdet, som {(HAN_HUN)} frivilligt har meldt sig til. {(HAN_HUN_CAP)} har været en stor hjælp og ydet en kæmpe indsats for at lykkes med skolens opvisninger. {{FORNAVN}} har i den forbindelse vist stort initiativ og ansvar, samt evnen til at løse praktiske problemstillinger på egen hånd."
         },
         "DGI": {
           "label": "DGI-instruktør",
-          "text": "{{FORNAVN}} har deltaget aktivt i skolens frivillige samarbejde med foreningslivet og har vist engagement og ansvar."
+          "text": "{{FORNAVN}} har deltaget aktivt i skolens frivillige samarbejde med Haubro IF, hvor {(HAN_HUN)} har trænet gymnastikholdet for skolebørnene, sideløbende med at {(HAN_HUN)} har taget DGI’s gymnastikuddannelse på skolen. {{FORNAVN}} har vist interesse og engagement for det frivillige foreningsarbejde, {(HAN_HUN)} har ydet en stor indsats i foreningens arbejde og taget det fornødne ansvar."
         }
       },
       "roleOrder": [

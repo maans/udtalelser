@@ -12,6 +12,163 @@ function resolveFullName(row) {
 (() => {
   'use strict';
 
+// --- Embedded fallbacks for file:// usage (avoids CORS blocked fetch) ---
+const EMBEDDED_FILE_OVERRIDES = {"sang":{"schema":"hu-elevudtalelser-snippets-override@1","scope":"sang","author":"","createdAt":"2025-12-29","payload":{"sang":{"items":{"S1":{"label":"Sang – niveau 1","text":"{{FORNAVN}} har bidraget til fællessang på allerbedste vis. Med sangglæde, engagement og nysgerrighed har {{FORNAVN}} været en drivkraft i timerne og en inspiration for andre, så de har oplevet det fællesskab, som fællessang kan give."},"S2":{"label":"Sang – niveau 2","text":"{{FORNAVN}} har med godt humør bidraget til fællessang og kor og har derigennem vist sangglæde og åbenhed og fået kendskab til nye sange. {{FORNAVN}} har oplevet det fællesskab, som fællessang kan give."},"S3":{"label":"Sang – niveau 3","text":"{{FORNAVN}} har deltaget i fællessang og kor og har derigennem fået kendskab til nye sange og har oplevet det fællesskab, som fællessang kan give."}},"order":["S1","S2","S3"]}}},"gym":{"schema":"hu-elevudtalelser-snippets-override@1","scope":"gym","author":"","createdAt":"2025-12-29","payload":{"gym":{"variants":{"G1":{"label":"Meget engageret","text":"{{FORNAVN}} har udvist stor interesse for fællesgymnastik, opvisningerne og skolens fællesskab heri. {{FORNAVN}} har udvist stor glæde ved at være en del af, og inddrage andre i fællesskabet og har gennem sin energiske deltagelse i timerne og opvisningerne vist stort engagement, hvilket har virket som en stor drivkraft og motivator for skolens andre elever."},"G2":{"label":"Stabil deltagelse","text":"{{FORNAVN}} har udvist interesse for fællesgymnastik, opvisningerne og for at lære og dygtiggøre sig. {{FORNAVN}} har gennem sin deltagelse i timerne og opvisningerne bidraget positivt og meget aktivt til det store fællesskab."},"G3":{"label":"Varierende deltagelse","text":"{{FORNAVN}} har deltaget aktivt i fællesgymnastik og opvisninger. {{FORNAVN}} har lært alle skolens obligatoriske serier, hvilket har bidraget positivt til opvisningerne og fællesskabet."}},"variantOrder":["G1","G2","G3"],"roles":{"FANEBÆRER":{"label":"Fanebærer","text":"{{FORNAVN}} har været udtaget som en af skolens fanebærere til de fælles gymnastikopvisninger. Et hverv {(HAN_HUN)} fuldt ud har opfyldt, både ansvarsfuldt og respektfuldt. {{FORNAVN}} har som fanebærer repræsenteret skolen og dens værdier på fornemmeste vis."},"REDSKAB":{"label":"Redskabshold","text":"{{FORNAVN}} har været en del af redskabsholdet, som {(HAN_HUN)} frivilligt har meldt sig til. {(HAN_HUN_CAP)} har været en stor hjælp og ydet en kæmpe indsats for at lykkes med skolens opvisninger. {{FORNAVN}} har i den forbindelse vist stort initiativ og ansvar, samt evnen til at løse praktiske problemstillinger på egen hånd."},"DGI":{"label":"DGI-instruktør","text":"{{FORNAVN}} har deltaget aktivt i skolens frivillige samarbejde med Haubro IF, hvor {(HAN_HUN)} har trænet gymnastikholdet for skolebørnene, sideløbende med at {(HAN_HUN)} har taget DGI’s gymnastikuddannelse på skolen. {{FORNAVN}} har vist interesse og engagement for det frivillige foreningsarbejde, {(HAN_HUN)} har ydet en stor indsats i foreningens arbejde og taget det fornødne ansvar."}},"roleOrder":["FANEBÆRER","REDSKAB","DGI"]}}},"elevraad":{"schema":"hu-elevudtalelser-snippets-override@1","scope":"elevraad","author":"","createdAt":"2025-12-29","payload":{"elevraad":{"label":"Elevrådsrepræsentant","text":"{{ELEV_FORNAVN}} har været en del af elevrådet på Himmerlands Ungdomsskole, hvor elevrådet blandt andet har stået for ugentlige fællesmøder for elever og lærere. Derudover har elevrådsarbejdet omfattet en række forskellige opgaver i løbet af året med ansvar for at sætte aktiviteter i gang i fællesskabets ånd. I den forbindelse har {{ELEV_FORNAVN}} vist engagement og vilje til at påtage sig og gennemføre forskellige opgaver og aktiviteter."}}},"templates":{"schema":"hu-elevudtalelser-snippets-override@1","scope":"templates","author":"MM","createdAt":"2026-01-04","payload":{"templates":{"forstanderNavn":"Stinne Krogh Poulsen","schoolText":"På Himmerlands Ungdomsskole arbejder vi med både faglighed, fællesskab og personlig udvikling.\nUdtalelsen er skrevet med udgangspunkt i elevens hverdag og deltagelse gennem skoleåret.","template":"Udtalelse vedrørende {{ELEV_FULDE_NAVN}}\n\n{{ELEV_FORNAVN}} {{ELEV_EFTERNAVN}} har været elev på Himmerlands Ungdomsskole i perioden fra {{PERIODE_FRA}} til {{PERIODE_TIL}} i {{ELEV_KLASSE}}.\n\nHimmerlands Ungdomsskole er en traditionsrig efterskole, som prioriterer fællesskabet og faglig fordybelse højt. Elevernes hverdag er præget af frie rammer og mange muligheder. Vi møder eleverne med tillid, positive forventninger og faglige udfordringer. I løbet af et efterskoleår på Himmerlands Ungdomsskole er oplevelserne mange og udfordringerne ligeså. Det gælder i hverdagens almindelige undervisning, som fordeler sig over boglige fag, fællesfag og profilfag. Det gælder også alle de dage, hvor hverdagen ændres til fordel for temauger, studieture mm. \n\n{{ELEV_UDVIKLING_AFSNIT}}\n{{ELEVRAAD_AFSNIT}}\n{{ROLLE_AFSNIT}}\n\nSom en del af et efterskoleår på Himmerlands Ungdomsskole deltager eleverne ugentligt i fællessang og fællesgymnastik. Begge fag udgør en del af efterskolelivet, hvor eleverne oplever nye sider af sig selv, flytter grænser og oplever, at deres bidrag til fællesskabet har betydning. I løbet af året optræder eleverne med fælleskor og gymnastikopvisninger.\n{{SANG_GYM_AFSNIT}}\n\nPå en efterskole er der mange praktiske opgaver. {{PRAKTISK_AFSNIT}}\n{{ELEV_FORNAVN}} har på Himmerlands Ungdomsskole været en del af en kontaktgruppe på {{KONTAKTGRUPPE_ANTAL}} elever. I kontaktgruppen kender vi {{HAM_HENDE}} som {{KONTAKTGRUPPE_BESKRIVELSE}}.\n\nVi har været rigtig glade for at have {{ELEV_FORNAVN}} som elev på skolen og ønsker {{HAM_HENDE}} held og lykke fremover.\n\n\n\n{{KONTAKTLÆRER_1_NAVN}} & {{KONTAKTLÆRER_2_NAVN}}     {{FORSTANDER_NAVN}}\nKontaktlærere                                                           Forstander\n"}}}};
+const EMBEDDED_DEMO_STUDENTS_CSV = `Fornavn,Efternavn,Unilogin,Køn,Klasse,Kontaktlærer1,Kontaktlærer2,Initialer for k-lærer1,Initialer for k-lærer2
+Yrsa,Dahl,u10000,k,9A,Qha Kbæk,Lel Rlund,QK,LR
+Zara,Zacho,u10001,k,10B,Tsa Ahavn,Vbo Nberg,TA,VN
+Clara,Gram,u10002,k,9B,Sro Pson,Hwa Dvang,SP,HD
+Åse,Rasmussen,u10003,k,10A,Mol Uskov,Kio Bberg,MU,KB
+Ægir,Østergaard,u10004,m,9B,Zka Rborg,Fel Wson,ZR,FW
+Ægir,Knudsen,u10005,m,9A,Jmi Llund,Nlu Pfelt,JL,NP
+Viggo,Iversen,u10006,m,9A,Gro Xlund,Cmi Bholm,GX,CB
+Silas,Jensen,u10007,m,10C,Osa Yson,Dwa Sholm,OY,DS
+Birk,Vestergaard,u10008,m,9B,Qci Kbæk,Lda Rfred,QK,LR
+Ida,Olsen,u10009,k,10C,Tfa Afelt,Vlu Nson,TA,VN
+Zara,Iversen,u10010,k,10C,Sti Pvang,Hfa Drød,SP,HD
+Øyvind,Holm,u10011,m,9B,Mmi Uborg,Kul Bzorn,MU,KB
+Silas,Holm,u10012,m,10C,Zyo Rdal,Fha Wdal,ZR,FW
+Karla,Mikkelsen,u10013,k,9C,Jgi Lskov,Nwa Peng,JL,NP
+Gro,Uldall,u10014,k,10A,Gul Xkrog,Cel Bborg,GX,CB
+Elin,Holm,u10015,k,10C,Oxe Yskov,Dno Sskov,OY,DS
+Maja,Larsen,u10016,k,9B,Qqu Kmark,Lci Rdal,QK,LR
+David,Enevold,u10017,m,10C,Tza Awulff,Vno Ntoft,TA,VN
+Clara,Mikkelsen,u10018,k,10A,Squ Pborg,Hro Dberg,SP,HD
+Zara,Zacho,u10019,k,9A,Myo Uvang,Kka Blund,MU,KB
+Jonas,Nielsen,u10020,m,9B,Zal Rborg,Fqu Wsen,ZR,FW
+Rosa,Dahl,u10021,k,10C,Jul Lnæs,Nti Pson,JL,NP
+Elin,Larsen,u10022,k,9B,Gti Xeng,Cpa Bberg,GX,CB
+David,Larsen,u10023,m,9C,Obo Ybæk,Dsa Sholm,OY,DS
+Clara,Zacho,u10024,k,10A,Qyo Krød,Lyo Rgaard,QK,LR
+Elin,Vestergaard,u10025,k,10A,Tio Anæs,Vti Nhavn,TA,VN
+Gro,Rasmussen,u10026,k,10C,Swa Pby,Hmi Dwulff,SP,HD
+Yrsa,Larsen,u10027,k,10A,Mda Ubæk,Kha Bholm,MU,KB
+Karla,Andersen,u10028,k,10B,Zsa Rbæk,Fal Wholm,ZR,FW
+Åse,Uldall,u10029,k,9A,Jci Ldal,Nka Pholm,JL,NP
+Rosa,Holm,u10030,k,9C,Ggi Xrød,Cel Bskov,GX,CB
+Tilde,Petersen,u10031,k,9B,Oza Yhavn,Dgi Slund,OY,DS
+David,Vestergaard,u10032,m,10A,Qno Khavn,Lol Rdal,QK,LR
+Zara,Uldall,u10033,k,10C,Tbo Afred,Vxe Neng,TA,VN
+David,Holm,u10034,m,9B,Sro Pkrog,Hel Dhavn,SP,HD
+Frej,Iversen,u10035,k,10A,Mci Ukrog,Kza Brød,MU,KB
+David,Bach,u10036,m,10C,Zci Rbæk,Ffa Whavn,ZR,FW
+Pelle,Petersen,u10037,m,9B,Jbo Lsen,Nmi Pberg,JL,NP
+Maja,Iversen,u10038,k,10A,Gno Xzorn,Cxe Brød,GX,CB
+Zara,Wulff,u10039,k,10A,Ogi Yby,Dgi Sdal,OY,DS
+Tilde,Zacho,u10040,k,10B,Qxe Keng,Lbo Rdal,QK,LR
+Tilde,Petersen,u10041,k,10B,Tbo Anæs,Vci Nsen,TA,VN
+Clara,Thomsen,u10042,k,9A,Smi Plund,Hsa Dbæk,SP,HD
+Tilde,Thomsen,u10043,k,9A,Mno Uwulff,Ksa Bskov,MU,KB
+Rosa,Knudsen,u10044,k,9C,Zvi Rzorn,Fka Wbæk,ZR,FW
+Ida,Mikkelsen,u10045,k,9B,Jol Leng,Nyo Pholm,JL,NP
+Asta,Olsen,u10046,k,10B,Gci Xrød,Cgi Bnæs,GX,CB
+Ida,Enevold,u10047,k,9C,Oha Yfelt,Djo Ssen,OY,DS
+Oline,Æbelø,u10048,k,10B,Qti Kvang,Lqu Rberg,QK,LR
+Zara,Æbelø,u10049,k,10B,Tvi Alund,Vel Nborg,TA,VN
+David,Dahl,u10050,m,10C,Sio Pby,Hti Dson,SP,HD
+Åse,Knudsen,u10051,k,9B,Mqu Umark,Kio Bdal,MU,KB
+Clara,Uldall,u10052,k,10A,Zbo Rberg,Fka Wgaard,ZR,FW
+Yrsa,Iversen,u10053,k,9B,Jro Lzorn,Nno Prød,JL,NP
+Asta,Dahl,u10054,k,9A,Gro Xdal,Clu Bskov,GX,CB
+Silas,Enevold,u10055,m,10A,Obo Yby,Dlu Sdal,OY,DS
+Lauge,Gram,u10056,m,10C,Qvi Klund,Llu Rrød,QK,LR
+Noah,Thomsen,u10057,m,10C,Tha Asen,Vza Nsen,TA,VN
+Noah,Andersen,u10058,m,9B,Sza Phavn,Hza Dwulff,SP,HD
+Øyvind,Østergaard,u10059,m,9B,Mfa Uzorn,Kda Bfred,MU,KB
+Birk,Petersen,u10060,m,9B,Zol Rfelt,Fjo Wbæk,ZR,FW
+Hjalte,Andersen,u10061,m,10C,Jmi Leng,Nio Pholm,JL,NP
+Ægir,Iversen,u10062,m,9C,Gvi Xrød,Cka Bberg,GX,CB
+David,Iversen,u10063,m,9B,Obo Ylund,Dti Shavn,OY,DS
+Lauge,Zacho,u10064,m,9C,Qti Knæs,Lda Rfred,QK,LR
+Tilde,Gram,u10065,k,9C,Twa Ahavn,Val Nnæs,TA,VN
+Silas,Vestergaard,u10066,m,10C,Slu Phavn,Hci Dwulff,SP,HD
+Karla,Thomsen,u10067,k,9C,Mxe Uby,Kqu Bby,MU,KB
+Zara,Nielsen,u10068,k,9C,Zwa Rby,Fro Wgaard,ZR,FW
+Gro,Nielsen,u10069,k,10C,Jvi Lsen,Nti Pskov,JL,NP
+Jonas,Mikkelsen,u10070,m,10B,Gjo Xby,Cgi Bhavn,GX,CB
+Tilde,Thomsen,u10071,k,10C,Ool Ykrog,Dol Swulff,OY,DS
+Gro,Qvist,u10072,k,10A,Qvi Kholm,Ljo Rnæs,QK,LR
+Zara,Uldall,u10073,k,10B,Tci Abæk,Vvi Nby,TA,VN
+Hjalte,Østergaard,u10074,m,9B,Sal Pdal,Hha Dmark,SP,HD
+Viggo,Åkesson,u10075,m,9A,Mno Uvang,Ksa Bson,MU,KB
+Åse,Wulff,u10076,k,10A,Zmi Rbæk,Fel Wvang,ZR,FW
+Åse,Andersen,u10077,k,9A,Jha Lsen,Nza Pzorn,JL,NP
+Rosa,Olsen,u10078,k,9A,Gda Xkrog,Cel Bkrog,GX,CB
+Zara,Qvist,u10079,k,10B,Oyo Ykrog,Dti Snæs,OY,DS
+Noah,Æbelø,u10080,m,10B,Qfa Kmark,Lol Rborg,QK,LR
+Ægir,Holm,u10081,m,10C,Tyo Anæs,Vpa Nvang,TA,VN
+Hjalte,Iversen,u10082,m,10A,Swa Pby,Hha Dborg,SP,HD
+Karla,Knudsen,u10083,k,10B,Mel Ugaard,Kha Bfred,MU,KB
+Åse,Enevold,u10084,k,10C,Zci Rhavn,Fno Weng,ZR,FW
+Silas,Olsen,u10085,m,10A,Jgi Lhavn,Nmi Pskov,JL,NP
+Åse,Andersen,u10086,k,10B,Gpa Xberg,Clu Bby,GX,CB
+Ægir,Mikkelsen,u10087,m,10A,Opa Ybæk,Dio Shavn,OY,DS
+Pelle,Andersen,u10088,m,10A,Qvi Kwulff,Lza Rfred,QK,LR
+Øyvind,Faber,u10089,m,10A,Tti Arød,Val Nfred,TA,VN
+Tilde,Sørensen,u10090,k,10C,Sci Pvang,Hno Dgaard,SP,HD
+Oline,Faber,u10091,k,9A,Mmi Ueng,Kgi Bkrog,MU,KB
+Karla,Knudsen,u10092,k,10A,Zyo Rhavn,Fio Wholm,ZR,FW
+Pelle,Andersen,u10093,m,10C,Jlu Lbæk,Nul Pholm,JL,NP
+Ægir,Uldall,u10094,m,9A,Gha Xson,Cal Btoft,GX,CB
+Elin,Holm,u10095,k,9B,Ovi Ylund,Dsa Sson,OY,DS
+Oline,Wulff,u10096,k,9C,Qfa Ktoft,Lti Rzorn,QK,LR
+David,Åkesson,u10097,m,9B,Tda Askov,Val Nby,TA,VN
+Tilde,Vestergaard,u10098,k,10A,Swa Pson,Hci Dskov,SP,HD
+Åse,Æbelø,u10099,k,10C,Mda Uzorn,Kyo Bby,MU,KB
+Zara,Thomsen,u10100,k,9A,Zlu Rrød,Fno Wwulff,ZR,FW
+Lauge,Carlsen,u10101,m,10B,Jal Lhavn,Npa Plund,JL,NP
+Noah,Larsen,u10102,m,10C,Gwa Xgaard,Cno Bsen,GX,CB
+Øyvind,Qvist,u10103,m,10C,Oti Yrød,Dyo Smark,OY,DS
+Oline,Nielsen,u10104,k,10C,Qka Kbæk,Lci Rborg,QK,LR
+Oline,Holm,u10105,k,10A,Tka Aberg,Vpa Neng,TA,VN
+Frej,Petersen,u10106,k,9B,Sza Pborg,Hka Dborg,SP,HD
+Viggo,Wulff,u10107,m,9C,Mqu Uson,Kci Bbæk,MU,KB
+Øyvind,Nielsen,u10108,m,10A,Zwa Rmark,Ful Wzorn,ZR,FW
+Pelle,Olsen,u10109,m,9A,Jjo Lbæk,Nmi Pzorn,JL,NP
+Hjalte,Jensen,u10110,m,10C,Gpa Xrød,Cqu Bfelt,GX,CB
+Noah,Zacho,u10111,m,10B,Olu Yzorn,Dol Sborg,OY,DS
+Jonas,Iversen,u10112,m,9B,Qxe Kson,Lka Rlund,QK,LR
+Øyvind,Rasmussen,u10113,m,10C,Tgi Ason,Vxe Nmark,TA,VN
+Ida,Zacho,u10114,k,10B,Sda Pson,Hjo Dbæk,SP,HD
+Lauge,Faber,u10115,m,9C,Mwa Urød,Kel Bborg,MU,KB
+Birk,Bach,u10116,m,10B,Zwa Rgaard,Ful Wmark,ZR,FW
+David,Andersen,u10117,m,10B,Jpa Lmark,Nol Peng,JL,NP
+Frej,Bach,u10118,k,9C,Gda Xholm,Cmi Bmark,GX,CB
+Clara,Sørensen,u10119,k,10C,Oel Ygaard,Dza Sskov,OY,DS
+Jonas,Carlsen,u10120,m,9B,Qro Khavn,Lti Rtoft,QK,LR
+Viggo,Holm,u10121,m,10B,Tol Akrog,Vjo Nskov,TA,VN
+Noah,Jensen,u10122,m,10B,Sti Plund,Hyo Dson,SP,HD
+Yrsa,Gram,u10123,k,9C,Mfa Ubæk,Kfa Brød,MU,KB
+Clara,Faber,u10124,k,9A,Zol Rzorn,Fti Wmark,ZR,FW
+Jonas,Bach,u10125,m,9B,Jwa Lby,Nwa Pkrog,JL,NP
+Clara,Vestergaard,u10126,k,9B,Gza Xvang,Csa Bwulff,GX,CB
+Gro,Nielsen,u10127,k,9A,Oul Ygaard,Dio Sgaard,OY,DS
+Clara,Bach,u10128,k,9B,Qti Kskov,Ljo Rkrog,QK,LR
+David,Olsen,u10129,m,10C,Twa Afred,Vio Nnæs,TA,VN
+Silas,Petersen,u10130,m,10A,Sti Pdal,Hno Deng,SP,HD
+Viggo,Iversen,u10131,m,9A,Mha Uwulff,Ksa Bskov,MU,KB
+Asta,Åkesson,u10132,k,10C,Zsa Rdal,Fyo Wsen,ZR,FW
+Pelle,Qvist,u10133,m,10C,Jio Lsen,Nsa Phavn,JL,NP
+Yrsa,Æbelø,u10134,k,10A,Gpa Xfelt,Cno Beng,GX,CB
+Karla,Vestergaard,u10135,k,9A,Oka Yhavn,Dwa Smark,OY,DS
+Jonas,Vestergaard,u10136,m,10A,Qol Kholm,Lka Rborg,QK,LR
+Karla,Dahl,u10137,k,10A,Tvi Arød,Vol Nhavn,TA,VN
+Birk,Gram,u10138,m,10B,Sti Pmark,Hul Dkrog,SP,HD
+Ægir,Bach,u10139,m,9B,Mro Ugaard,Kjo Bkrog,MU,KB
+Åse,Petersen,u10140,k,9A,Zul Rtoft,Fza Wbæk,ZR,FW
+Åse,Faber,u10141,k,9C,Jro Lhavn,Nci Pbæk,JL,NP
+David,Olsen,u10142,m,9A,Gpa Xzorn,Cjo Bnæs,GX,CB
+Åse,Iversen,u10143,k,10A,Opa Ybæk,Dol Srød,OY,DS
+Elin,Mikkelsen,u10144,k,9B,Qci Kborg,Lyo Rhavn,QK,LR
+Karla,Østergaard,u10145,k,10B,Tal Aby,Vxe Nby,TA,VN
+Tilde,Sørensen,u10146,k,10C,Sel Pkrog,Hro Dmark,SP,HD
+Lauge,Knudsen,u10147,m,10B,Mol Ueng,Kgi Bzorn,MU,KB
+Hjalte,Sørensen,u10148,m,10A,Zyo Rhavn,Fbo Weng,ZR,FW
+Øyvind,Petersen,u10149,m,10C,Jmi Lwulff,Nza Pvang,JL,NP
+Elin,Petersen,u10150,k,9A,Gqu Xskov,Cka Blund,GX,CB
+Oline,Dahl,u10151,k,10B,Oal Ygaard,Dno Svang,OY,DS`;
+
+
   const PRINT_HEADER_LOGO_DATAURL = 'data:image/png;base64,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';
 // Used for cache-busting verification in the UI.
   // If a browser still shows an older build id, it's caching an old app.js.
@@ -263,8 +420,8 @@ function resolveFullName(row) {
     sang: {
       "S1": {
         "title": "Sang – niveau 1",
-        "text_m": "{{FORNAVN}} har bidraget til fællessang på allerbedste vis. Med sangglæde, engagement og nysgerrighed har {{FORNAVN}} været en drivkraft i timerne og en inspiration for andre. {{FORNAVN}} har herigennem oplevet det fællesskab, som fællessang kan give.",
-        "text_k": "{{FORNAVN}} har bidraget til fællessang på allerbedste vis. Med sangglæde, engagement og nysgerrighed har {{FORNAVN}} været en drivkraft i timerne og en inspiration for andre. {{FORNAVN}} har herigennem oplevet det fællesskab, som fællessang kan give."
+        "text_m": "{{FORNAVN}} har bidraget til fællessang på allerbedste vis. Med sangglæde, engagement og nysgerrighed har {{FORNAVN}} været en drivkraft i timerne og en inspiration for andre, så de har oplevet det fællesskab, som fællessang kan give.",
+        "text_k": "{{FORNAVN}} har bidraget til fællessang på allerbedste vis. Med sangglæde, engagement og nysgerrighed har {{FORNAVN}} været en drivkraft i timerne og en inspiration for andre, så de har oplevet det fællesskab, som fællessang kan give."
       },
       "S2": {
         "title": "Sang – niveau 2",
@@ -280,35 +437,35 @@ function resolveFullName(row) {
     gym:  {
   "G1": {
     "title": "Meget engageret",
-    "text_m": "{{FORNAVN}} har deltaget meget engageret i fællesgymnastik og har vist stor lyst til at udfordre sig selv. {(HAN_HUN_CAP)} har bidraget positivt til holdets fællesskab.",
-    "text_k": "{{FORNAVN}} har deltaget meget engageret i fællesgymnastik og har vist stor lyst til at udfordre sig selv. {(HAN_HUN_CAP)} har bidraget positivt til holdets fællesskab."
+    "text_m": "{{FORNAVN}} har udvist stor interesse for fællesgymnastik, opvisningerne og skolens fællesskab heri. {{FORNAVN}} har udvist stor glæde ved at være en del af, og inddrage andre i fællesskabet og har gennem sin energiske deltagelse i timerne og opvisningerne vist stort engagement, hvilket har virket som en stor drivkraft og motivator for skolens andre elever.",
+    "text_k": "{{FORNAVN}} har udvist stor interesse for fællesgymnastik, opvisningerne og skolens fællesskab heri. {{FORNAVN}} har udvist stor glæde ved at være en del af, og inddrage andre i fællesskabet og har gennem sin energiske deltagelse i timerne og opvisningerne vist stort engagement, hvilket har virket som en stor drivkraft og motivator for skolens andre elever."
   },
   "G2": {
     "title": "Stabil deltagelse",
-    "text_m": "{{FORNAVN}} har deltaget stabilt i fællesgymnastik og har mødt undervisningen med en positiv indstilling.",
-    "text_k": "{{FORNAVN}} har deltaget stabilt i fællesgymnastik og har mødt undervisningen med en positiv indstilling."
+    "text_m": "{{FORNAVN}} har udvist interesse for fællesgymnastik, opvisningerne og for at lære og dygtiggøre sig. {{FORNAVN}} har gennem sin deltagelse i timerne og opvisningerne bidraget positivt og meget aktivt til det store fællesskab.",
+    "text_k": "{{FORNAVN}} har udvist interesse for fællesgymnastik, opvisningerne og for at lære og dygtiggøre sig. {{FORNAVN}} har gennem sin deltagelse i timerne og opvisningerne bidraget positivt og meget aktivt til det store fællesskab."
   },
   "G3": {
     "title": "Varierende deltagelse",
-    "text_m": "{{FORNAVN}} har haft en varierende deltagelse i fællesgymnastik, men har i perioder vist vilje til at indgå i fællesskabet.",
-    "text_k": "{{FORNAVN}} har haft en varierende deltagelse i fællesgymnastik, men har i perioder vist vilje til at indgå i fællesskabet."
+    "text_m": "{{FORNAVN}} har deltaget aktivt i fællesgymnastik og opvisninger. {{FORNAVN}} har lært alle skolens obligatoriske serier, hvilket har bidraget positivt til opvisningerne og fællesskabet.",
+    "text_k": "{{FORNAVN}} har deltaget aktivt i fællesgymnastik og opvisninger. {{FORNAVN}} har lært alle skolens obligatoriske serier, hvilket har bidraget positivt til opvisningerne og fællesskabet."
   }
 },
     roller: {
   "FANEBÆRER": {
     "title": "Fanebærer",
-    "text_m": "{{FORNAVN}} har været udtaget som fanebærer til skolens fælles gymnastikopvisninger. Et hverv {{HAN_HUN}} har varetaget ansvarsfuldt og respektfuldt.",
-    "text_k": "{{FORNAVN}} har været udtaget som fanebærer til skolens fælles gymnastikopvisninger. Et hverv {{HAN_HUN}} har varetaget ansvarsfuldt og respektfuldt."
+    "text_m": "{{FORNAVN}} har været udtaget som en af skolens fanebærere til de fælles gymnastikopvisninger. Et hverv {(HAN_HUN)} fuldt ud har opfyldt, både ansvarsfuldt og respektfuldt. {{FORNAVN}} har som fanebærer repræsenteret skolen og dens værdier på fornemmeste vis.",
+    "text_k": "{{FORNAVN}} har været udtaget som en af skolens fanebærere til de fælles gymnastikopvisninger. Et hverv {(HAN_HUN)} fuldt ud har opfyldt, både ansvarsfuldt og respektfuldt. {{FORNAVN}} har som fanebærer repræsenteret skolen og dens værdier på fornemmeste vis."
   },
   "REDSKAB": {
     "title": "Redskabshold",
-    "text_m": "{{FORNAVN}} har været en del af redskabsholdet, som {{HAN_HUN}} frivilligt har meldt sig til. {(HAN_HUN_CAP)} har ydet en stor indsats og taget ansvar.",
-    "text_k": "{{FORNAVN}} har været en del af redskabsholdet, som {{HAN_HUN}} frivilligt har meldt sig til. {(HAN_HUN_CAP)} har ydet en stor indsats og taget ansvar."
+    "text_m": "{{FORNAVN}} har været en del af redskabsholdet, som {(HAN_HUN)} frivilligt har meldt sig til. {(HAN_HUN_CAP)} har været en stor hjælp og ydet en kæmpe indsats for at lykkes med skolens opvisninger. {{FORNAVN}} har i den forbindelse vist stort initiativ og ansvar, samt evnen til at løse praktiske problemstillinger på egen hånd.",
+    "text_k": "{{FORNAVN}} har været en del af redskabsholdet, som {(HAN_HUN)} frivilligt har meldt sig til. {(HAN_HUN_CAP)} har været en stor hjælp og ydet en kæmpe indsats for at lykkes med skolens opvisninger. {{FORNAVN}} har i den forbindelse vist stort initiativ og ansvar, samt evnen til at løse praktiske problemstillinger på egen hånd."
   },
   "DGI": {
     "title": "DGI-instruktør",
-    "text_m": "{{FORNAVN}} har deltaget aktivt i skolens frivillige samarbejde med foreningslivet og har vist engagement og ansvar.",
-    "text_k": "{{FORNAVN}} har deltaget aktivt i skolens frivillige samarbejde med foreningslivet og har vist engagement og ansvar."
+    "text_m": "{{FORNAVN}} har deltaget aktivt i skolens frivillige samarbejde med Haubro IF, hvor {(HAN_HUN)} har trænet gymnastikholdet for skolebørnene, sideløbende med at {(HAN_HUN)} har taget DGI’s gymnastikuddannelse på skolen. {{FORNAVN}} har vist interesse og engagement for det frivillige foreningsarbejde, {(HAN_HUN)} har ydet en stor indsats i foreningens arbejde og taget det fornødne ansvar.",
+    "text_k": "{{FORNAVN}} har deltaget aktivt i skolens frivillige samarbejde med Haubro IF, hvor {(HAN_HUN)} har trænet gymnastikholdet for skolebørnene, sideløbende med at {(HAN_HUN)} har taget DGI’s gymnastikuddannelse på skolen. {{FORNAVN}} har vist interesse og engagement for det frivillige foreningsarbejde, {(HAN_HUN)} har ydet en stor indsats i foreningens arbejde og taget det fornødne ansvar."
   }
 },
     elevraad: {
@@ -438,6 +595,19 @@ function normalizeOverrideDeep(obj){
 
 
 async function loadRemoteOverrides(){
+  if (location && location.protocol === 'file:' && EMBEDDED_FILE_OVERRIDES) {
+    const pack = EMBEDDED_FILE_OVERRIDES;
+    const tplPack = unwrapOverridePack(pack.templates);
+    const tplObj = (tplPack && tplPack.templates) ? tplPack.templates : tplPack;
+    REMOTE_OVERRIDES = {
+      sang: normalizeOverrideDeep(unwrapOverridePack(pack.sang)),
+      gym: normalizeOverrideDeep(unwrapOverridePack(pack.gym)),
+      elevraad: normalizeOverrideDeep(unwrapOverridePack(pack.elevraad)),
+      templates: normalizeOverrideDeep(tplObj),
+    };
+    stampOverridesFetched();
+    return;
+  }
   const [sang, gym, elevraad, templates] = await Promise.all([
     fetchJsonIfExists(REMOTE_OVERRIDE_FILES.sang),
     fetchJsonIfExists(REMOTE_OVERRIDE_FILES.gym),
@@ -4597,6 +4767,36 @@ function tooltipTextFor(st, scope, key){
 
 
 async function loadDemoStudentsCsv() {
+  if (location && location.protocol === 'file:' && EMBEDDED_DEMO_STUDENTS_CSV) {
+    const csvText = EMBEDDED_DEMO_STUDENTS_CSV;
+    // When running from file://, fetch() is blocked by CORS for local files.
+    // Use the same CSV->students pipeline as normal import, but with the embedded CSV.
+    const parsed = parseCsv(csvText);
+    const map = mapStudentHeaders(parsed.headers);
+    const required = ['fornavn','efternavn','klasse'];
+    if (!required.every(r => map[r])) {
+      alert('Kunne ikke finde de nødvendige kolonner (fornavn, efternavn, klasse) i demo_students.csv.');
+      return;
+    }
+    const teacherOverrides = buildTeacherOverrideMap(parsed.rows, map);
+    const studentsRaw = parsed.rows.map(r => normalizeStudentRow(r, map, teacherOverrides));
+    const students = canonicalizeTeacherInitials(studentsRaw);
+    setStudents(students);
+    renderSettings();
+    renderStatus();
+    if (state.tab === 'k') renderKList();
+    if (state.tab === 'edit') renderEdit();
+    if (state.tab === 'set') renderMarksTable();
+	    // Some builds don't include a toast helper. Don't crash demo-load because of it.
+	    if (typeof showToast === 'function') {
+	      showToast('Demo indlæst (embedded).', 'ok');
+	    } else {
+	      console.log('Demo indlæst (embedded).');
+	      const statusEl = document.getElementById('importStatus');
+	      if (statusEl) statusEl.textContent = '✅ Demo indlæst.';
+	    }
+    return;
+  }
   const candidates = [
     'demo_students.csv',
     '/demo_students.csv',
