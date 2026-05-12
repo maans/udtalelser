@@ -1,18 +1,18 @@
 {
   "schema": "hu-elevudtalelser-snippets-override@1",
   "scope": "sang",
-  "author": "",
-  "createdAt": "2025-12-29",
+  "author": "MM",
+  "createdAt": "2026-05-12",
   "payload": {
     "sang": {
       "items": {
         "S1": {
           "label": "Sang – niveau 1",
-          "text": "{{FORNAVN}} har bidraget til fællessang på allerbedste vis. Med sangglæde, engagement og nysgerrighed har {{FORNAVN}} været en drivkraft i timerne og en inspiration for andre, så de har oplevet det fællesskab, som fællessang kan give."
+          "text": "{{FORNAVN}} har bidraget til fællessang på allerbedste vis. Med sangglæde, engagement og nysgerrighed har {{FORNAVN}} været en drivkraft i timerne og en inspiration for andre."
         },
         "S2": {
           "label": "Sang – niveau 2",
-          "text": "{{FORNAVN}} har med godt humør bidraget til fællessang og kor og har derigennem vist sangglæde og åbenhed og fået kendskab til nye sange. {{FORNAVN}} har oplevet det fællesskab, som fællessang kan give."
+          "text": "{{FORNAVN}} har med godt humør bidraget til fællessang og kor og har derigennem vist sangglæde og åbenhed og fået kendskab til nye sange."
         },
         "S3": {
           "label": "Sang – niveau 3",
