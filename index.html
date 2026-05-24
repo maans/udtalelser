@@ -8,6 +8,8 @@
 <!-- SAFE453z: Fullscreen-knappen skjules ikke længere bare fordi Chrome rapporterer standalone/PWA. Den vises hvis requestFullscreen-metode findes. -->
 <!-- SAFE455u: Link/iframe-widget: iframe aktiveres stabilt i max/fokus, toolbar forenkles yderligere, linkkort poleres. Bygger på SAFE455t. -->
 <!-- SAFE455uG: LinkWidget LinkListe-knap får mere sigende ikon (☰) for at undgå forveksling med generel datakilde-🔗. -->
+<!-- SAFE455uH17: HTML/TiddlyWiki fra IndexedDB autoloades ikke; tung TW vises som manuel placeholder og eksporteres som rå Blob. -->
+<!-- SAFE455uH16: TiddlyWiki-demoliste udvidet med sikker download/import-vejledning til HTMLWidget. -->
 
 <!--
 SCRIPT-KORT / LOAD-RÆKKEFØLGE
@@ -6522,6 +6524,25 @@ body.draggingPayload #app::after{
 .widget[data-type="html"] .htmlTools button.active{background:#4f46e5!important;color:white!important}
 .widget[data-type="html"] iframe{width:100%;height:100%;border:0;background:white;flex:1}
 .widget[data-type="html"] textarea{width:100%;height:100%;flex:1;border:0;padding:14px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:14px;line-height:1.35;resize:none;box-sizing:border-box;background:#0f172a;color:#f8fafc}
+
+/* SAFE455uH17: Tunge HTML/TiddlyWiki-filer fra IndexedDB indlæses manuelt for at undgå opstartslås. */
+.widget[data-type="html"] .htmlHeavyPlaceholder{
+  height:100%;
+  display:grid;
+  place-content:center;
+  gap:12px;
+  padding:24px;
+  text-align:center;
+  background:#0f172a;
+  color:#f8fafc;
+  font-weight:800;
+}
+.widget[data-type="html"] .htmlHeavyTitle{font-size:clamp(20px,2.5vw,34px);font-weight:950}
+.widget[data-type="html"] .htmlHeavyText{max-width:720px;line-height:1.35;opacity:.86}
+.widget[data-type="html"] .htmlHeavyActions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.widget[data-type="html"] .htmlHeavyActions button{border:0;border-radius:999px;padding:10px 14px;font-weight:900;background:#e5e7eb;color:#111827}
+.widget[data-type="html"] .htmlHeavyActions .htmlHeavyLoad{background:#6d5dfc;color:white}
+.widget[data-type="html"] .htmlHeavyNote{font-size:12px;opacity:.72;line-height:1.25}
 
 
 
@@ -25153,16 +25174,30 @@ if(w.type==='poll'){
   const isTwMode=!!(w.data&&(w.data.twMode==='tiddlywiki'||w.data.isTiddlyWiki||hasTwSaveRef));
   const safe455hHtmlZoom=Math.max(0.5,Math.min(3,Number(w.data.htmlZoom||1)));
   const safe455hHtmlIframeStyle=`transform:scale(${safe455hHtmlZoom});transform-origin:0 0;width:${100/safe455hHtmlZoom}%;height:${100/safe455hHtmlZoom}%;`;
-  c.innerHTML=`<div class="htmlBox ${isTwMode?'htmlTiddlyWikiMode':''}" data-html-zoom="${esc(String(safe455hHtmlZoom))}">
-    ${isEdit
-      ? `<textarea spellcheck="false">${esc(hasTwSaveRef?'Indlæser gemt HTML/TiddlyWiki fra arkiv…':(w.data.html||''))}</textarea>`
-      : `<div class="htmlFrameWrap"><iframe style="${esc(safe455hHtmlIframeStyle)}" sandbox="allow-scripts allow-forms allow-popups allow-modals allow-same-origin"></iframe><div class="htmlShield"></div></div>`}
+  window.__safe455h17HtmlLoadedRefs=window.__safe455h17HtmlLoadedRefs||{};
+  const safe455h17Ref=String((w.data&&w.data.srcMediaRef)||'');
+  const safe455h17SessionLoaded=!safe455h17Ref || !!window.__safe455h17HtmlLoadedRefs[safe455h17Ref];
+  const safe455h17ManualHeavy=!!(hasTwSaveRef && isTwMode && !safe455h17SessionLoaded);
+  const safe455h17Placeholder=`<div class="htmlHeavyPlaceholder">
+      <div class="htmlHeavyTitle">HTML/TiddlyWiki er gemt i arkivet</div>
+      <div class="htmlHeavyText">Denne fil kan være tung. Den indlæses derfor ikke automatisk ved opstart, så TavleAppen ikke låser. Vælg Indlæs, når du vil arbejde med den.</div>
+      <div class="htmlHeavyActions"><button type="button" class="htmlHeavyLoad">Indlæs HTML/TiddlyWiki</button><button type="button" class="htmlHeavyDownload">Hent som enkelt HTML-fil</button></div>
+      <div class="htmlHeavyNote">Eksporten skriver den gemte fil råt ud igen – ikke browserens “Gem side som…”.</div>
+    </div>`;
+  c.innerHTML=`<div class="htmlBox ${isTwMode?'htmlTiddlyWikiMode':''} ${safe455h17ManualHeavy?'htmlHeavyManual':''}" data-html-zoom="${esc(String(safe455hHtmlZoom))}">
+    ${safe455h17ManualHeavy
+      ? safe455h17Placeholder
+      : (isEdit
+        ? `<textarea spellcheck="false">${esc(hasTwSaveRef?'Indlæser gemt HTML/TiddlyWiki fra arkiv…':(w.data.html||''))}</textarea>`
+        : `<div class="htmlFrameWrap"><iframe style="${esc(safe455hHtmlIframeStyle)}" sandbox="allow-scripts allow-forms allow-popups allow-modals allow-same-origin"></iframe><div class="htmlShield"></div></div>`)}
   </div>`;
   const setMode=(mode)=>{w.data.mode=mode;el.classList.remove('htmlInteractive');fillContent(el,w);save()};
   const prev=c.querySelector('.htmlPreview');
   const edit=c.querySelector('.htmlEdit');
   const dl=c.querySelector('.htmlDownload');
   const interact=c.querySelector('.htmlInteract');
+  const heavyLoadBtn=c.querySelector('.htmlHeavyLoad');
+  const heavyDownloadBtn=c.querySelector('.htmlHeavyDownload');
   function safe455aIsLikelyTiddlyWiki(html){
     const txt=String(html||'').slice(0,250000).toLowerCase();
     return txt.indexOf('tiddlywiki')>=0 || txt.indexOf('$:/core/save/all')>=0 || txt.indexOf('window.$tw')>=0 || txt.indexOf('$tw.boot')>=0;
@@ -25198,11 +25233,38 @@ if(w.type==='poll'){
       }).catch(err=>{console.warn('SAFE455a HTML srcMediaRef read failed',err);cb(String(w.data.html||''));});
     }else cb(String(w.data.html||''));
   }
-  function safe455aDownloadActiveHtml(){
-    safe455aReadActiveHtml(code=>{
-      downloadDataUrl('data:text/html;charset=utf-8,'+encodeURIComponent(code||''),w.data.name||w.title||'side.html');
-    });
+  function safe455h17DownloadBlob(blob,name){
+    try{
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');
+      a.href=url; a.download=name||'side.html';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(()=>{try{URL.revokeObjectURL(url)}catch(_e){}},1500);
+    }catch(err){
+      console.warn('SAFE455uH17 download blob failed',err);
+      try{toast('Kunne ikke hente HTML-filen');}catch(_e){}
+    }
   }
+  function safe455aDownloadActiveHtml(){
+    const ref=w.data&&w.data.srcMediaRef;
+    const a=window.TavleMediaArchive;
+    const name=w.data.name||w.title||'side.html';
+    if(ref&&a&&typeof a.getBlob==='function'){
+      a.getBlob(ref).then(blob=>{
+        if(blob){safe455h17DownloadBlob(blob,name);return;}
+        safe455h17DownloadBlob(new Blob([String(w.data.html||'')],{type:'text/html;charset=utf-8'}),name);
+      }).catch(err=>{console.warn('SAFE455uH17 HTML raw export failed',err);safe455h17DownloadBlob(new Blob([String(w.data.html||'')],{type:'text/html;charset=utf-8'}),name);});
+      return;
+    }
+    safe455h17DownloadBlob(new Blob([String(w.data.html||'')],{type:'text/html;charset=utf-8'}),name);
+  }
+  if(heavyLoadBtn)heavyLoadBtn.onclick=e=>{
+    e.preventDefault();e.stopPropagation();
+    if(safe455h17Ref)window.__safe455h17HtmlLoadedRefs[safe455h17Ref]=true;
+    try{toast('Indlæser HTML/TiddlyWiki…');}catch(_e){}
+    setTimeout(()=>fillContent(el,w),20);
+  };
+  if(heavyDownloadBtn)heavyDownloadBtn.onclick=e=>{e.preventDefault();e.stopPropagation();safe455aDownloadActiveHtml();};
   if(prev)prev.onclick=e=>{e.stopPropagation();setMode('preview')};
   if(edit)edit.onclick=e=>{e.stopPropagation();setMode('edit')};
   if(dl)dl.onclick=e=>{e.stopPropagation();safe455aDownloadActiveHtml()};
@@ -30300,6 +30362,15 @@ function safe453i71CreateNewLinkList(w){
 /* SAFE453i72: Demolister med undervisningsvenlige hjemmesider til link/iframe-widgetten. */
 const SAFE453I72_LINK_DEMOS=[
   {
+    name:'TiddlyWiki',
+    desc:'Tom wiki, officiel hjælp og kort importvejledning: hent/gem TiddlyWiki med dens egen save/download-metode og importer HTML-filen som HTMLWidget i TavleAppen.',
+    rows:[
+      ['TiddlyWiki · tom version','https://tiddlywiki.com/empty.html','Åbn den tomme officielle wiki. Brug TiddlyWikis egen gem/download-knap til at hente en korrekt single-file HTML. Brug ikke browserens “Gem side som…”.'],
+      ['TiddlyWiki · sådan gemmes den korrekt','https://tiddlywiki.com/static/Saving%2520with%2520the%2520HTML5%2520saver.html','Forklarer den indbyggede HTML5-saver. Når filen er hentet, kan den importeres i TavleAppen som HTMLWidget.'],
+      ['TiddlyWiki · referencer og guides','https://tiddlywiki.com/','Officiel dokumentation, guides og referencer. Brug denne som opslags- og inspirationsside.']
+    ]
+  },
+  {
     name:'Simuleringer og matematik',
     desc:'Interaktive fagværktøjer, som ofte fungerer godt i iframe og kan bruges direkte på tavlen.',
     rows:[
@@ -31901,7 +31972,9 @@ function showQuickHelp(){
           <li>Brug knappen i widget-bjælken til at skifte mellem webvisning og tekst/redigering.</li>
           <li>Klik eller tap i webvisningen for at bruge den indlejrede side. Brug <b>Esc</b> eller klik uden for widgetten for at komme tilbage til tavlen.</li>
           <li>Zoomknapperne i widget-bjælken ændrer visningen og huskes for den enkelte HTML-widget.</li>
-          <li><b>TiddlyWiki</b> kan gemme sine ændringer direkte i TavleAppens lokale lagring og bevare sine ændringer mellem sessioner.</li>
+          <li><b>TiddlyWiki</b> bør hentes med TiddlyWikis egen download/save-metode og derefter importeres som HTMLWidget. Brug ikke browserens “Gem side som…”.</li>
+          <li>Store HTML-/TiddlyWiki-filer indlæses sikkert med manuel start, så appen ikke låser ved opstart.</li>
+          <li>Når du henter en HTML-/TiddlyWiki-fil ud fra TavleAppen, eksporteres den rå gemte fil igen som HTML.</li>
           <li>Når en HTML-/TiddlyWiki-widget slettes permanent, ryddes dens gemte medie også, hvis det ikke bruges af andre widgets.</li>
         </ul>
       </div>
@@ -31939,9 +32012,12 @@ function showQuickHelp(){
       <div class="answer">
         <ul>
           <li><b>Shift+Q</b> opretter KaPardy.</li>
-          <li>Der er tre spilformer: <b>Kahoot</b>, <b>Jeopardy</b> og <b>Mester</b>.</li>
-          <li>Når KaPardy er aktiv, vælger <b>K</b>, <b>J</b> og <b>M</b> spilform.</li>
+          <li>Der er fire spilformer: <b>Kahoot</b>, <b>Jeopardy</b>, <b>Mester</b> og <b>Mix</b>.</li>
+          <li><b>Mix</b> blander spilformerne, så samme spørgebank kan bruges mere varieret.</li>
+          <li>Når KaPardy er aktiv, vælger <b>K</b>, <b>J</b> og <b>M</b> spilform. Mix vælges fra KaPardy-widgettens egne knapper.</li>
           <li>I Kahoot bruges <b>1–4</b> til svar. I Jeopardy/Mester bruges <b>1/R</b>, <b>2/H</b>, <b>3/F</b> til rigtigt, halvt og forkert.</li>
+          <li>Du kan vælge at skjule point undervejs, hvis spillet skal føles mindre konkurrencepræget.</li>
+          <li><b>AI-promptgeneratoren</b> hjælper med at lave spørgsmål i et format, der kan importeres tilbage i KaPardy.</li>
           <li>Importér gerne fra CSV/Excel via Datawidget. Første svar er det korrekte svar.</li>
         </ul>
       </div>
@@ -32022,7 +32098,7 @@ function showQuickHelp(){
   </div>
 
   <div class="helpPager">
-    <span>Hurtigst i gang: N · Shift+A · Shift+I · P/R · F · Shift+T · D · Mellemrum · I Hjælp: → næste/åbn · ← forrige/luk undervejs · ↑/↓ scroll · Enter skifter · Mellemrum åbner Mere</span>
+    <span>Hurtigst i gang: N · Shift+A · Shift+I · P/R · F · Shift+T · D · Mellemrum · I Hjælp: → næste/åbn · ← forrige/luk undervejs · ↑/↓ scroll · Enter skifter · Esc lukker</span>
     <button id="closeHelp">Luk</button>
   </div>`);
   modal.querySelector('#closeHelp').onclick=closeModal;
