@@ -80,7 +80,7 @@ SCRIPT-KORT / LOAD-RÆKKEFØLGE
 
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Interaktiv tavle v1.2.45 SAFE455u</title>
+<title>Interaktiv tavle v1.2.45 SAFE455uH14</title>
 <meta name="application-name" content="Interaktiv tavle">
 <meta name="apple-mobile-web-app-title" content="Interaktiv tavle">
 <meta name="theme-color" content="#1f2937">
@@ -31752,6 +31752,14 @@ function wireQuickPinButton(){
 
 function showQuickHelp(){
   showModal(`<h2>Hjælp</h2>
+
+  <style id="safe455uH12-help-scroll-guard-css">
+    #modal:has(#closeHelp){
+      overscroll-behavior:contain!important;
+      -webkit-overflow-scrolling:auto!important;
+      scroll-behavior:auto!important;
+    }
+  </style>
   <style id="safe455a-help-manual-css">
     .helpQuickStart{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:10px 0 12px}
     .helpQuickCard{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:10px 12px;line-height:1.3}
@@ -32014,7 +32022,7 @@ function showQuickHelp(){
   </div>
 
   <div class="helpPager">
-    <span>Hurtigst i gang: N · Shift+A · Shift+I · P/R · F · Shift+T · D · Mellemrum · I Hjælp: ↑↓ scroll · ←→ sektion · Mellemrum åbner Mere</span>
+    <span>Hurtigst i gang: N · Shift+A · Shift+I · P/R · F · Shift+T · D · Mellemrum · I Hjælp: → næste/åbn · ← forrige/luk undervejs · ↑/↓ scroll · Enter skifter · Mellemrum åbner Mere</span>
     <button id="closeHelp">Luk</button>
   </div>`);
   modal.querySelector('#closeHelp').onclick=closeModal;
@@ -32040,15 +32048,36 @@ function showQuickHelp(){
       try{tools[safe455bHelpWidgetIndex].focus({preventScroll:true});}catch(_e){}
     }
   }
-  function safe455bMoveHelpSection(delta){
+  function safe455bMoveHelpSection(delta,opts){
     if(!safe455bHelpSections.length)return;
+    opts=opts||{};
     safe455bHelpSectionIndex=Math.max(0,Math.min(safe455bHelpSections.length-1,safe455bHelpSectionIndex+delta));
     safe455bHelpWidgetIndex=-1;
     const sec=safe455bHelpSections[safe455bHelpSectionIndex];
     if(sec){
-      sec.open=true;
+      if(opts.open!==false)sec.open=true;
       safe455bMarkHelp();
-      try{sec.scrollIntoView({block:'start',behavior:'smooth'});}catch(_e){sec.scrollIntoView();}
+      // SAFE455uH13: scroll-hjælperne lå tidligere kun inde i keyhandlerens scope.
+      // Derfor blev næste sektion åbnet, men ikke scrollet ind i synligt felt.
+      const after=function(fn){
+        try{requestAnimationFrame(function(){requestAnimationFrame(fn);});}
+        catch(_e){setTimeout(fn,0);}
+      };
+      after(function(){
+        try{
+          // SAFE455uH14: Når en sektion åbnes, skal sektionstitlen stå øverst.
+          // Når en sektion er lukket, skal dens titel stå nederst i modalens synlige felt.
+          const title=sec.querySelector('summary')||sec;
+          const max=Math.max(0,(modal.scrollHeight||0)-(modal.clientHeight||0));
+          const top=title.offsetTop||sec.offsetTop||0;
+          const h=title.offsetHeight||42;
+          let target=(opts.place==='bottom')?top-(modal.clientHeight||500)+h+12:top-8;
+          target=Math.max(0,Math.min(max,target));
+          modal.scrollTo({top:target,behavior:'auto'});
+        }catch(_e){
+          try{(sec.querySelector('summary')||sec).scrollIntoView({block:(opts.place==='bottom'?'end':'start'),behavior:'auto'});}catch(_x){}
+        }
+      });
     }
   }
   function safe455bCycleHelpWidget(delta){
@@ -32064,7 +32093,7 @@ function showQuickHelp(){
   }
   window.__safe455bHelpKeyHandler=function(e){
     if(!safe455bHelpIsOpen()){
-      try{document.removeEventListener('keydown', window.__safe455bHelpKeyHandler, true);}catch(_e){}
+      try{document.removeEventListener('keydown', window.__safe455bHelpKeyHandler, true);window.removeEventListener('keydown', window.__safe455bHelpKeyHandler, true);modal.removeEventListener('keydown', window.__safe455bHelpKeyHandler, true);}catch(_e){}
       window.__safe455bHelpKeyHandler=null;
       return;
     }
@@ -32074,26 +32103,108 @@ function showQuickHelp(){
     // SAFE455n12d: I Hjælp skal piletasterne stadig styre Hjælp, selv hvis checkboxen
     // "Vis kontekstuelle hints" har fokus. Almindelige tekstfelter bevarer andre taster.
     if(typing && !helpArrowKey)return;
-    if(e.key==='ArrowDown'||e.key==='ArrowUp'){
-      e.preventDefault();e.stopPropagation();if(e.stopImmediatePropagation)e.stopImmediatePropagation();
-      const dy=e.key==='ArrowDown'?120:-120;
-      try{modal.scrollBy({top:dy,behavior:'smooth'});}catch(_e){modal.scrollTop+=dy;}
-      return;
+    function safe455bSyncHelpIndex(){
+      try{
+        const cur=modal.querySelector('.safe455bHelpSectionCurrent');
+        const i=cur?safe455bHelpSections.indexOf(cur):-1;
+        if(i>=0)safe455bHelpSectionIndex=i;
+      }catch(_e){}
     }
-    if(e.key==='ArrowRight'||e.key==='ArrowLeft'){
+    function safe455bAfterHelpLayout(fn){
+      try{requestAnimationFrame(function(){requestAnimationFrame(fn);});}
+      catch(_e){setTimeout(fn,0);}
+    }
+    function safe455bClampHelpScroll(){
+      try{
+        const max=Math.max(0,(modal.scrollHeight||0)-(modal.clientHeight||0));
+        let y=Number(modal.scrollTop||0);
+        if(!isFinite(y)||y<0)y=0;
+        if(y>max)y=max;
+        if(Math.abs((modal.scrollTop||0)-y)>0.5)modal.scrollTop=y;
+      }catch(_e){}
+    }
+    function safe455bScrollHelp(delta){
+      try{
+        const box=modal;
+        safe455bClampHelpScroll();
+        const amount=Math.max(42, Math.round((box.clientHeight||500)*0.32));
+        const max=Math.max(0,(box.scrollHeight||0)-(box.clientHeight||0));
+        const next=Math.max(0,Math.min(max,(box.scrollTop||0)+delta*amount));
+        box.scrollTo({top:next,behavior:'auto'});
+        safe455bAfterHelpLayout(safe455bClampHelpScroll);
+      }catch(_e){try{modal.scrollTop=Math.max(0,modal.scrollTop+(delta*160));safe455bAfterHelpLayout(safe455bClampHelpScroll);}catch(_x){}}
+    }
+    function safe455bScrollSection(sec,place){
+      if(!sec)return;
+      try{
+        safe455bClampHelpScroll();
+        // SAFE455uH14: Brug summary/sektionstitlen som anker, ikke hele details-højden.
+        // Åben sektion: titel øverst. Lukket/forladt sektion: titel nederst.
+        const title=sec.querySelector('summary')||sec;
+        const max=Math.max(0,(modal.scrollHeight||0)-(modal.clientHeight||0));
+        const top=title.offsetTop||sec.offsetTop||0;
+        const h=title.offsetHeight||42;
+        let target=top-8;
+        if(place==='bottom')target=top-(modal.clientHeight||500)+h+12;
+        target=Math.max(0,Math.min(max,target));
+        modal.scrollTo({top:target,behavior:'auto'});
+        safe455bAfterHelpLayout(safe455bClampHelpScroll);
+      }catch(_e){try{(sec.querySelector('summary')||sec).scrollIntoView({block:place==='bottom'?'end':'start',behavior:'auto'});safe455bAfterHelpLayout(safe455bClampHelpScroll);}catch(_x){}}
+    }
+    if(e.key==='ArrowDown'||e.key==='ArrowUp'){
+      // SAFE455uH10: Op/ned skal scrolle Hjælp-modalens indhold og må ikke nå tavlens widget-navigation bagved.
       e.preventDefault();e.stopPropagation();if(e.stopImmediatePropagation)e.stopImmediatePropagation();
-      safe455bMoveHelpSection(e.key==='ArrowRight'?1:-1);
-      return;
+      safe455bScrollHelp(e.key==='ArrowDown'?1:-1);
+      return false;
+    }
+    if(e.key==='ArrowRight'){
+      e.preventDefault();e.stopPropagation();if(e.stopImmediatePropagation)e.stopImmediatePropagation();
+      // Højre: åbn den aktuelle sektion først; hvis den allerede er åben, gå ned til næste og åbn den.
+      safe455bSyncHelpIndex();
+      const current=safe455bHelpSections[safe455bHelpSectionIndex];
+      if(current && !current.open){
+        current.open=true;
+        safe455bHelpWidgetIndex=-1;
+        safe455bMarkHelp();
+        safe455bAfterHelpLayout(function(){safe455bScrollSection(current,'top');});
+      }else{
+        safe455bMoveHelpSection(1,{open:true,place:'top'});
+      }
+      return false;
+    }
+    if(e.key==='ArrowLeft'){
+      e.preventDefault();e.stopPropagation();if(e.stopImmediatePropagation)e.stopImmediatePropagation();
+      // Venstre: luk den sektion, man forlader, gå opad, og hold den lukkede sektion nederst i visningen.
+      safe455bSyncHelpIndex();
+      const leaving=safe455bHelpSections[safe455bHelpSectionIndex];
+      if(leaving)leaving.open=false;
+      if(safe455bHelpSections.length){
+        safe455bHelpSectionIndex=Math.max(0,safe455bHelpSectionIndex-1);
+        safe455bHelpWidgetIndex=-1;
+        safe455bMarkHelp();
+        safe455bAfterHelpLayout(function(){
+          if(leaving)safe455bScrollSection(leaving,'bottom');
+          else safe455bClampHelpScroll();
+        });
+      }
+      return false;
     }
     if(e.key===' '||e.code==='Space'){
       e.preventDefault();e.stopPropagation();
-      try{document.removeEventListener('keydown', window.__safe455bHelpKeyHandler, true);}catch(_e){}
+      try{document.removeEventListener('keydown', window.__safe455bHelpKeyHandler, true);window.removeEventListener('keydown', window.__safe455bHelpKeyHandler, true);modal.removeEventListener('keydown', window.__safe455bHelpKeyHandler, true);}catch(_e){}
       window.__safe455bHelpKeyHandler=null;
       closeModal();
       setTimeout(()=>{try{ if(typeof showMoreTools==='function') showMoreTools(); }catch(_e){}},40);
       return;
     }
     if(e.key==='Enter'){
+      e.preventDefault();e.stopPropagation();if(e.stopImmediatePropagation)e.stopImmediatePropagation();
+      const sec=safe455bHelpSections[safe455bHelpSectionIndex];
+      if(sec){
+        sec.open=!sec.open;
+        safe455bMarkHelp();
+        safe455bScrollSection(sec,'top');
+      }
       return;
     }
     if(e.key==='Escape'){
@@ -32103,6 +32214,8 @@ function showQuickHelp(){
     }
   };
   document.addEventListener('keydown', window.__safe455bHelpKeyHandler, true);
+  try{window.addEventListener('keydown', window.__safe455bHelpKeyHandler, true);}catch(_e){}
+  try{modal.addEventListener('keydown', window.__safe455bHelpKeyHandler, true);}catch(_e){}
   safe455bMarkHelp();
   const ht=modal.querySelector('#helpHintsToggle');
   if(ht)ht.onchange=e=>setHintsEnabled(e.target.checked);
@@ -45665,6 +45778,29 @@ body.safe453i185uTimerPresentation [data-stopwatch-panel],
     const key=String(e.key||'');
     const modal=document.getElementById('modal');
     const inside=modal && e.target && modal.contains(e.target);
+
+    /* SAFE455uH6: Tavleoversigt har sin egen lokale keyhandler.
+       Den sene generelle modal-guard må ikke stoppe pile/Enter/Esc,
+       før Tavleoversigts-handleren på document kan nå at flytte markeringen. */
+    try{
+      const boardOverview=modal && modal.querySelector && modal.querySelector('[data-safe-board-overview="1"],.safe271BoardOverview');
+      if(boardOverview){
+        const boardKeys=['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Enter','Escape','Delete','Backspace',' ','Spacebar'];
+        if(boardKeys.includes(key) || e.code==='Space')return;
+      }
+    }catch(_e){}
+
+    /* SAFE455uH7: Hjælp har også sin egen lokale keyhandler.
+       Den bruger ←/→ til sektionsskift og ↑/↓ til scroll.
+       Den generelle modal-guard må derfor ikke sluge disse taster,
+       før Hjælps handler på document kan nå at reagere. */
+    try{
+      const helpOpen=modal && modal.querySelector && modal.querySelector('#closeHelp');
+      if(helpOpen){
+        const helpKeys=['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Enter','Escape',' ','Spacebar'];
+        if(helpKeys.includes(key) || e.code==='Space')return;
+      }
+    }catch(_e){}
 
     /* Esc lukker modal og må ikke nå tavlens fokus/presentation/iframe-logik. */
     if(key==='Escape'){
