@@ -13,7 +13,7 @@ function resolveFullName(row) {
   'use strict';
 
 // --- Embedded fallbacks for file:// usage (avoids CORS blocked fetch) ---
-const EMBEDDED_FILE_OVERRIDES = {"sang":{"schema":"hu-elevudtalelser-snippets-override@1","scope":"sang","author":"","createdAt":"2025-12-29","payload":{"sang":{"items":{"S1":{"label":"Sang – niveau 1","text":"{{FORNAVN}} har bidraget til fællessang på allerbedste vis. Med sangglæde, engagement og nysgerrighed har {{FORNAVN}} været en drivkraft i timerne og en inspiration for andre, så de har oplevet det fællesskab, som fællessang kan give."},"S2":{"label":"Sang – niveau 2","text":"{{FORNAVN}} har med godt humør bidraget til fællessang og kor og har derigennem vist sangglæde og åbenhed og fået kendskab til nye sange. {{FORNAVN}} har oplevet det fællesskab, som fællessang kan give."},"S3":{"label":"Sang – niveau 3","text":"{{FORNAVN}} har deltaget i fællessang og kor og har derigennem fået kendskab til nye sange og har oplevet det fællesskab, som fællessang kan give."}},"order":["S1","S2","S3"]}}},"gym":{"schema":"hu-elevudtalelser-snippets-override@1","scope":"gym","author":"","createdAt":"2025-12-29","payload":{"gym":{"variants":{"G1":{"label":"Meget engageret","text":"{{FORNAVN}} har udvist stor interesse for fællesgymnastik, opvisningerne og skolens fællesskab heri. {{FORNAVN}} har udvist stor glæde ved at være en del af, og inddrage andre i fællesskabet og har gennem sin energiske deltagelse i timerne og opvisningerne vist stort engagement, hvilket har virket som en stor drivkraft og motivator for skolens andre elever."},"G2":{"label":"Stabil deltagelse","text":"{{FORNAVN}} har udvist interesse for fællesgymnastik, opvisningerne og for at lære og dygtiggøre sig. {{FORNAVN}} har gennem sin deltagelse i timerne og opvisningerne bidraget positivt og meget aktivt til det store fællesskab."},"G3":{"label":"Varierende deltagelse","text":"{{FORNAVN}} har deltaget aktivt i fællesgymnastik og opvisninger. {{FORNAVN}} har lært alle skolens obligatoriske serier, hvilket har bidraget positivt til opvisningerne og fællesskabet."}},"variantOrder":["G1","G2","G3"],"roles":{"FANEBÆRER":{"label":"Fanebærer","text":"{{FORNAVN}} har været udtaget som en af skolens fanebærere til de fælles gymnastikopvisninger. Et hverv {(HAN_HUN)} fuldt ud har opfyldt, både ansvarsfuldt og respektfuldt. {{FORNAVN}} har som fanebærer repræsenteret skolen og dens værdier på fornemmeste vis."},"REDSKAB":{"label":"Redskabshold","text":"{{FORNAVN}} har været en del af redskabsholdet, som {(HAN_HUN)} frivilligt har meldt sig til. {(HAN_HUN_CAP)} har været en stor hjælp og ydet en kæmpe indsats for at lykkes med skolens opvisninger. {{FORNAVN}} har i den forbindelse vist stort initiativ og ansvar, samt evnen til at løse praktiske problemstillinger på egen hånd."},"DGI":{"label":"DGI-instruktør","text":"{{FORNAVN}} har deltaget aktivt i skolens frivillige samarbejde med Haubro IF, hvor {(HAN_HUN)} har trænet gymnastikholdet for skolebørnene, sideløbende med at {(HAN_HUN)} har taget DGI’s gymnastikuddannelse på skolen. {{FORNAVN}} har vist interesse og engagement for det frivillige foreningsarbejde, {(HAN_HUN)} har ydet en stor indsats i foreningens arbejde og taget det fornødne ansvar."}},"roleOrder":["FANEBÆRER","REDSKAB","DGI"]}}},"elevraad":{"schema":"hu-elevudtalelser-snippets-override@1","scope":"elevraad","author":"","createdAt":"2025-12-29","payload":{"elevraad":{"label":"Elevrådsrepræsentant","text":"{{ELEV_FORNAVN}} har været en del af elevrådet på Himmerlands Ungdomsskole, hvor elevrådet blandt andet har stået for ugentlige fællesmøder for elever og lærere. Derudover har elevrådsarbejdet omfattet en række forskellige opgaver i løbet af året med ansvar for at sætte aktiviteter i gang i fællesskabets ånd. I den forbindelse har {{ELEV_FORNAVN}} vist engagement og vilje til at påtage sig og gennemføre forskellige opgaver og aktiviteter."}}},"templates":{"schema":"hu-elevudtalelser-snippets-override@1","scope":"templates","author":"MM","createdAt":"2026-01-04","payload":{"templates":{"forstanderNavn":"Stinne Krogh Poulsen","schoolText":"På Himmerlands Ungdomsskole arbejder vi med både faglighed, fællesskab og personlig udvikling.\nUdtalelsen er skrevet med udgangspunkt i elevens hverdag og deltagelse gennem skoleåret.","template":"Udtalelse vedrørende {{ELEV_FULDE_NAVN}}\n\n{{ELEV_FORNAVN}} {{ELEV_EFTERNAVN}} har været elev på Himmerlands Ungdomsskole i perioden fra {{PERIODE_FRA}} til {{PERIODE_TIL}} i {{ELEV_KLASSE}}.\n\nHimmerlands Ungdomsskole er en traditionsrig efterskole, som prioriterer fællesskabet og faglig fordybelse højt. Elevernes hverdag er præget af frie rammer og mange muligheder. Vi møder eleverne med tillid, positive forventninger og faglige udfordringer. I løbet af et efterskoleår på Himmerlands Ungdomsskole er oplevelserne mange og udfordringerne ligeså. Det gælder i hverdagens almindelige undervisning, som fordeler sig over boglige fag, fællesfag og profilfag. Det gælder også alle de dage, hvor hverdagen ændres til fordel for temauger, studieture mm. \n\n{{ELEV_UDVIKLING_AFSNIT}}\n{{ELEVRAAD_AFSNIT}}\n{{ROLLE_AFSNIT}}\n\nSom en del af et efterskoleår på Himmerlands Ungdomsskole deltager eleverne ugentligt i fællessang og fællesgymnastik. Begge fag udgør en del af efterskolelivet, hvor eleverne oplever nye sider af sig selv, flytter grænser og oplever, at deres bidrag til fællesskabet har betydning. I løbet af året optræder eleverne med fælleskor og gymnastikopvisninger.\n{{SANG_GYM_AFSNIT}}\n\nPå en efterskole er der mange praktiske opgaver. {{PRAKTISK_AFSNIT}}\n{{ELEV_FORNAVN}} har på Himmerlands Ungdomsskole været en del af en kontaktgruppe på {{KONTAKTGRUPPE_ANTAL}} elever. I kontaktgruppen kender vi {{HAM_HENDE}} som {{KONTAKTGRUPPE_BESKRIVELSE}}.\n\nVi har været rigtig glade for at have {{ELEV_FORNAVN}} som elev på skolen og ønsker {{HAM_HENDE}} held og lykke fremover.\n\n\n\n{{KONTAKTLÆRER_1_NAVN}} & {{KONTAKTLÆRER_2_NAVN}}     {{FORSTANDER_NAVN}}\nKontaktlærere                                                           Forstander\n"}}}};
+const EMBEDDED_FILE_OVERRIDES = {"sang":{"schema":"hu-elevudtalelser-snippets-override@1","scope":"sang","author":"","createdAt":"2025-12-29","payload":{"sang":{"items":{"S1":{"label":"Sang – niveau 1","text":"{{FORNAVN}} har bidraget til fællessang på allerbedste vis. Med sangglæde, engagement og nysgerrighed har {{FORNAVN}} været en drivkraft i timerne og en inspiration for andre, så de har oplevet det fællesskab, som fællessang kan give."},"S2":{"label":"Sang – niveau 2","text":"{{FORNAVN}} har med godt humør bidraget til fællessang og kor og har derigennem vist sangglæde og åbenhed og fået kendskab til nye sange. {{FORNAVN}} har oplevet det fællesskab, som fællessang kan give."},"S3":{"label":"Sang – niveau 3","text":"{{FORNAVN}} har deltaget i fællessang og kor og har derigennem fået kendskab til nye sange og har oplevet det fællesskab, som fællessang kan give."}},"order":["S1","S2","S3"]}}},"gym":{"schema":"hu-elevudtalelser-snippets-override@1","scope":"gym","author":"","createdAt":"2025-12-29","payload":{"gym":{"variants":{"G1":{"label":"Meget engageret","text":"{{FORNAVN}} har udvist stor interesse for fællesgymnastik, opvisningerne og skolens fællesskab heri. {{FORNAVN}} har udvist stor glæde ved at være en del af, og inddrage andre i fællesskabet og har gennem sin energiske deltagelse i timerne og opvisningerne vist stort engagement, hvilket har virket som en stor drivkraft og motivator for skolens andre elever."},"G2":{"label":"Stabil deltagelse","text":"{{FORNAVN}} har udvist interesse for fællesgymnastik, opvisningerne og for at lære og dygtiggøre sig. {{FORNAVN}} har gennem sin deltagelse i timerne og opvisningerne bidraget positivt og meget aktivt til det store fællesskab."},"G3":{"label":"Varierende deltagelse","text":"{{FORNAVN}} har deltaget aktivt i fællesgymnastik og opvisninger. {{FORNAVN}} har lært alle skolens obligatoriske serier, hvilket har bidraget positivt til opvisningerne og fællesskabet."}},"variantOrder":["G1","G2","G3"],"roles":{"FANEBÆRER":{"label":"Fanebærer","text":"{{FORNAVN}} har været udtaget som en af skolens fanebærere til de fælles gymnastikopvisninger. Et hverv {(HAN_HUN)} fuldt ud har opfyldt, både ansvarsfuldt og respektfuldt. {{FORNAVN}} har som fanebærer repræsenteret skolen og dens værdier på fornemmeste vis."},"REDSKAB":{"label":"Redskabshold","text":"{{FORNAVN}} har været en del af redskabsholdet, som {(HAN_HUN)} frivilligt har meldt sig til. {(HAN_HUN_CAP)} har været en stor hjælp og ydet en kæmpe indsats for at lykkes med skolens opvisninger. {{FORNAVN}} har i den forbindelse vist stort initiativ og ansvar, samt evnen til at løse praktiske problemstillinger på egen hånd."},"DGI":{"label":"DGI-instruktør","text":"{{FORNAVN}} har deltaget aktivt i skolens frivillige samarbejde med Haubro IF, hvor {(HAN_HUN)} har trænet gymnastikholdet for skolebørnene, sideløbende med at {(HAN_HUN)} har taget DGI’s gymnastikuddannelse på skolen. {{FORNAVN}} har vist interesse og engagement for det frivillige foreningsarbejde, {(HAN_HUN)} har ydet en stor indsats i foreningens arbejde og taget det fornødne ansvar."}},"roleOrder":["FANEBÆRER","REDSKAB","DGI"]}}},"elevraad":{"schema":"hu-elevudtalelser-snippets-override@1","scope":"elevraad","author":"","createdAt":"2025-12-29","payload":{"elevraad":{"label":"Elevrådsrepræsentant","text":"{{ELEV_FORNAVN}} har været en del af elevrådet på Himmerlands Ungdomsskole, hvor elevrådet blandt andet har stået for ugentlige fællesmøder for elever og lærere. Derudover har elevrådsarbejdet omfattet en række forskellige opgaver i løbet af året med ansvar for at sætte aktiviteter i gang i fællesskabets ånd. I den forbindelse har {{ELEV_FORNAVN}} vist engagement og vilje til at påtage sig og gennemføre forskellige opgaver og aktiviteter."}}},"templates":{"schema":"hu-elevudtalelser-snippets-override@1","scope":"templates","author":"MM","createdAt":"2026-01-04","payload":{"templates":{"forstanderNavn":"Stinne Krogh Poulsen","schoolText":"På Himmerlands Ungdomsskole arbejder vi med både faglighed, fællesskab og personlig udvikling.\nUdtalelsen er skrevet med udgangspunkt i elevens hverdag og deltagelse gennem skoleåret.","template":"Udtalelse vedrørende {{ELEV_FULDE_NAVN}}\n\n{{ELEV_FORNAVN}} {{ELEV_EFTERNAVN}} har været elev på Himmerlands Ungdomsskole i perioden fra {{PERIODE_FRA}} til {{PERIODE_TIL}} i {{ELEV_KLASSE}}.\n\nHimmerlands Ungdomsskole er en traditionsrig efterskole, som prioriterer fællesskabet og faglig fordybelse højt. Elevernes hverdag er præget af frie rammer og mange muligheder. Vi møder eleverne med tillid, positive forventninger og faglige udfordringer. I løbet af et efterskoleår på Himmerlands Ungdomsskole er oplevelserne mange og udfordringerne ligeså. Det gælder i hverdagens almindelige undervisning, som fordeler sig over boglige fag, fællesfag og linjefag. Det gælder også alle de dage, hvor hverdagen ændres til fordel for temauger, studieture mm. \n\n{{ELEV_UDVIKLING_AFSNIT}}\n{{ELEVRAAD_AFSNIT}}\n{{ROLLE_AFSNIT}}\n\nSom en del af et efterskoleår på Himmerlands Ungdomsskole deltager eleverne ugentligt i fællessang og fællesgymnastik. Begge fag udgør en del af efterskolelivet, hvor eleverne oplever nye sider af sig selv, flytter grænser og oplever, at deres bidrag til fællesskabet har betydning. I løbet af året optræder eleverne med fælleskor og gymnastikopvisninger.\n{{SANG_GYM_AFSNIT}}\n\nPå en efterskole er der mange praktiske opgaver. {{PRAKTISK_AFSNIT}}\n{{ELEV_FORNAVN}} har på Himmerlands Ungdomsskole været en del af en kontaktgruppe på {{KONTAKTGRUPPE_ANTAL}} elever. I kontaktgruppen kender vi {{HAM_HENDE}} som {{KONTAKTGRUPPE_BESKRIVELSE}}.\n\nVi har været rigtig glade for at have {{ELEV_FORNAVN}} som elev på skolen og ønsker {{HAM_HENDE}} held og lykke fremover.\n\n\n\n{{KONTAKTLÆRER_1_NAVN}} & {{KONTAKTLÆRER_2_NAVN}}     {{FORSTANDER_NAVN}}\nKontaktlærere                                                           Forstander\n"}}}};
 const EMBEDDED_DEMO_STUDENTS_CSV = `Fornavn,Efternavn,Unilogin,Køn,Klasse,Kontaktlærer1,Kontaktlærer2,Initialer for k-lærer1,Initialer for k-lærer2
 Yrsa,Dahl,u10000,k,9A,Qha Kbæk,Lel Rlund,QK,LR
 Zara,Zacho,u10001,k,10B,Tsa Ahavn,Vbo Nberg,TA,VN
@@ -489,7 +489,7 @@ Oline,Dahl,u10151,k,10B,Oal Ygaard,Dno Svang,OY,DS`;
 const DEFAULT_SCHOOL_TEXT = `På Himmerlands Ungdomsskole arbejder vi med både faglighed, fællesskab og personlig udvikling.
 Udtalelsen er skrevet med udgangspunkt i elevens hverdag og deltagelse gennem skoleåret.`;
 
-  const DEFAULT_TEMPLATE = "Udtalelse vedrørende {{ELEV_FULDE_NAVN}}\n\n{{ELEV_FORNAVN}} {{ELEV_EFTERNAVN}} har været elev på Himmerlands Ungdomsskole i perioden fra {{PERIODE_FRA}} til {{PERIODE_TIL}} i {{ELEV_KLASSE}}.\n\nHimmerlands Ungdomsskole er en traditionsrig efterskole, som prioriterer fællesskabet og faglig fordybelse højt. Elevernes hverdag er præget af frie rammer og mange muligheder. Vi møder eleverne med tillid, positive forventninger og faglige udfordringer. I løbet af et efterskoleår på Himmerlands Ungdomsskole er oplevelserne mange og udfordringerne ligeså. Det gælder i hverdagens almindelige undervisning, som fordeler sig over boglige fag, fællesfag og profilfag. Det gælder også alle de dage, hvor hverdagen ændres til fordel for temauger, studieture mm. \n\n{{ELEV_UDVIKLING_AFSNIT}}\n{{ELEVRAAD_AFSNIT}}\n{{ROLLE_AFSNIT}}\n\nSom en del af et efterskoleår på Himmerlands Ungdomsskole deltager eleverne ugentligt i fællessang og fællesgymnastik. Begge fag udgør en del af efterskolelivet, hvor eleverne oplever nye sider af sig selv, flytter grænser og oplever, at deres bidrag til fællesskabet har betydning. I løbet af året optræder eleverne med fælleskor og gymnastikopvisninger.\n{{SANG_GYM_AFSNIT}}\n\nPå en efterskole er der mange praktiske opgaver. {{PRAKTISK_AFSNIT}}\n{{ELEV_FORNAVN}} har på Himmerlands Ungdomsskole været en del af en kontaktgruppe på {{KONTAKTGRUPPE_ANTAL}} elever. I kontaktgruppen kender vi {{HAM_HENDE}} som {{KONTAKTGRUPPE_BESKRIVELSE}}.\n\nVi har været rigtig glade for at have {{ELEV_FORNAVN}} som elev på skolen og ønsker {{HAM_HENDE}} held og lykke fremover.\n\n\n\n{{KONTAKTLÆRER_1_NAVN}} & {{KONTAKTLÆRER_2_NAVN}}     {{FORSTANDER_NAVN}}\nKontaktlærere                                                           Forstander\n";
+  const DEFAULT_TEMPLATE = "Udtalelse vedrørende {{ELEV_FULDE_NAVN}}\n\n{{ELEV_FORNAVN}} {{ELEV_EFTERNAVN}} har været elev på Himmerlands Ungdomsskole i perioden fra {{PERIODE_FRA}} til {{PERIODE_TIL}} i {{ELEV_KLASSE}}.\n\nHimmerlands Ungdomsskole er en traditionsrig efterskole, som prioriterer fællesskabet og faglig fordybelse højt. Elevernes hverdag er præget af frie rammer og mange muligheder. Vi møder eleverne med tillid, positive forventninger og faglige udfordringer. I løbet af et efterskoleår på Himmerlands Ungdomsskole er oplevelserne mange og udfordringerne ligeså. Det gælder i hverdagens almindelige undervisning, som fordeler sig over boglige fag, fællesfag og linjefag. Det gælder også alle de dage, hvor hverdagen ændres til fordel for temauger, studieture mm. \n\n{{ELEV_UDVIKLING_AFSNIT}}\n{{ELEVRAAD_AFSNIT}}\n{{ROLLE_AFSNIT}}\n\nSom en del af et efterskoleår på Himmerlands Ungdomsskole deltager eleverne ugentligt i fællessang og fællesgymnastik. Begge fag udgør en del af efterskolelivet, hvor eleverne oplever nye sider af sig selv, flytter grænser og oplever, at deres bidrag til fællesskabet har betydning. I løbet af året optræder eleverne med fælleskor og gymnastikopvisninger.\n{{SANG_GYM_AFSNIT}}\n\nPå en efterskole er der mange praktiske opgaver. {{PRAKTISK_AFSNIT}}\n{{ELEV_FORNAVN}} har på Himmerlands Ungdomsskole været en del af en kontaktgruppe på {{KONTAKTGRUPPE_ANTAL}} elever. I kontaktgruppen kender vi {{HAM_HENDE}} som {{KONTAKTGRUPPE_BESKRIVELSE}}.\n\nVi har været rigtig glade for at have {{ELEV_FORNAVN}} som elev på skolen og ønsker {{HAM_HENDE}} held og lykke fremover.\n\n\n\n{{KONTAKTLÆRER_1_NAVN}} & {{KONTAKTLÆRER_2_NAVN}}     {{FORSTANDER_NAVN}}\nKontaktlærere                                                           Forstander\n";
 
   // ---------- storage ----------
   function lsGet(key, fallback) {
@@ -1104,44 +1104,56 @@ const docTitle = escapeHtml(title || 'Print');
       page-break-after: auto;
     }
     .content{
-      height: 100%;
-      overflow: hidden;
-      position: relative;
+      width: 100%;
+      min-height: auto;
+      overflow: visible;
+      position: static;
     }
     pre.statement{
       white-space: pre-wrap;
       margin: 0;
-      overflow: hidden;
+      overflow: visible;
+      text-align: justify;
+      text-align-last: left;
+      hyphens: auto;
+      -webkit-hyphens: auto;
     }
 
-    /* Signatur: to faste kolonner (Kontaktlærere / Forstander) */
+    /* Signatur: almindeligt flow-indhold efter teksten.
+       iPad/WebKit kan placere fixed/absolute print-footers forkert og lægge
+       signaturerne ind over brødteksten. Flow er mere robust: ved lange
+       udtalelser flytter signaturen hellere med teksten til næste side. */
     .signatures{
-      display:flex;
-      justify-content:space-between;
-      gap: 16px;
-      margin-top: 18px;
-      width: 100%;
+      display:grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      column-gap: 16mm;
+      margin: 24mm auto 0 auto;
+      width: 84%;
       font-family: Arial, sans-serif;
       font-size: 10.5pt;
       line-height: 1.25;
+      position: static !important;
+      break-inside: avoid;
+      page-break-inside: avoid;
     }
  
     @media print{
-      /* Footer-signatur: fixed for enkelt-elev print, absolut pr. side ved multi-print (for at undgå overlappende fixed-elementer) */
-      body.print-single .signatures{ position: fixed; bottom: 32px; left: 0; right: 0; width: 100%; }
-      body.print-multi .page{ position: relative; }
-      body.print-multi .content{ position: relative; min-height: 273mm; }
-      body.print-multi .signatures{ position: absolute; bottom: 32px; left: 0; right: 0; width: 100%; }
-      /* Sørg for at brødtekst aldrig kan løbe ned i signaturen */
-      pre.statement{ padding-bottom: 110px; }
+      .content{ height: auto !important; min-height: auto !important; overflow: visible !important; position: static !important; }
+      pre.statement{ overflow: visible !important; padding-bottom: 0 !important; }
+      .signatures{ position: static !important; bottom: auto !important; left: auto !important; right: auto !important; }
     }
 
-    /* Giv Kontaktlærere mere plads end Forstander (2 navne vs 1) */
-    .sig-col{ break-inside: avoid; page-break-inside: avoid; min-width: 0; }
-    .sig-left{ text-align: center; flex: 2 1 0; }
-    .sig-right{ text-align: center; flex: 1 1 0; }
-    .sig-name{ display:block; }
-    .sig-label{ display:block; margin-top: 2px; }
+    /* Underskriftsfelter: balanceret og centreret, med plads til fysisk underskrift. */
+    .sig-col{ break-inside: avoid; page-break-inside: avoid; min-width: 0; text-align: center; }
+    .sig-left, .sig-right{ text-align: center; }
+    .sig-name{
+      display:block;
+      border-top: 1px solid #000;
+      padding-top: 2mm;
+      min-height: 4mm;
+      white-space: normal;
+    }
+    .sig-label{ display:block; margin-top: 1mm; }
     .sig-left .sig-label{ text-align: center; }
 
 
@@ -2099,12 +2111,31 @@ function normalizePlaceholderKey(key) {
 
 
   function callName(rawFirstName) {
-    // HU-data: hvis fornavn-feltet indeholder ekstra efternavn, brug kun første ord.
-    // Behold bindestreg-navne (fx Anne-Sofie) uændret.
+    // HU-data: fornavn-feltet kan indeholde sammensat fornavn + mellemnavn.
+    // Regel til omtale i teksten: brug højst de første 2 ord fra Fornavn.
+    // Eksempler: "Anne Sofie Kragh" → "Anne Sofie", "Anne Sofie" → "Anne Sofie", "Anne" → "Anne".
+    // Behold bindestreg-navne (fx Anne-Sofie) uændret som ét ord.
     const s = (rawFirstName ?? '').toString().trim();
     if (!s) return '';
     const parts = s.split(/\s+/).filter(Boolean);
-    return parts.length ? parts[0] : s;
+    return parts.length ? parts.slice(0, 2).join(' ') : s;
+  }
+
+  function studentCallName(student) {
+    // Primær regel: brug hele Fornavn-feltet, dog højst 2 ord.
+    // Reparationsregel for ældre/importerede data hvor et sammensat fornavn
+    // allerede er blevet klippet til første ord og resten er havnet i efternavn:
+    // Anne + Sofie Kragh Petersen -> Anne Sofie.
+    const st = student || {};
+    const direct = callName(st.fornavn || st.firstName || st.firstname || '');
+    const directParts = String(direct || '').trim().split(/\s+/).filter(Boolean);
+    if (directParts.length >= 2) return direct;
+
+    const allParts = [st.fornavn, st.efternavn].join(' ').trim().split(/\s+/).filter(Boolean);
+    if (directParts.length === 1 && allParts.length >= 3 && allParts[0] === directParts[0]) {
+      return allParts.slice(0, 2).join(' ');
+    }
+    return direct;
   }
   function normalizeHeader(input) { return normalizeName(input).replace(/[^a-z0-9]+/g, ""); }
 
@@ -2599,12 +2630,12 @@ if (chosen && erObj[chosen]) {
 }
 
     const fullName = `${student.fornavn} ${student.efternavn}`.trim();
-    const firstName = callName(student.fornavn);
+    const firstName = studentCallName(student);
     const pr = pronouns(student.koen);
     const snMap = {
-      "ELEV_FORNAVN": (student.fornavn||'').trim(),
+      "ELEV_FORNAVN": firstName,
       "ELEV_NAVN": fullName,
-      "FORNAVN": (student.fornavn||'').trim(),
+      "FORNAVN": firstName,
       "NAVN": fullName,
       "HAN_HUN": pr.HAN_HUN,
       "HAM_HENDE": pr.HAM_HENDE,
@@ -2808,18 +2839,18 @@ if (chosen && erObj[chosen]) {
   function normalizeStudentRow(row, map, teacherOverrides) {
     const get = (field) => (row[map[field]] ?? '').trim();
 
-    // Rens fornavn-felt: nogle elever har et "ekstra efternavn" i fornavn-kolonnen.
-    // Regel: hvis fornavn har flere ord og IKKE indeholder bindestreg, så bruges første ord som kaldnavn,
-    // og resten flyttes over i efternavn (foran eksisterende efternavn).
+    // Rens fornavn-felt: nogle elever har sammensat fornavn + mellemnavn i fornavn-kolonnen.
+    // Regel: behold højst 2 ord som fornavn/kaldnavn, og flyt evt. ekstra ord til efternavn.
+    // Eksempel: Fornavn="Anne Sofie Kragh", Efternavn="Petersen" → Fornavn="Anne Sofie", Efternavn="Kragh Petersen".
     const fornavnRaw = get('fornavn');
     let efternavnRaw = get('efternavn');
 
     let fornavn = fornavnRaw;
-    if (fornavnRaw && !fornavnRaw.includes('-')) {
+    if (fornavnRaw) {
       const parts = fornavnRaw.split(/\s+/).filter(Boolean);
-      if (parts.length > 1) {
-        fornavn = parts[0];
-        const extraSurname = parts.slice(1).join(' ');
+      if (parts.length > 2) {
+        fornavn = parts.slice(0, 2).join(' ');
+        const extraSurname = parts.slice(2).join(' ');
         efternavnRaw = (extraSurname + ' ' + (efternavnRaw || '')).trim();
       }
     }
@@ -4164,7 +4195,7 @@ function restoreMarksGridFocus(){
     };
     const placeholderMapFor = (st) => {
       const full = `${st.fornavn||''} ${st.efternavn||''}`.trim();
-      const first = (st.fornavn||'').trim() || full.split(' ')[0] || '';
+      const first = studentCallName(st) || full.split(' ')[0] || '';
       const pr = pronouns(st.koen || st.gender || st.sex || '');
       return {
         "FORNAVN": first,
@@ -4390,7 +4421,7 @@ function tooltipTextFor(st, scope, key){
         if (!snip) return '';
         const p = pronouns(st.koen || st.køn || st.gender || '');
         const base = (p.HAN_HUN === 'hun' && snip.text_k) ? snip.text_k : (snip.text_m || snip.text_k || '');
-        const filled = applyPlaceholders(base, Object.assign({ FORNAVN: st.fornavn || '' }, p));
+        const filled = applyPlaceholders(base, Object.assign({ FORNAVN: studentCallName(st) || st.fornavn || '', ELEV_FORNAVN: studentCallName(st) || st.fornavn || '' }, p));
         const flat = String(filled || '').trim().replace(/\s+/g,' ');
         if (!flat) return '';
         const pretty = flat.replace(/([.!?])\s+/g, '$1\n\n');
