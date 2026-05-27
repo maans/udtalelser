@@ -2110,29 +2110,87 @@ function normalizePlaceholderKey(key) {
 
 
 
-  function callName(rawFirstName) {
-    // HU-data: fornavn-feltet kan indeholde sammensat fornavn + mellemnavn.
-    // Regel til omtale i teksten: brug højst de første 2 ord fra Fornavn.
-    // Eksempler: "Anne Sofie Kragh" → "Anne Sofie", "Anne Sofie" → "Anne Sofie", "Anne" → "Anne".
-    // Behold bindestreg-navne (fx Anne-Sofie) uændret som ét ord.
+  const COMPOUND_FIRST_NAMES = new Set([
+    // Piger / kvinder
+    "anna sofie", "anne sofie", "anne-sofie", "anne marie", "anne-marie",
+    "sofie amalie", "sofia amalie", "sophie amalie", "ida marie", "ida sofie",
+    "emma sofie", "emma marie", "ella marie", "ella sofie", "alma sofie", "alma marie",
+    "clara sofie", "clara marie", "klara sofie", "klara marie", "laura sofie", "laura marie",
+    "maria louise", "maria-louise", "maria magdalena", "maria elisabeth",
+    "sara sofie", "sara marie", "sarah sofie", "sarah marie", "line marie", "line sofie",
+    "nanna sofie", "nanna marie", "mille marie", "mille sofie", "maja sofie", "maja marie",
+    "karen marie", "karen margrethe", "maren sofie", "maren kirstine", "mette marie",
+    "lene marie", "lene sofie", "liv marie", "liv sofie", "liva marie", "liva sofie",
+    "amalie sofie", "amalie marie", "josefine marie", "josefine sofie", "victoria marie", "victoria sofie",
+    "freja sofie", "freja marie", "frida sofie", "frida marie", "astrid marie", "astrid sofie",
+    "mathilde marie", "mathilde sofie", "emilie marie", "emilie sofie", "karla marie", "karla sofie",
+    "thea marie", "thea sofie", "lea marie", "lea sofie", "molly sofie", "molly marie",
+
+    // Drenge / mænd
+    "hans peter", "hans-peter", "niels peter", "niels-peter", "peter christian", "peter-christian",
+    "carl emil", "carl-emil", "karl emil", "karl-emil", "carl johan", "carl-johan", "karl johan", "karl-johan",
+    "carl august", "carl-august", "karl august", "karl-august", "carl christian", "carl-christian", "karl christian", "karl-christian",
+    "mads christian", "mads-christian", "jens christian", "jens-christian", "lars christian", "lars-christian",
+    "niels christian", "niels-christian", "anders christian", "anders-christian", "per christian", "per-christian",
+    "søren christian", "søren-christian", "ole christian", "ole-christian", "jan christian", "jan-christian",
+    "jonas peter", "jonas-peter", "mikkel christian", "mikkel-christian",
+    "magnus christian", "magnus-christian", "emil christian", "emil-christian", "oscar christian", "oscar-christian",
+    "viktor emil", "viktor-emil", "victor emil", "victor-emil", "william emil", "william-emil",
+    "noah emil", "noah-emil", "oliver emil", "oliver-emil", "alfred emil", "alfred-emil",
+    "theo emil", "theo-emil", "malthe emil", "malthe-emil", "august emil", "august-emil",
+    "villiam emil", "villiam-emil", "marcus emil", "marcus-emil", "marcus christian", "marcus-christian",
+    "christian august", "christian-august", "christian emil", "christian-emil", "christian johan", "christian-johan",
+    "anders peter", "anders-peter", "ole peter", "ole-peter", "lars peter", "lars-peter",
+    "jens peter", "jens-peter", "sven erik", "sven-erik", "svend erik", "svend-erik",
+    "knud erik", "knud-erik", "poul erik", "poul-erik", "per erik", "per-erik",
+    "jens jakob", "jens-jakob", "jens jacob", "jens-jacob", "niels jakob", "niels-jakob", "niels jacob", "niels-jacob"
+  ].map(s => s.toLocaleLowerCase('da-DK')));
+
+  function firstNameParts(rawFirstName) {
     const s = (rawFirstName ?? '').toString().trim();
-    if (!s) return '';
-    const parts = s.split(/\s+/).filter(Boolean);
-    return parts.length ? parts.slice(0, 2).join(' ') : s;
+    return s ? s.split(/\s+/).filter(Boolean) : [];
+  }
+
+  function compoundKey(parts) {
+    return parts.slice(0, 2).join(' ').toLocaleLowerCase('da-DK');
+  }
+
+  function isApprovedCompoundFirstName(parts) {
+    return Array.isArray(parts) && parts.length >= 2 && COMPOUND_FIRST_NAMES.has(compoundKey(parts));
+  }
+
+  function splitFirstNameAndMiddle(rawFirstName) {
+    // HU-data: Fornavn-feltet kan indeholde både fornavn og mellemnavn.
+    // Regel: to ord bevares kun som fornavn, hvis kombinationen findes i godkendt dobbeltnavnsliste.
+    // Eksempler:
+    //   Anne Sofie Kragh -> fornavn: Anne Sofie, ekstra: Kragh
+    //   Christian Toftegaard -> fornavn: Christian, ekstra: Toftegaard
+    //   Enne Bolding -> fornavn: Enne, ekstra: Bolding
+    const parts = firstNameParts(rawFirstName);
+    if (!parts.length) return { firstName: '', extraSurname: '' };
+    const keep = isApprovedCompoundFirstName(parts) ? 2 : 1;
+    return {
+      firstName: parts.slice(0, keep).join(' '),
+      extraSurname: parts.slice(keep).join(' ')
+    };
+  }
+
+  function callName(rawFirstName) {
+    // Omtalenavn i tekst: brug godkendt dobbeltnavn – ellers kun første ord.
+    return splitFirstNameAndMiddle(rawFirstName).firstName;
   }
 
   function studentCallName(student) {
-    // Primær regel: brug hele Fornavn-feltet, dog højst 2 ord.
-    // Reparationsregel for ældre/importerede data hvor et sammensat fornavn
-    // allerede er blevet klippet til første ord og resten er havnet i efternavn:
-    // Anne + Sofie Kragh Petersen -> Anne Sofie.
+    // Reparationsregel for ældre/importerede data:
+    // Anne + Sofie Kragh Petersen -> Anne Sofie, men kun fordi "Anne Sofie" er godkendt.
+    // Christian + Toftegaard Jensen -> Christian, fordi "Christian Toftegaard" ikke er godkendt.
     const st = student || {};
     const direct = callName(st.fornavn || st.firstName || st.firstname || '');
-    const directParts = String(direct || '').trim().split(/\s+/).filter(Boolean);
+    const directParts = firstNameParts(direct);
     if (directParts.length >= 2) return direct;
 
     const allParts = [st.fornavn, st.efternavn].join(' ').trim().split(/\s+/).filter(Boolean);
-    if (directParts.length === 1 && allParts.length >= 3 && allParts[0] === directParts[0]) {
+    if (directParts.length === 1 && allParts.length >= 3 && allParts[0] === directParts[0] && isApprovedCompoundFirstName(allParts)) {
       return allParts.slice(0, 2).join(' ');
     }
     return direct;
@@ -2232,6 +2290,158 @@ const on = (id, ev, fn, opts) => { const el = document.getElementById(id); if (e
     }
     return { headers, rows, delim };
   }
+
+
+  // ---------- CSV / Excel (.xlsx) import ----------
+  // Excel import is deliberately converted to the same {headers, rows} shape as parseCsv().
+  // This keeps the existing student/snippet import pipeline unchanged.
+  function _xmlDecode(s) {
+    return String(s ?? '')
+      .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')
+      .replace(/&quot;/g, '"').replace(/&apos;/g, "'")
+      .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))
+      .replace(/&#x([0-9a-fA-F]+);/g, (_, n) => String.fromCharCode(parseInt(n, 16)));
+  }
+  function _xlsxColIndex(cellRef) {
+    const letters = String(cellRef || '').replace(/[^A-Za-z].*$/,'').toUpperCase();
+    let n = 0;
+    for (let i = 0; i < letters.length; i++) n = n * 26 + (letters.charCodeAt(i) - 64);
+    return Math.max(0, n - 1);
+  }
+  async function _inflateRaw(bytes) {
+    if (typeof DecompressionStream !== 'function') {
+      throw new Error('Denne browser kan ikke pakke .xlsx ud direkte. Brug CSV eller en nyere Safari/Chrome.');
+    }
+    const ds = new DecompressionStream('deflate-raw');
+    const stream = new Blob([bytes]).stream().pipeThrough(ds);
+    return new Uint8Array(await new Response(stream).arrayBuffer());
+  }
+  async function _xlsxZipEntries(arrayBuffer) {
+    const u8 = new Uint8Array(arrayBuffer);
+    const dv = new DataView(arrayBuffer);
+    let eocd = -1;
+    for (let i = u8.length - 22; i >= Math.max(0, u8.length - 66000); i--) {
+      if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+    }
+    if (eocd < 0) throw new Error('Kunne ikke læse .xlsx-filen (zip-indeks mangler).');
+    const count = dv.getUint16(eocd + 10, true);
+    const cdOffset = dv.getUint32(eocd + 16, true);
+    const textDecoder = new TextDecoder('utf-8');
+    const out = new Map();
+    let p = cdOffset;
+    for (let i = 0; i < count; i++) {
+      if (dv.getUint32(p, true) !== 0x02014b50) break;
+      const method = dv.getUint16(p + 10, true);
+      const compSize = dv.getUint32(p + 20, true);
+      const uncompSize = dv.getUint32(p + 24, true);
+      const nameLen = dv.getUint16(p + 28, true);
+      const extraLen = dv.getUint16(p + 30, true);
+      const commentLen = dv.getUint16(p + 32, true);
+      const localOffset = dv.getUint32(p + 42, true);
+      const name = textDecoder.decode(u8.slice(p + 46, p + 46 + nameLen));
+
+      if (dv.getUint32(localOffset, true) !== 0x04034b50) throw new Error('Kunne ikke læse .xlsx-filen (lokal zip-header mangler).');
+      const lfNameLen = dv.getUint16(localOffset + 26, true);
+      const lfExtraLen = dv.getUint16(localOffset + 28, true);
+      const dataStart = localOffset + 30 + lfNameLen + lfExtraLen;
+      const comp = u8.slice(dataStart, dataStart + compSize);
+      let data;
+      if (method === 0) data = comp;
+      else if (method === 8) data = await _inflateRaw(comp);
+      else throw new Error('XLSX-komprimering understøttes ikke: metode ' + method);
+      // uncompSize can be 0 for directories; do not fail on those.
+      if (uncompSize && data.length !== uncompSize) {
+        // Safari/Chrome can still produce a valid byte stream; keep going rather than blocking import.
+      }
+      out.set(name, textDecoder.decode(data));
+      p += 46 + nameLen + extraLen + commentLen;
+    }
+    return out;
+  }
+  function _xlsxReadSharedStrings(xml) {
+    if (!xml) return [];
+    const arr = [];
+    const siRe = /<si[\s\S]*?<\/si>/g;
+    let m;
+    while ((m = siRe.exec(xml))) {
+      const si = m[0];
+      const parts = [];
+      const tRe = /<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g;
+      let tm;
+      while ((tm = tRe.exec(si))) parts.push(_xmlDecode(tm[1]));
+      arr.push(parts.join(''));
+    }
+    return arr;
+  }
+  function _xlsxCellValue(cellXml, sharedStrings) {
+    const tMatch = cellXml.match(/\st="([^"]+)"/);
+    const type = tMatch ? tMatch[1] : '';
+    if (type === 'inlineStr') {
+      const parts = [];
+      const tRe = /<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g;
+      let tm;
+      while ((tm = tRe.exec(cellXml))) parts.push(_xmlDecode(tm[1]));
+      return parts.join('').trim();
+    }
+    const vMatch = cellXml.match(/<v(?:\s[^>]*)?>([\s\S]*?)<\/v>/);
+    const raw = vMatch ? _xmlDecode(vMatch[1]) : '';
+    if (type === 's') return (sharedStrings[Number(raw)] ?? '').trim();
+    if (type === 'b') return raw === '1' ? 'TRUE' : 'FALSE';
+    return String(raw ?? '').trim();
+  }
+  async function parseXlsxFile(file) {
+    const entries = await _xlsxZipEntries(await file.arrayBuffer());
+    const shared = _xlsxReadSharedStrings(entries.get('xl/sharedStrings.xml') || '');
+    let sheetPath = 'xl/worksheets/sheet1.xml';
+    // If workbook metadata exists, prefer the first visible sheet relation.
+    const workbook = entries.get('xl/workbook.xml') || '';
+    const rels = entries.get('xl/_rels/workbook.xml.rels') || '';
+    const firstSheet = workbook.match(/<sheet\b[^>]*r:id="([^"]+)"[^>]*>/);
+    if (firstSheet && rels) {
+      const rid = firstSheet[1].replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const re = new RegExp('<Relationship\\b[^>]*Id="' + rid + '"[^>]*Target="([^"]+)"[^>]*/>');
+      const rm = rels.match(re);
+      if (rm && rm[1]) sheetPath = 'xl/' + rm[1].replace(/^\//, '').replace(/^xl\//, '');
+    }
+    const sheet = entries.get(sheetPath) || entries.get('xl/worksheets/sheet1.xml');
+    if (!sheet) throw new Error('Kunne ikke finde første ark i .xlsx-filen.');
+    const rows = [];
+    const rowRe = /<row\b[\s\S]*?<\/row>/g;
+    let rm;
+    while ((rm = rowRe.exec(sheet))) {
+      const rowXml = rm[0];
+      const vals = [];
+      const cellRe = /<c\b([^>]*)>([\s\S]*?)<\/c>/g;
+      let cm;
+      while ((cm = cellRe.exec(rowXml))) {
+        const attrs = cm[1] || '';
+        const ref = (attrs.match(/\sr="([^"]+)"/) || [,''])[1];
+        const idx = _xlsxColIndex(ref) || vals.length;
+        vals[idx] = _xlsxCellValue('<c ' + attrs + '>' + cm[2] + '</c>', shared);
+      }
+      // Keep rows with at least one non-empty value.
+      if (vals.some(v => String(v ?? '').trim())) rows.push(vals.map(v => String(v ?? '').trim()));
+    }
+    if (!rows.length) return { headers: [], rows: [], source: 'xlsx' };
+    const headers = rows[0].map(h => String(h || '').trim());
+    const outRows = [];
+    for (let r = 1; r < rows.length; r++) {
+      const obj = {};
+      headers.forEach((h, i) => { if (h) obj[h] = rows[r][i] ?? ''; });
+      if (Object.values(obj).some(v => String(v ?? '').trim())) outRows.push(obj);
+    }
+    return { headers, rows: outRows, source: 'xlsx' };
+  }
+  async function parseTabularFile(file) {
+    const name = String(file && file.name || '').toLowerCase();
+    if (/\.(xlsx|xlsm|xltx|xltm)$/.test(name)) return await parseXlsxFile(file);
+    if (/\.xls$/.test(name)) {
+      throw new Error('Gammelt .xls-format kan ikke læses sikkert direkte i browseren. Eksportér fra Google Sheets/Numbers som .xlsx.');
+    }
+    const text = await readFileText(file);
+    return parseCsv(text);
+  }
+
   function toCsv(rows, headers) {
     const esc = (v) => {
       const s = (v ?? '').toString();
@@ -2839,20 +3049,19 @@ if (chosen && erObj[chosen]) {
   function normalizeStudentRow(row, map, teacherOverrides) {
     const get = (field) => (row[map[field]] ?? '').trim();
 
-    // Rens fornavn-felt: nogle elever har sammensat fornavn + mellemnavn i fornavn-kolonnen.
-    // Regel: behold højst 2 ord som fornavn/kaldnavn, og flyt evt. ekstra ord til efternavn.
-    // Eksempel: Fornavn="Anne Sofie Kragh", Efternavn="Petersen" → Fornavn="Anne Sofie", Efternavn="Kragh Petersen".
+    // Rens fornavn-felt: nogle elevlister har mellemnavne skrevet i Fornavn-kolonnen.
+    // Regel: behold kun to ord som fornavn, hvis kombinationen er et godkendt sammensat fornavn.
+    // Eksempler:
+    //   Anne Sofie Kragh + Petersen -> Anne Sofie / Kragh Petersen
+    //   Christian Toftegaard + Jensen -> Christian / Toftegaard Jensen
+    //   Enne Bolding + Sørensen -> Enne / Bolding Sørensen
     const fornavnRaw = get('fornavn');
     let efternavnRaw = get('efternavn');
 
-    let fornavn = fornavnRaw;
-    if (fornavnRaw) {
-      const parts = fornavnRaw.split(/\s+/).filter(Boolean);
-      if (parts.length > 2) {
-        fornavn = parts.slice(0, 2).join(' ');
-        const extraSurname = parts.slice(2).join(' ');
-        efternavnRaw = (extraSurname + ' ' + (efternavnRaw || '')).trim();
-      }
+    const splitName = splitFirstNameAndMiddle(fornavnRaw);
+    const fornavn = splitName.firstName;
+    if (splitName.extraSurname) {
+      efternavnRaw = (splitName.extraSurname + ' ' + (efternavnRaw || '')).trim();
     }
 
     const efternavn = efternavnRaw;
@@ -4663,11 +4872,10 @@ function tooltipTextFor(st, scope, key){
   async function importMarksFile(e, kind) {
     const f = e.target.files && e.target.files[0];
     if (!f) return;
-    const text = await readFileText(f);
-    const parsed = parseCsv(text);
+    const parsed = await parseTabularFile(f);
 
     const colUnilogin = parsed.headers.find(h => ['unilogin','unicbrugernavn','unicusername','unic'].includes(normalizeHeader(h)));
-    if (!colUnilogin) { alert('CSV mangler kolonne: Unilogin'); return; }
+    if (!colUnilogin) { alert('Filen mangler kolonne: Unilogin'); return; }
 
     let imported = 0;
     if (kind === 'sang') {
@@ -5122,8 +5330,13 @@ if (document.getElementById('btnDownloadElevraad')) {
     on('studentsFile','change', async (e) => {
       const f = e.target.files && e.target.files[0];
       if (!f) return;
-      const text = await readFileText(f);
-      const parsed = parseCsv(text);
+      let parsed;
+      try {
+        parsed = await parseTabularFile(f);
+      } catch (err) {
+        alert(err?.message || 'Kunne ikke indlæse filen.');
+        return;
+      }
       const map = mapStudentHeaders(parsed.headers);
       const required = ['fornavn','efternavn','klasse'];
       const ok = required.every(r => map[r]);

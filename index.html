@@ -234,8 +234,8 @@
         <label class="btn" for="backupFileInput" title="Vælg backupfil">⬆️ Importér backup</label>
         <input type="file" id="backupFileInput" accept="application/json" style="display:none" />
 
-        <label class="btn" for="studentsFile" title="Vælg elevliste">⬆️ Indlæs elevliste (CSV)</label>
-        <input accept=".csv,.txt" id="studentsFile" type="file" style="display:none"/>
+        <label class="btn" for="studentsFile" title="Vælg elevliste">⬆️ Indlæs elevliste (CSV / Excel)</label>
+        <input accept=".csv,.txt,.xlsx,.xls,.xlsm" id="studentsFile" type="file" style="display:none"/>
       </div>
 
       <div class="row between" style="gap:1rem; align-items:flex-start; flex-wrap:wrap;">
@@ -248,7 +248,7 @@
       <details class="fold no-print" style="margin-top:.8rem">
         <summary>Accepterede kolonner (eksempler)</summary>
         <div class="muted small">
-          <div><b>Demo / standard-elevliste:</b> Fornavn, Efternavn, Unilogin, Køn, Klasse, Kontaktlærer1, Kontaktlærer2, Initialer for k-lærer1, Initialer for k-lærer2</div>
+          <div><b>Demo / standard-elevliste:</b> Fornavn, Efternavn, Unilogin, Køn, Klasse, Kontaktlærer1, Kontaktlærer2, Initialer for k-lærer1, Initialer for k-lærer2</div><div style="margin-top:.35rem"><b>Filtyper:</b> CSV, TXT og Excel (.xlsx fra Google Sheets/Numbers). Gammelt .xls accepteres i filvælgeren, men bør eksporteres som .xlsx.</div>
 
           <div style="margin-top:.35rem"><b>Kontaktlærere og initialer:</b></div>
           <ul style="margin:.25rem 0 0 1.1rem">
@@ -269,16 +269,16 @@
       <div class="cardSubTitle">Import af faglærer-CSV’er (for kontaktlærere)</div>
       <div class="grid3">
         <div class="field">
-          <label>sang_vurderinger.csv</label>
-          <input accept=".csv,.txt" id="importSang" type="file"/>
+          <label>sang_vurderinger.csv / .xlsx</label>
+          <input accept=".csv,.txt,.xlsx,.xls,.xlsm" id="importSang" type="file"/>
         </div>
         <div class="field">
-          <label>gym_rolle_vurderinger.csv</label>
-          <input accept=".csv,.txt" id="importGym" type="file"/>
+          <label>gym_rolle_vurderinger.csv / .xlsx</label>
+          <input accept=".csv,.txt,.xlsx,.xls,.xlsm" id="importGym" type="file"/>
         </div>
         <div class="field">
-          <label>elevraad_vurderinger.csv</label>
-          <input accept=".csv,.txt" id="importElevraad" type="file"/>
+          <label>elevraad_vurderinger.csv / .xlsx</label>
+          <input accept=".csv,.txt,.xlsx,.xls,.xlsm" id="importElevraad" type="file"/>
         </div>
       </div>
 
