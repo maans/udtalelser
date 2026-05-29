@@ -2,7 +2,7 @@
 
 <html lang="da">
 <head>
-<!-- Skriv Lav PDF v19 2026-05-29: PDF preview pager, auto controls, reflow and date alignment -->
+<!-- Skriv Lav PDF v34 2026-05-29: PDF preview pager, auto controls, reflow and date alignment -->
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
 <title>Udtalelser v1.0 – standalone</title>
@@ -1275,7 +1275,40 @@ body.udt-readonly main.app{
           <div class="muted small">Brug placeholders som <code>{{ELEV_FORNAVN}}</code>, <code>{{SANG_AFSNIT}}</code>, <code>{{PRAKTISK_AFSNIT}}</code> osv.</div>
         </details>
 
-        <details class="fold" id="templatesShareFold">
+        
+        <details class="fold" id="doubleFirstNamesFold">
+          <summary>Dobbeltnavne / sammensatte fornavne</summary>
+          <div class="muted small" style="margin:.35rem 0 .6rem 0">
+            Ét navn pr. linje. Bruges kun til at bevare sammensatte fornavne, når appen kun har et fuldt navn at falde tilbage på.
+            Appen gætter ikke ud fra efternavnskolonnen.
+          </div>
+          <textarea id="doubleFirstNamesText" rows="8">Anne Sofie
+Anne Sophie
+Anna Sofie
+Anna Sophie
+Ida Marie
+Mads Emil
+Marie Louise
+Laura Marie
+Clara Marie
+Emma Sofie
+Emma Sophie
+Sofie Marie
+Sofia Marie
+Eva Skou
+Emilie Hagstrøm
+Christian Toftegaard
+Nanna Rosenvænge
+Søren Emil
+Karl Emil
+Carl Emil</textarea>
+          <div class="row gap wrap" style="margin:.5rem 0">
+            <button class="btn" id="btnSaveDoubleFirstNames" type="button">Gem dobbeltnavne</button>
+            <button class="btn ghost" id="btnRestoreDoubleFirstNames" type="button">Gendan standardliste</button>
+          </div>
+        </details>
+
+<details class="fold" id="templatesShareFold">
           <summary>Del / importér skabeloner (leder)</summary>
           <div class="muted small" style="margin:.35rem 0 .6rem 0">
             Gælder <b>Forstandernavn</b>, <b>Skolens standardtekst</b> og <b>Udtalelses-skabelon</b>. Download filen og del den med kolleger.
@@ -2513,27 +2546,13 @@ function _pdfSplitStatementText(st, settings){
   let bodyText = nl >= 0 ? raw.slice(nl+1) : '';
   while (bodyText.startsWith('\n')) bodyText = bodyText.slice(1);
 
-  let bodyForPre = bodyText;
-  let kontaktNavn = [st.kontaktlaerer1, st.kontaktlaerer2]
-    .filter(x => String(x||'').trim())
-    .map(x => String(x||'').trim()).join(' & ');
-  let forstanderNavn = String((settings && settings.forstanderName) || '').trim();
-  try {
-    const lines = String(bodyText || '').split('\n');
-    let sigIdx = -1;
-    for (let i=lines.length-1; i>=0; i--) {
-      const ln = lines[i] || '';
-      if (ln.includes('Kontaktlærere') && ln.includes('Forstander')) { sigIdx = i; break; }
-    }
-    if (sigIdx > 0) {
-      let cutStart = sigIdx - 1;
-      while (cutStart > 0 && !String(lines[cutStart - 1] || '').trim()) cutStart--;
-      const kept = lines.slice(0, cutStart);
-      while (kept.length && !String(kept[kept.length - 1] || '').trim()) kept.pop();
-      bodyForPre = kept.join('\n');
-    }
-  } catch(e) {}
-  return {titleLine, bodyForPre, kontaktNavn, forstanderNavn};
+  const teacherNames = _pdfTeacherNamesFromStudent(st, settings);
+  const kontaktNavn = teacherNames.join(' & ');
+  const kontaktLabel = _pdfTeacherRoleLabelFromNames(teacherNames);
+  const forstanderNavn = String((settings && settings.forstanderName) || 'Stinne Krogh Poulsen').trim();
+
+  let bodyForPre = _pdfStripKnownSignatureTail(bodyText, st, settings);
+  return {titleLine, bodyForPre, kontaktNavn, kontaktLabel, forstanderNavn};
 }
 function _pdfWrapText(ctx, text, maxWidth, fontSize, fontFamily){
   ctx.font = `${fontSize}px ${fontFamily || 'Arial'}`;
@@ -2685,7 +2704,8 @@ async function makePdfForStudents(students, settings, title, opts){
     const ctx=canvas.getContext('2d');
     const pageW=595.28, pageH=841.89;
     const layout = (opts && opts.layout) || {};
-    const fontScale = Math.max(55, Math.min(115, Number(layout.fontScale || 100))) / 100;
+    const fontScale = Math.max(55, Math.min(170, Number(layout.fontScale || 100))) / 100;
+    const pdfFontFamily = _pdfBaseFontName(layout.fontFamily || 'Arial');
     const marginMode = String(layout.marginMode || 'small');
     const marginX = marginMode === 'tiny' ? 24 : (marginMode === 'normal' ? 42 : 30);
     const justifyText = !!layout.justifyText;
@@ -2710,14 +2730,14 @@ async function makePdfForStudents(students, settings, title, opts){
       const autoFit = layout.autoFit !== false;
       const minFs = autoFit ? 5.8 : baseFs;
       for (let fs=baseFs; fs>=minFs; fs-=0.25) {
-        const lines = _pdfWrapText(ctx, part.bodyForPre, maxWidthPt, fs, 'Arial');
+        const lines = _pdfWrapText(ctx, part.bodyForPre, maxWidthPt, fs, layout.fontFamily || 'Arial');
         const lh = fs * 1.33;
         const totalH = lines.length * lh;
         if (!autoFit || bodyStartY - totalH >= bodyBottomY) { best = {fs, lh, lines}; break; }
       }
       if (!best) {
         const fs=5.6, lh=7.2;
-        best = {fs, lh, lines:_pdfWrapText(ctx, part.bodyForPre, maxWidthPt, fs, 'Arial')};
+        best = {fs, lh, lines:_pdfWrapText(ctx, part.bodyForPre, maxWidthPt, fs, layout.fontFamily || 'Arial')};
       }
       let stream='';
       // date top-right
@@ -2746,7 +2766,7 @@ async function makePdfForStudents(students, settings, title, opts){
         stream += _pdfLine(leftCx - lineW/2, sigLineY, leftCx + lineW/2, sigLineY, 0.65);
         stream += _pdfLine(rightCx - lineW/2, sigLineY, rightCx + lineW/2, sigLineY, 0.65);
         stream += _pdfCenteredTextAt(leftCx, sigNameY, 'F1', 10.2, part.kontaktNavn || '');
-        stream += _pdfCenteredTextAt(leftCx, sigLabelY, 'F1', 10.2, 'Kontaktlærere');
+        stream += _pdfCenteredTextAt(leftCx, sigLabelY, 'F1', 10.2, part.kontaktLabel || 'Kontaktlærer');
         stream += _pdfCenteredTextAt(rightCx, sigNameY, 'F1', 10.2, part.forstanderNavn || '');
         stream += _pdfCenteredTextAt(rightCx, sigLabelY, 'F1', 10.2, 'Forstander');
       }
@@ -2816,6 +2836,17 @@ function _pdfEnsurePreviewModal(){
         </div>
         <aside style="width:285px;max-width:38vw;border-left:1px solid rgba(255,255,255,.12);padding:10px;box-sizing:border-box;overflow:auto;background:#10151d">
           <div style="font-weight:700;margin-bottom:12px">Layout</div>
+          <div style="font-size:12px;opacity:.78;margin-bottom:6px;line-height:1.35">
+            <label style="display:block;margin:0 0 4px 0;color:inherit">Font</label>
+            <select id="pdfFontSelect" style="width:100%">
+              <option value="Arial" selected>Arial</option>
+              <option value="Helvetica">Helvetica</option>
+              <option value="Times New Roman">Times New Roman</option>
+              <option value="Georgia">Georgia</option>
+              <option value="Verdana">Verdana</option>
+              <option value="Trebuchet MS">Trebuchet MS</option>
+            </select>
+          </div>
           <div id="pdfFontInfo" style="font-size:12px;opacity:.78;margin-bottom:12px;line-height:1.35">Font: Arial · 10,2 pt → 11,2 pt</div>
           <label style="display:block;margin:0 0 14px 0">Størrelse<br><input id="pdfScaleRange" type="range" min="55" max="170" value="110" step="1" style="width:100%"><span id="pdfScaleLabel">110%</span></label>
           <label style="display:block;margin:0 0 14px 0">Margin<br><select id="pdfMarginSelect" style="width:100%"><option value="normal" selected>Normal</option><option value="small">Smal</option><option value="tiny">Meget smal</option></select></label>
@@ -2852,7 +2883,9 @@ function _pdfEnsurePreviewModal(){
     if (fontInfo) {
       const basePt = 10.2;
       const finalPt = basePt * (val / 100);
-      fontInfo.textContent = `Font: Arial · ${basePt.toFixed(1).replace('.', ',')} pt → ${finalPt.toFixed(1).replace('.', ',')} pt`;
+      const fontSel = m.querySelector('#pdfFontSelect');
+      const fontName = fontSel ? fontSel.value : 'Arial';
+      fontInfo.textContent = `Font: ${fontName} · ${basePt.toFixed(1).replace('.', ',')} pt → ${finalPt.toFixed(1).replace('.', ',')} pt`;
     }
     schedulePdfPreview();
   });
@@ -2860,6 +2893,20 @@ function _pdfEnsurePreviewModal(){
     const el = m.querySelector(sel);
     if (el) el.addEventListener('change', schedulePdfPreview);
   });
+  const fontSelect = m.querySelector('#pdfFontSelect');
+  if (fontSelect) {
+    const onFontChange = () => {
+      if (m.dataset) m.dataset.currentFont = fontSelect.value || 'Arial';
+      if (__pdfPreviewUrl) { try { URL.revokeObjectURL(__pdfPreviewUrl); } catch(_) {} __pdfPreviewUrl = null; }
+      const sr = m.querySelector('#pdfScaleRange');
+      if (sr && !m.dataset.userScale) m.dataset.userScale = sr.value || '110';
+      // Opdater straks både label og preview. Select på iPad kan være lidt langsom, så vi kører både nu og næste tick.
+      _pdfRenderPreview();
+      setTimeout(_pdfRenderPreview, 0);
+    };
+    fontSelect.addEventListener('change', onFontChange);
+    fontSelect.addEventListener('input', onFontChange);
+  }
   m.querySelector('#pdfPrevPage').addEventListener('click', () => {
     if (!__pdfPreviewCtx) return;
     __pdfPreviewCtx.pageIndex = Math.max(0, (__pdfPreviewCtx.pageIndex || 0) - 1);
@@ -2901,10 +2948,20 @@ async function _pdfShowPreview(students, settings, title, opts){
   const sl = m.querySelector('#pdfScaleLabel');
   if (sr) m.dataset.userScale = sr.value || '110';
   if (sr && sl) sl.textContent = sr.value + '%';
+  const fs = m.querySelector('#pdfFontSelect');
+  if (fs) {
+    const f = (m.dataset && m.dataset.currentFont) || fs.value || 'Arial';
+    fs.value = f;
+    if (m.dataset) m.dataset.currentFont = f;
+  }
   m.style.display = 'flex';
   await _pdfRenderPreview();
 }
 function _pdfCurrentLayoutFromModal(m){
+  const fs = m.querySelector('#pdfFontSelect');
+  const fontValue = (fs && fs.value) || (m && m.dataset && m.dataset.currentFont) || 'Arial';
+  if (m && m.dataset) m.dataset.currentFont = fontValue;
+  if (fs && fs.value !== fontValue) fs.value = fontValue;
   return {
     fontScale: Number(m.querySelector('#pdfScaleRange').value || 100),
     marginMode: m.querySelector('#pdfMarginSelect').value || 'small',
@@ -2912,7 +2969,8 @@ function _pdfCurrentLayoutFromModal(m){
     autoFit: !!m.querySelector('#pdfAutoFit').checked,
     logo: !!m.querySelector('#pdfShowLogo').checked,
     showDate: !!m.querySelector('#pdfShowDate').checked,
-    showSignatures: !!m.querySelector('#pdfShowSignatures').checked
+    showSignatures: !!m.querySelector('#pdfShowSignatures').checked,
+    fontFamily: fontValue
   };
 }
 
@@ -2941,35 +2999,31 @@ function _pdfGetTeacherNames(settings){
   return {teacher, head};
 }
 
-function _pdfTeacherRoleLabelFromName(name){
-  const s = String(name || '').trim();
-  if (!s) return 'Kontaktlærer';
-  // Flere lærere kan typisk stå med &, " og ", komma, skråstreg eller linjeskift.
-  if (/[&,/]|(\s+og\s+)|\n/.test(s)) return 'Kontaktlærere';
-  return 'Kontaktlærer';
-}
-
 function _pdfCleanTeacherNamePart(s){
   return String(s || '').replace(/\s+/g,' ').trim();
 }
 function _pdfTeacherNamesFromStudent(st, settings){
   const s = st || {};
   const set = settings || {};
-  // Prefer explicit names from the current student row if present.
   const candidates1 = [
-    s.kontaktlaerer1, s.kontaktlærer1, s.k1, s.kontaktlaerer_1,
-    s.kontaktlaerer1_navn, s.kontaktlærer1_navn, s.kontaktlaerer1Navn
+    s.kontaktlaerer1, s.kontaktlærer1, s.kontaktlaerer_1, s.kontaktlærer_1,
+    s.kontaktlaerer1_navn, s.kontaktlærer1_navn, s.kontaktlaerer1Navn,
+    s["Kontaktlærer1"], s["Kontaktlærer 1"], s["Kontaktlærer 1 navn"],
+    s["Kontaktlaerer1"], s["Kontaktlaerer 1"],
+    s.k1_navn, s.k1Navn
   ].map(_pdfCleanTeacherNamePart).filter(Boolean);
   const candidates2 = [
-    s.kontaktlaerer2, s.kontaktlærer2, s.k2, s.kontaktlaerer_2,
-    s.kontaktlaerer2_navn, s.kontaktlærer2_navn, s.kontaktlaerer2Navn
+    s.kontaktlaerer2, s.kontaktlærer2, s.kontaktlaerer_2, s.kontaktlærer_2,
+    s.kontaktlaerer2_navn, s.kontaktlærer2_navn, s.kontaktlaerer2Navn,
+    s["Kontaktlærer2"], s["Kontaktlærer 2"], s["Kontaktlærer 2 navn"],
+    s["Kontaktlaerer2"], s["Kontaktlaerer 2"],
+    s.k2_navn, s.k2Navn
   ].map(_pdfCleanTeacherNamePart).filter(Boolean);
 
   let names = [];
   if (candidates1[0]) names.push(candidates1[0]);
   if (candidates2[0] && candidates2[0] !== candidates1[0]) names.push(candidates2[0]);
 
-  // Some datasets use a combined teacher-name field.
   if (!names.length) {
     const combined = [
       s.kontaktlaerere, s.kontaktlærere, s.kontaktlaererNavne, s.kontaktlærerNavne,
@@ -2978,28 +3032,20 @@ function _pdfTeacherNamesFromStudent(st, settings){
     if (combined) names = combined.split(/\s*(?:&|,|\/|\bog\b)\s*/i).map(_pdfCleanTeacherNamePart).filter(Boolean);
   }
 
-  // Fallback to current app settings.
   if (!names.length) {
-    const fallback = _pdfGetTeacherNames(set).teacher;
-    names = String(fallback || '').split(/\s*(?:&|,|\/|\bog\b)\s*/i).map(_pdfCleanTeacherNamePart).filter(Boolean);
+    const fallback = _pdfGetTeacherNames(set).teacher || '';
+    names = String(fallback).split(/\s*(?:&|,|\/|\bog\b)\s*/i).map(_pdfCleanTeacherNamePart).filter(Boolean);
   }
 
-  // Last fallback.
   if (!names.length) names = ['Måns Patrik Mårtensson'];
 
-  // De-duplicate while preserving order.
   const seen = new Set();
-  names = names.filter(n => {
+  return names.filter(n => {
     const key = n.toLowerCase();
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
   });
-
-  return names;
-}
-function _pdfTeacherSignatureName(st, settings){
-  return _pdfTeacherNamesFromStudent(st, settings).join(' & ');
 }
 function _pdfTeacherRoleLabelFromNames(names){
   return (Array.isArray(names) && names.length > 1) ? 'Kontaktlærere' : 'Kontaktlærer';
@@ -3012,39 +3058,51 @@ function _pdfStripKnownSignatureTail(text, st, settings){
     .map(x => String(x || '').trim())
     .filter(Boolean);
 
-  // Find earliest occurrence of any full known signature component after the first half of the text.
-  // This avoids cutting a name if it appears in normal prose near the beginning.
-  const minCut = Math.floor(s.length * 0.55);
+  const minCut = Math.floor(s.length * 0.48);
   let cut = -1;
   for (const k of known) {
     const i = s.indexOf(k);
     if (i >= minCut && (cut < 0 || i < cut)) cut = i;
   }
 
-  // Fallback: after the closing wish sentence, any following names/titles are signature tail.
-  const wish = 'ønsker';
-  const wi = s.lastIndexOf(wish);
-  if (wi >= 0) {
-    const afterWish = s.slice(wi);
-    const endMarkers = ['fremover.', 'lykke fremover.', 'held og lykke fremover.'];
-    for (const marker of endMarkers) {
-      const mi = afterWish.toLowerCase().indexOf(marker);
-      if (mi >= 0) {
-        const end = wi + mi + marker.length;
+  // Keep the normal closing sentence; cut anything after it if it looks like signature material.
+  const lower = s.toLowerCase();
+  for (const marker of ['held og lykke fremover.', 'lykke fremover.', 'fremover.']) {
+    const i = lower.lastIndexOf(marker);
+    if (i > 0) {
+      const end = i + marker.length;
+      const tail = s.slice(end).trim();
+      if (tail && /kontaktlærer|kontaktlærere|forstander|&|[A-ZÆØÅ][a-zæøå]+/.test(tail)) {
         if (cut < 0 || end < cut) cut = end;
-        break;
       }
+      break;
     }
   }
 
-  if (cut > 0) {
-    let before = s.slice(0, cut).trim();
-    before = before.replace(/\s*&\s*$/,'').trim();
-    return before;
-  }
+  if (cut > 0) return s.slice(0, cut).replace(/\s*&\s*$/,'').trim();
   return s;
 }
-
+function _pdfFontFamilyCss(name){
+  const font = String(name || 'Arial').trim();
+  // Vigtigt: ingen dobbelte citationstegn her, fordi værdien indsættes i style="..."
+  // Fontnavne med mellemrum fungerer i praksis fint uquoted i font-family.
+  const safe = {
+    'Arial':'Arial, Helvetica, sans-serif',
+    'Helvetica':'Helvetica, Arial, sans-serif',
+    'Times New Roman':'Times New Roman, Times, serif',
+    'Georgia':'Georgia, serif',
+    'Verdana':'Verdana, Geneva, sans-serif',
+    'Trebuchet MS':'Trebuchet MS, Arial, sans-serif'
+  };
+  return safe[font] || safe['Arial'];
+}
+function _pdfBaseFontName(name){
+  // Den indbyggede PDF-generator har Helvetica/Times som sikre PDF-basisfonte.
+  // Preview kan vise flere systemfonte; PDF falder tilbage til Helvetica for sans-serif-fonte.
+  const font = String(name || 'Arial').trim();
+  if (font === 'Times New Roman' || font === 'Georgia') return 'Times';
+  return 'Helvetica';
+}
 
 async function _pdfRenderHtmlPreviewOnly(){
   const m = _pdfEnsurePreviewModal();
@@ -3065,6 +3123,9 @@ async function _pdfRenderHtmlPreviewOnly(){
   if (pagerWrap) pagerWrap.style.display = n <= 1 ? 'none' : 'flex';
 
   const layout = _pdfCurrentLayoutFromModal(m);
+  const fontSelectNow = m.querySelector('#pdfFontSelect');
+  if (fontSelectNow) fontSelectNow.value = layout.fontFamily || 'Arial';
+  if (m.dataset) m.dataset.currentFont = layout.fontFamily || 'Arial';
   const st = students[idx];
   if (!st) { box.innerHTML = ''; status.textContent = 'Ingen side'; return; }
 
@@ -3104,11 +3165,13 @@ async function _pdfRenderHtmlPreviewOnly(){
     const dateHtml = layout.showDate ? `<div style="position:absolute;right:22mm;top:22mm;font-size:${8.5*scale}px">${_pdfEscapeHtml(headerDateText || '')}</div>` : '';
     const sigHtml = layout.showSignatures ? `<div class="pdfPreviewSig" style="position:absolute;left:0;right:0;bottom:15mm;display:flex;justify-content:center;gap:28mm;font-size:${8.1*scale}px;text-align:center"><div style="width:48mm"><div style="border-top:1px solid #111;padding-top:1.8mm">${_pdfEscapeHtml(teacherSignatureName)}</div><div>${_pdfEscapeHtml(teacherRole)}</div></div><div style="width:48mm"><div style="border-top:1px solid #111;padding-top:1.8mm">${_pdfEscapeHtml(names.head)}</div><div>Forstander</div></div></div>` : '';
     const bodyHtml = paras.map(p=>`<p style="margin:0 0 ${2.7*scale}mm 0;text-align:${textAlign}">${_pdfEscapeHtml(p).replace(/\n/g,'<br>')}</p>`).join('');
-    box.innerHTML = `${dateHtml}<div class="pdfPreviewPageInner" style="box-sizing:border-box;width:100%;height:100%;padding:${marginCss};font-family:Arial, Helvetica, sans-serif;font-size:${fontSize}px;line-height:${lineHeight};position:relative">${logoHtml}<h1 style="font-size:${12.2*scale}px;text-align:center;margin:0 0 6mm 0;font-weight:700">${_pdfEscapeHtml(title)}</h1><div class="pdfPreviewBody" style="max-width:100%;padding-bottom:${layout.showSignatures ? '38mm' : '0'}">${bodyHtml}</div>${sigHtml}</div>`;
+    box.innerHTML = `${dateHtml}<div class="pdfPreviewPageInner" style="box-sizing:border-box;width:100%;height:100%;padding:${marginCss};font-family:${_pdfFontFamilyCss(layout.fontFamily)};font-size:${fontSize}px;line-height:${lineHeight};position:relative">${logoHtml}<h1 style="font-size:${12.2*scale}px;text-align:center;margin:0 0 6mm 0;font-weight:700">${_pdfEscapeHtml(title)}</h1><div class="pdfPreviewBody" style="max-width:100%;padding-bottom:${layout.showSignatures ? '38mm' : '0'}">${bodyHtml}</div>${sigHtml}</div>`;
+    void box.offsetHeight;
   };
 
   let effectiveScale = chosenScale;
   await renderAtScale(effectiveScale);
+  await new Promise(r => requestAnimationFrame(r));
 
   if (layout.autoFit) {
     for (let i=0; i<18; i++) {
@@ -3139,6 +3202,7 @@ async function _pdfRenderHtmlPreviewOnly(){
         effectiveScale = Math.max(minScale, effectiveScale - 0.018);
       }
       await renderAtScale(effectiveScale);
+      await new Promise(r => requestAnimationFrame(r));
     }
   }
 
@@ -3157,7 +3221,7 @@ async function _pdfRenderHtmlPreviewOnly(){
     const chosenPt = basePt * chosenScale;
     const finalPt = basePt * effectiveScale;
     const extra = (layout.autoFit && Math.abs(finalPt - chosenPt) > 0.05) ? ' · autotilpasset' : '';
-    fontInfo.textContent = `Font: Arial · ${chosenPt.toFixed(1).replace('.', ',')} pt → ${finalPt.toFixed(1).replace('.', ',')} pt${extra}`;
+    fontInfo.textContent = `Font: ${layout.fontFamily || 'Arial'} · ${chosenPt.toFixed(1).replace('.', ',')} pt → ${finalPt.toFixed(1).replace('.', ',')} pt${extra}`;
   }
 
   try {
@@ -4410,14 +4474,31 @@ function normalizePlaceholderKey(key) {
 
 
 
-  function callName(rawFirstName) {
-    // HU-data: hvis fornavn-feltet indeholder ekstra efternavn, brug kun første ord.
-    // Behold bindestreg-navne (fx Anne-Sofie) uændret.
-    const s = (rawFirstName ?? '').toString().trim();
-    if (!s) return '';
-    const parts = s.split(/\s+/).filter(Boolean);
-    return parts.length ? parts[0] : s;
-  }
+  function callName(raw) {
+  const s = String(raw || '').trim();
+  if (!s) return '';
+
+  const parts = s.split(/\s+/).filter(Boolean);
+  if (parts.length <= 1) return s;
+
+  // Brug den redigerbare dobbeltnavneliste, ikke en separat hardcodet liste.
+  let known = [];
+  try {
+    if (typeof getDoubleFirstNames === 'function') known = getDoubleFirstNames();
+  } catch(e) {}
+  known = (known || [])
+    .map(x => String(x || '').trim())
+    .filter(Boolean)
+    .sort((a,b) => b.length - a.length);
+
+  const lower = s.toLowerCase();
+  const match = known.find(name => {
+    const n = name.toLowerCase();
+    return lower === n || lower.startsWith(n + ' ');
+  });
+
+  return match || parts[0] || s;
+}
   function normalizeHeader(input) { return normalizeName(input).replace(/[^a-z0-9]+/g, ""); }
 
   // ---------- util ----------
@@ -4851,7 +4932,144 @@ function setStudents(studs){ lsSet(KEYS.students, studs); rebuildAliasMapFromStu
       .trim();
   }
 
-  function buildStatement(student, settings) {
+  
+const DEFAULT_DOUBLE_FIRSTNAMES = [
+  'Anne Sofie',
+  'Anne Sophie',
+  'Anna Sofie',
+  'Anna Sophie',
+  'Ida Marie',
+  'Mads Emil',
+  'Marie Louise',
+  'Laura Marie',
+  'Clara Marie',
+  'Emma Sofie',
+  'Emma Sophie',
+  'Sofie Marie',
+  'Sofia Marie',
+  'Eva Skou',
+  'Emilie Hagstrøm',
+  'Christian Toftegaard',
+  'Nanna Rosenvænge',
+  'Søren Emil',
+  'Karl Emil',
+  'Carl Emil'
+];
+const KEY_DOUBLE_FIRSTNAMES = 'udt_double_firstnames_v1';
+
+function getDoubleFirstNames(){
+  let local = [];
+  try {
+    const raw = localStorage.getItem(KEY_DOUBLE_FIRSTNAMES);
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) local = arr.map(x => String(x||'').trim()).filter(Boolean);
+    }
+  } catch(e) {}
+
+  // Bevar brugerens egne tilføjelser, men sørg for at nye standardnavne også kommer med.
+  const merged = Array.from(new Set([...DEFAULT_DOUBLE_FIRSTNAMES, ...local].filter(Boolean)));
+  try { localStorage.setItem(KEY_DOUBLE_FIRSTNAMES, JSON.stringify(merged)); } catch(e) {}
+  return merged;
+}
+function setDoubleFirstNames(list){
+  const cleaned = Array.from(new Set((Array.isArray(list) ? list : [])
+    .map(x => String(x||'').trim())
+    .filter(Boolean)));
+  localStorage.setItem(KEY_DOUBLE_FIRSTNAMES, JSON.stringify(cleaned));
+  return cleaned;
+}
+function parseDoubleFirstNamesText(text){
+  return String(text||'')
+    .split(/\n|,/)
+    .map(x => x.trim())
+    .filter(Boolean);
+}
+
+function compoundFirstNameForStudent(st){
+  const rawFirst = String((st && (st.fornavn || st.firstName || st["Fornavn"])) || '').trim();
+  const rawLast = String((st && (st.efternavn || st.lastName || st["Efternavn"])) || '').trim();
+  const rawFull = String((st && (st.navn || st.name || st.fullName || st["Navn"])) || '').trim();
+
+  const known = getDoubleFirstNames()
+    .map(x => String(x||'').trim())
+    .filter(Boolean)
+    .sort((a,b) => b.length - a.length);
+
+  function whitelistMatchAtStart(value){
+    const v = String(value || '').trim().toLowerCase();
+    if (!v) return '';
+    const match = known.find(name => {
+      const n = name.toLowerCase();
+      return v === n || v.startsWith(n + ' ');
+    });
+    return match || '';
+  }
+
+  // 1) Normal ikke-destruktiv regel:
+  // Hvis fornavnsfeltet indeholder flere ord, bevares kun et sammensat fornavn,
+  // når starten står på dobbeltnavnelisten. Ellers bruges første ord som kaldenavn.
+  if (rawFirst) {
+    const parts = rawFirst.split(/\s+/).filter(Boolean);
+    if (parts.length > 1) return whitelistMatchAtStart(rawFirst) || parts[0] || rawFirst;
+
+    // 2) Legacy-reparation ved visning:
+    // Gamle backups kan have fornavn="Mads", efternavn="Emil Tolstrup Sørensen",
+    // men stadig navn="Mads Emil Tolstrup Sørensen".
+    // Vi rekonstruerer kun fornavnet i tekst/PDF, hvis navnet står eksplicit på listen.
+    const displayFull = rawFull || `${rawFirst} ${rawLast}`.trim();
+    const fullMatch = whitelistMatchAtStart(displayFull);
+    if (fullMatch && fullMatch.toLowerCase().startsWith(rawFirst.toLowerCase() + ' ')) return fullMatch;
+
+    return rawFirst;
+  }
+
+  const displayFull = rawFull || rawLast;
+  return displayFull ? (whitelistMatchAtStart(displayFull) || displayFull.split(/\s+/).filter(Boolean)[0] || '') : '';
+}
+
+
+function refreshDoubleFirstNamesUI(force){
+  const ta = document.getElementById('doubleFirstNamesText');
+  if (ta && (force || !ta.value.trim())) ta.value = getDoubleFirstNames().join('\n');
+}
+function bindDoubleFirstNamesUI(){
+  const ta = document.getElementById('doubleFirstNamesText');
+  const save = document.getElementById('btnSaveDoubleFirstNames');
+  const restore = document.getElementById('btnRestoreDoubleFirstNames');
+  if (!ta || ta.dataset.bound === '1') return;
+  ta.dataset.bound = '1';
+  refreshDoubleFirstNamesUI(true);
+  if (save) save.addEventListener('click', () => {
+    setDoubleFirstNames(parseDoubleFirstNamesText(ta.value));
+    refreshDoubleFirstNamesUI(true);
+    try { toast('Dobbeltnavne gemt.'); } catch(_) {}
+  });
+  if (restore) restore.addEventListener('click', () => {
+    setDoubleFirstNames(DEFAULT_DOUBLE_FIRSTNAMES);
+    refreshDoubleFirstNamesUI(true);
+    try { toast('Standardliste gendannet.'); } catch(_) {}
+  });
+}
+
+
+function escapeRegExpForUdt(s){
+  return String(s || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+function postprocessCompoundFirstNameText(text, student){
+  let out = String(text || '');
+  const compound = (typeof compoundFirstNameForStudent === 'function') ? compoundFirstNameForStudent(student) : '';
+  const rawFirst = String((student && (student.fornavn || student.firstName || student["Fornavn"])) || '').trim();
+  const simple = rawFirst.split(/\s+/).filter(Boolean)[0] || '';
+  if (!compound || !simple || compound === simple) return out;
+
+  // Erstat kun fritstående simple kaldenavne, og ikke når de allerede står som starten af compound-navnet.
+  const secondPart = compound.slice(simple.length).trim().split(/\s+/)[0] || '';
+  const re = new RegExp(`\\b${escapeRegExpForUdt(simple)}\\b(?!\\s+${escapeRegExpForUdt(secondPart)}\\b)`, 'g');
+  return out.replace(re, compound);
+}
+
+function buildStatement(student, settings) {
     const tpls = getTemplates();
     const period = computePeriod(settings.schoolYearEnd);
 
@@ -4911,12 +5129,12 @@ if (chosen && erObj[chosen]) {
 }
 
     const fullName = `${student.fornavn} ${student.efternavn}`.trim();
-    const firstName = callName(student.fornavn);
+    const firstName = compoundFirstNameForStudent(student);
     const pr = pronouns(student.koen);
     const snMap = {
-      "ELEV_FORNAVN": (student.fornavn||'').trim(),
+      "ELEV_FORNAVN": firstName,
       "ELEV_NAVN": fullName,
-      "FORNAVN": (student.fornavn||'').trim(),
+      "FORNAVN": firstName,
       "NAVN": fullName,
       "HAN_HUN": pr.HAN_HUN,
       "HAM_HENDE": pr.HAM_HENDE,
@@ -5033,7 +5251,7 @@ if (chosen && erObj[chosen]) {
       .concat((!hasRolleSlot ? [rolleAfsnit] : []))
       .filter(Boolean).join('\n\n');
     out = applyPlaceholders(out, placeholderMap);
-    return cleanSpacing(out);
+    return postprocessCompoundFirstNameText(cleanSpacing(out), student);
   }
 
   async function readFileText(file) { return await file.text(); }
@@ -5120,23 +5338,11 @@ if (chosen && erObj[chosen]) {
   function normalizeStudentRow(row, map, teacherOverrides) {
     const get = (field) => (row[map[field]] ?? '').trim();
 
-    // Rens fornavn-felt: nogle elever har et "ekstra efternavn" i fornavn-kolonnen.
-    // Regel: hvis fornavn har flere ord og IKKE indeholder bindestreg, så bruges første ord som kaldnavn,
-    // og resten flyttes over i efternavn (foran eksisterende efternavn).
-    const fornavnRaw = get('fornavn');
-    let efternavnRaw = get('efternavn');
-
-    let fornavn = fornavnRaw;
-    if (fornavnRaw && !fornavnRaw.includes('-')) {
-      const parts = fornavnRaw.split(/\s+/).filter(Boolean);
-      if (parts.length > 1) {
-        fornavn = parts[0];
-        const extraSurname = parts.slice(1).join(' ');
-        efternavnRaw = (extraSurname + ' ' + (efternavnRaw || '')).trim();
-      }
-    }
-
-    const efternavn = efternavnRaw;
+    // Ikke-destruktiv import:
+    // Bevar fornavn og efternavn præcis som de står i regnearket/backuppen.
+    // Dobbeltnavne håndteres kun ved visning/placeholders/PDF via dobbeltnavnelisten.
+    const fornavn = get('fornavn');
+    const efternavn = get('efternavn');
     const unilogin = get('unilogin') || (normalizeName((fornavn + ' ' + efternavn)).replace(/\s/g, '') + '_missing');
     const koen = normalizeGender(get('koen'));
 const klasse = get('klasse');
@@ -8295,6 +8501,34 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 });
+
+
+
+
+
+
+(function doubleFirstNamesPrefillBoot(){
+  const run = () => {
+    try {
+      bindDoubleFirstNamesUI();
+      refreshDoubleFirstNamesUI(true);
+    } catch(e) { console.error(e); }
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
+  else run();
+  setTimeout(run, 250);
+  setTimeout(run, 1000);
+})();
+
+
+
+
+(function doubleFirstNamesUIDelegatedRefresh(){
+  document.addEventListener('click', () => {
+    setTimeout(() => { try { bindDoubleFirstNamesUI(); } catch(e) {} }, 0);
+  }, true);
+})();
+
 </script>
 <input type="file" id="importTemplatesInput" accept=".json" hidden>
 
