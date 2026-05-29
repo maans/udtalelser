@@ -2,7 +2,7 @@
 
 <html lang="da">
 <head>
-<!-- Skriv Lav PDF v16 2026-05-29: PDF preview pager, auto controls, reflow and date alignment -->
+<!-- Skriv Lav PDF v19 2026-05-29: PDF preview pager, auto controls, reflow and date alignment -->
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
 <title>Udtalelser v1.0 – standalone</title>
@@ -2940,6 +2940,112 @@ function _pdfGetTeacherNames(settings){
   const head = s.forstanderName || s.forstanderNavn || 'Stinne Krogh Poulsen';
   return {teacher, head};
 }
+
+function _pdfTeacherRoleLabelFromName(name){
+  const s = String(name || '').trim();
+  if (!s) return 'Kontaktlærer';
+  // Flere lærere kan typisk stå med &, " og ", komma, skråstreg eller linjeskift.
+  if (/[&,/]|(\s+og\s+)|\n/.test(s)) return 'Kontaktlærere';
+  return 'Kontaktlærer';
+}
+
+function _pdfCleanTeacherNamePart(s){
+  return String(s || '').replace(/\s+/g,' ').trim();
+}
+function _pdfTeacherNamesFromStudent(st, settings){
+  const s = st || {};
+  const set = settings || {};
+  // Prefer explicit names from the current student row if present.
+  const candidates1 = [
+    s.kontaktlaerer1, s.kontaktlærer1, s.k1, s.kontaktlaerer_1,
+    s.kontaktlaerer1_navn, s.kontaktlærer1_navn, s.kontaktlaerer1Navn
+  ].map(_pdfCleanTeacherNamePart).filter(Boolean);
+  const candidates2 = [
+    s.kontaktlaerer2, s.kontaktlærer2, s.k2, s.kontaktlaerer_2,
+    s.kontaktlaerer2_navn, s.kontaktlærer2_navn, s.kontaktlaerer2Navn
+  ].map(_pdfCleanTeacherNamePart).filter(Boolean);
+
+  let names = [];
+  if (candidates1[0]) names.push(candidates1[0]);
+  if (candidates2[0] && candidates2[0] !== candidates1[0]) names.push(candidates2[0]);
+
+  // Some datasets use a combined teacher-name field.
+  if (!names.length) {
+    const combined = [
+      s.kontaktlaerere, s.kontaktlærere, s.kontaktlaererNavne, s.kontaktlærerNavne,
+      s.kontaktgruppeLaerere, s.kontaktgruppeLærere, s.kLaerere, s.kLærere
+    ].map(_pdfCleanTeacherNamePart).find(Boolean);
+    if (combined) names = combined.split(/\s*(?:&|,|\/|\bog\b)\s*/i).map(_pdfCleanTeacherNamePart).filter(Boolean);
+  }
+
+  // Fallback to current app settings.
+  if (!names.length) {
+    const fallback = _pdfGetTeacherNames(set).teacher;
+    names = String(fallback || '').split(/\s*(?:&|,|\/|\bog\b)\s*/i).map(_pdfCleanTeacherNamePart).filter(Boolean);
+  }
+
+  // Last fallback.
+  if (!names.length) names = ['Måns Patrik Mårtensson'];
+
+  // De-duplicate while preserving order.
+  const seen = new Set();
+  names = names.filter(n => {
+    const key = n.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  return names;
+}
+function _pdfTeacherSignatureName(st, settings){
+  return _pdfTeacherNamesFromStudent(st, settings).join(' & ');
+}
+function _pdfTeacherRoleLabelFromNames(names){
+  return (Array.isArray(names) && names.length > 1) ? 'Kontaktlærere' : 'Kontaktlærer';
+}
+function _pdfStripKnownSignatureTail(text, st, settings){
+  let s = String(text || '').replace(/\r/g,'').trim();
+  const teacherNames = _pdfTeacherNamesFromStudent(st, settings);
+  const head = (_pdfGetTeacherNames(settings || {}).head || 'Stinne Krogh Poulsen');
+  const known = [...teacherNames, head, 'Kontaktlærere', 'Kontaktlærer', 'Forstander']
+    .map(x => String(x || '').trim())
+    .filter(Boolean);
+
+  // Find earliest occurrence of any full known signature component after the first half of the text.
+  // This avoids cutting a name if it appears in normal prose near the beginning.
+  const minCut = Math.floor(s.length * 0.55);
+  let cut = -1;
+  for (const k of known) {
+    const i = s.indexOf(k);
+    if (i >= minCut && (cut < 0 || i < cut)) cut = i;
+  }
+
+  // Fallback: after the closing wish sentence, any following names/titles are signature tail.
+  const wish = 'ønsker';
+  const wi = s.lastIndexOf(wish);
+  if (wi >= 0) {
+    const afterWish = s.slice(wi);
+    const endMarkers = ['fremover.', 'lykke fremover.', 'held og lykke fremover.'];
+    for (const marker of endMarkers) {
+      const mi = afterWish.toLowerCase().indexOf(marker);
+      if (mi >= 0) {
+        const end = wi + mi + marker.length;
+        if (cut < 0 || end < cut) cut = end;
+        break;
+      }
+    }
+  }
+
+  if (cut > 0) {
+    let before = s.slice(0, cut).trim();
+    before = before.replace(/\s*&\s*$/,'').trim();
+    return before;
+  }
+  return s;
+}
+
+
 async function _pdfRenderHtmlPreviewOnly(){
   const m = _pdfEnsurePreviewModal();
   if (!__pdfPreviewCtx) return;
@@ -2967,9 +3073,12 @@ async function _pdfRenderHtmlPreviewOnly(){
   if (!headerDateText) { headerDateText = new Date().toLocaleDateString('da-DK',{month:'long',year:'numeric'}); if (headerDateText) headerDateText = headerDateText.charAt(0).toUpperCase()+headerDateText.slice(1); }
 
   const names = _pdfGetTeacherNames(__pdfPreviewCtx.settings || {});
+  const teacherNames = _pdfTeacherNamesFromStudent(st, __pdfPreviewCtx.settings || {});
+  const teacherSignatureName = teacherNames.join(' & ');
+  const teacherRole = _pdfTeacherRoleLabelFromNames(teacherNames);
   let txt = '';
   try { txt = buildStatement(st, __pdfPreviewCtx.settings || {}); } catch(e) { txt = ''; }
-  txt = _pdfStripSignatureTailFromPreview(txt);
+  txt = _pdfStripKnownSignatureTail(txt, st, __pdfPreviewCtx.settings || {});
   const lines = String(txt || '').replace(/\r/g,'').split('\n');
   const title = (lines.shift() || '').trim();
   const paras = lines.join('\n').split(/\n\s*\n/).map(p=>p.trim()).filter(Boolean);
@@ -2993,7 +3102,7 @@ async function _pdfRenderHtmlPreviewOnly(){
     const fontSize = basePt * scale;
     const lineHeight = 1.24;
     const dateHtml = layout.showDate ? `<div style="position:absolute;right:22mm;top:22mm;font-size:${8.5*scale}px">${_pdfEscapeHtml(headerDateText || '')}</div>` : '';
-    const sigHtml = layout.showSignatures ? `<div class="pdfPreviewSig" style="position:absolute;left:0;right:0;bottom:15mm;display:flex;justify-content:center;gap:28mm;font-size:${8.1*scale}px;text-align:center"><div style="width:48mm"><div style="border-top:1px solid #111;padding-top:1.8mm">${_pdfEscapeHtml(names.teacher)}</div><div>Kontaktlærere</div></div><div style="width:48mm"><div style="border-top:1px solid #111;padding-top:1.8mm">${_pdfEscapeHtml(names.head)}</div><div>Forstander</div></div></div>` : '';
+    const sigHtml = layout.showSignatures ? `<div class="pdfPreviewSig" style="position:absolute;left:0;right:0;bottom:15mm;display:flex;justify-content:center;gap:28mm;font-size:${8.1*scale}px;text-align:center"><div style="width:48mm"><div style="border-top:1px solid #111;padding-top:1.8mm">${_pdfEscapeHtml(teacherSignatureName)}</div><div>${_pdfEscapeHtml(teacherRole)}</div></div><div style="width:48mm"><div style="border-top:1px solid #111;padding-top:1.8mm">${_pdfEscapeHtml(names.head)}</div><div>Forstander</div></div></div>` : '';
     const bodyHtml = paras.map(p=>`<p style="margin:0 0 ${2.7*scale}mm 0;text-align:${textAlign}">${_pdfEscapeHtml(p).replace(/\n/g,'<br>')}</p>`).join('');
     box.innerHTML = `${dateHtml}<div class="pdfPreviewPageInner" style="box-sizing:border-box;width:100%;height:100%;padding:${marginCss};font-family:Arial, Helvetica, sans-serif;font-size:${fontSize}px;line-height:${lineHeight};position:relative">${logoHtml}<h1 style="font-size:${12.2*scale}px;text-align:center;margin:0 0 6mm 0;font-weight:700">${_pdfEscapeHtml(title)}</h1><div class="pdfPreviewBody" style="max-width:100%;padding-bottom:${layout.showSignatures ? '38mm' : '0'}">${bodyHtml}</div>${sigHtml}</div>`;
   };
